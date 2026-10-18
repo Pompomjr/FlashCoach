@@ -262,6 +262,35 @@ describe('effets de la séance', () => {
     expect(annonce).toHaveBeenCalledWith(expect.stringMatching(/\S/));
   });
 
+  it('montre la figurine figée pendant « À suivre », animée pendant l’effort, figée en pause', async () => {
+    jest.spyOn(AccessibilityInfo, 'isReduceMotionEnabled').mockResolvedValue(false);
+    await renderRouter(ROUTES, { initialUrl: SEANCE });
+    expect(await screen.findByText('À suivre')).toBeTruthy();
+    const instantane = () => JSON.stringify(screen.getByRole('image', { name: /^Illustration : / }));
+    const transition = instantane();
+    await act(async () => {
+      jest.advanceTimersByTime(1500);
+    });
+    expect(instantane()).toBe(transition);
+
+    await act(async () => {
+      jest.advanceTimersByTime(3600);
+    });
+    expect(screen.queryByText('À suivre')).toBeNull();
+    const effort = instantane();
+    await act(async () => {
+      jest.advanceTimersByTime(700);
+    });
+    expect(instantane()).not.toBe(effort);
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Pause' }));
+    const pause = instantane();
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+    expect(instantane()).toBe(pause);
+  });
+
   it('retient les exercices de la séance pour la prochaine fois', async () => {
     await renderRouter(ROUTES, { initialUrl: SEANCE });
     expect(await screen.findByText('1 / 8')).toBeTruthy();

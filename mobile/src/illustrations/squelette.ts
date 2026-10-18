@@ -10,15 +10,18 @@ export type Jambe = { hanche: number; genou: number; cheville: number };
 export type Pose = {
   vue: 'face' | 'profil'; racine: Point; tronc: number; tete: number;
   brasGauche: Bras; brasDroit: Bras; jambeGauche: Jambe; jambeDroite: Jambe;
-  /** Courbure du dos en unités du cadre, sans modifier les longueurs des membres. */
+  /** Courbure du dos en unités du cadre (flèche au milieu du tronc), sans modifier les longueurs des
+   * membres : positive, le dos s'arrondit (chat) ; négative, il se creuse (vache). */
   dos?: number;
+  /** Ouverture de la poitrine, de 0 (repos) à 1 (inspiration pleine) : seul le dessin du tronc change. */
+  poitrine?: number;
   /** Recale verticalement le pied porteur lors de l'échantillonnage du cycle. */
   appuiPieds?: boolean;
 };
 
 export const SOL_Y = 180;
 export const LONGUEURS = {
-  tronc: 42, cou: 6, tete: 11, rayonTete: 10,
+  tronc: 42, cou: 6, tete: 11, rayonTete: 11.5,
   bras: 26, avantBras: 24, cuisse: 34, tibia: 34, pied: 13,
   demiEpaules: 14, demiBassin: 8,
 } as const;
@@ -77,16 +80,19 @@ export function interpolerPose(a: Pose, b: Pose, t: number): Pose {
     brasGauche: bras(a.brasGauche, b.brasGauche), brasDroit: bras(a.brasDroit, b.brasDroit),
     jambeGauche: jambe(a.jambeGauche, b.jambeGauche), jambeDroite: jambe(a.jambeDroite, b.jambeDroite),
     ...(a.dos !== undefined || b.dos !== undefined ? { dos: melanger(a.dos ?? 0, b.dos ?? 0, t) } : {}),
+    ...(a.poitrine !== undefined || b.poitrine !== undefined
+      ? { poitrine: melanger(a.poitrine ?? 0, b.poitrine ?? 0, t) } : {}),
     ...(a.appuiPieds && b.appuiPieds ? { appuiPieds: true } : {}),
   };
 }
 
-/** Clés de même vue, régulièrement espacées ; easing sinusoïdal, dernière → première. */
-export function poseALinstant(cles: Pose[], t: number): Pose {
+/** Clés de même vue, régulièrement espacées, dernière → première. Easing sinusoïdal (le geste marque
+ * chaque clé) ou, pour un mouvement circulaire, vitesse constante (`continu`). */
+export function poseALinstant(cles: Pose[], t: number, continu = false): Pose {
   if (!cles.length) throw new Error('Une animation doit contenir au moins une pose.');
   const position = modulo(t, 1) * cles.length;
   const i = Math.floor(position);
-  const progression = (1 - Math.cos(Math.PI * (position - i))) / 2;
+  const progression = continu ? position - i : (1 - Math.cos(Math.PI * (position - i))) / 2;
   const pose = interpolerPose(cles[i], cles[(i + 1) % cles.length], progression);
   if (!pose.appuiPieds) return pose;
   // La racine interpolée seule ferait pénétrer les pieds dans le sol lors d'un squat.

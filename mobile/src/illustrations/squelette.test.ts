@@ -43,3 +43,13 @@ test('boucle continue avec easing et clé unique', () => {
   expect(poseALinstant([DEBOUT], .7)).toEqual(DEBOUT);
   expect(() => poseALinstant([], 0)).toThrow();
 });
+
+test('vitesse constante en mode continu', () => {
+  const cles = [DEBOUT, { ...DEBOUT, tronc: 40 }];
+  expect(poseALinstant(cles, .25, true).tronc).toBeCloseTo(20);
+  expect(poseALinstant(cles, .125, true).tronc).toBeCloseTo(10);
+});
+
+test('la poitrine s’interpole comme le dos', () => {
+  expect(interpolerPose(DEBOUT, { ...DEBOUT, poitrine: 1 }, .5).poitrine).toBeCloseTo(.5);
+});

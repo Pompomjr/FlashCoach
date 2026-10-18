@@ -1,11 +1,12 @@
 import * as Haptics from 'expo-haptics';
 import { Redirect, router, useIsFocused, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { AccessibilityInfo, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { EXERCICES } from '../src/catalogue/exercices';
 import { genererSeance } from '../src/generateur/generer';
+import { Figurine } from '../src/illustrations/Figurine';
 import type { ParametresSeance } from '../src/generateur/types';
 import { ajouterEntree, creerIdentifiant, mettreAJourEntree } from '../src/journal/journal';
 import { ecrireDerniersExercices } from '../src/preferences/preferences';
@@ -17,8 +18,22 @@ import { useLecteurSeance } from '../src/seance/useLecteurSeance';
 import { Bouton } from '../src/ui/Bouton';
 import { Icone } from '../src/ui/icones';
 import { LIBELLES_PHASE } from '../src/ui/libelles';
-import { CIBLE_MIN, COULEURS, ESPACE, RAYON, TYPO } from '../src/ui/theme';
+import { CIBLE_MIN, COULEURS, ELEVATION, ESPACE, RAYON, TYPO } from '../src/ui/theme';
 import { ondulation } from '../src/ui/toucher';
+
+const PADDING_CARTE = 16;
+// Hauteur occupée par tout ce qui n'est pas la figurine (en-tête, textes de la carte, minuteur, actions).
+const HAUTEUR_HORS_FIGURINE = 530;
+
+// La figurine en grand : environ 45 % de la hauteur utile, carrée, sans dépasser la largeur de la carte
+// ni pousser les actions hors de l'écran.
+function useTailleFigurine() {
+  const { width, height } = useWindowDimensions();
+  const { top, bottom } = useSafeAreaInsets();
+  const utile = height - top - bottom;
+  const largeur = width - 2 * ESPACE - 2 * PADDING_CARTE;
+  return Math.round(Math.max(160, Math.min(largeur, utile * 0.45, utile - HAUTEUR_HORS_FIGURINE)));
+}
 
 export default function EcranSeance() {
   const { contexte, ressenti, duree, graine, exclure } = useLocalSearchParams<{
@@ -43,6 +58,8 @@ function LecteurSeance({ parametres }: { parametres: ParametresSeance }) {
   const bloc = etat.blocs[etat.index];
   const cote = coteCourant(etat);
   const aLeFocus = useIsFocused();
+  const tailleFigurine = useTailleFigurine();
+  const enTransition = etat.etape === 'transition';
   const [idJournal] = useState(creerIdentifiant);
   // Vrai quand la séance se termine par « Terminer la séance » plutôt que d'aller au bout.
   const termineeParUtilisateur = useRef(false);
@@ -143,7 +160,17 @@ function LecteurSeance({ parametres }: { parametres: ParametresSeance }) {
         </View>
 
         <View style={styles.carte} accessibilityLiveRegion="polite">
-          <Text style={styles.phase}>{etat.etape === 'transition' ? 'À suivre' : LIBELLES_PHASE[bloc.phase]}</Text>
+          <Text style={styles.phase}>{enTransition ? 'À suivre' : LIBELLES_PHASE[bloc.phase]}</Text>
+          {/* « À suivre » montre le geste à venir, immobile ; il s'anime pendant l'effort, se fige en pause. */}
+          <View style={styles.illustration}>
+            <Figurine
+              exerciceId={bloc.exercice.id}
+              libelle={bloc.exercice.nom}
+              anime={!enTransition}
+              enPause={etat.enPause}
+              taille={tailleFigurine}
+            />
+          </View>
           <Text style={styles.nom}>{bloc.exercice.nom}</Text>
           {cote !== null && <Text style={styles.cote}>{cote === 'gauche' ? 'Côté gauche' : 'Côté droit'}</Text>}
           <Text style={styles.consigne}>{bloc.exercice.consigne}</Text>
@@ -168,13 +195,14 @@ function LecteurSeance({ parametres }: { parametres: ParametresSeance }) {
 
 const styles = StyleSheet.create({
   ecran: { flex: 1, backgroundColor: COULEURS.fond },
-  contenu: { flexGrow: 1, padding: ESPACE, gap: 16 },
+  contenu: { flexGrow: 1, padding: ESPACE, gap: 12 },
   entete: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   retour: { width: CIBLE_MIN, height: CIBLE_MIN, borderRadius: CIBLE_MIN / 2, alignItems: 'center', justifyContent: 'center' },
   compteur: { ...TYPO.titleMedium, color: COULEURS.texte },
-  carte: { backgroundColor: COULEURS.carteClaire, borderRadius: RAYON, padding: 24, gap: 8, minHeight: 220, justifyContent: 'center' },
+  carte: { backgroundColor: COULEURS.carteClaire, borderRadius: RAYON, padding: PADDING_CARTE, gap: 6, ...ELEVATION.niveau1 },
+  illustration: { alignItems: 'center' },
   phase: { ...TYPO.bodyMedium, color: COULEURS.texteSombre, fontWeight: '700', textTransform: 'uppercase' },
-  nom: { ...TYPO.headlineMedium, color: COULEURS.texteSombre },
+  nom: { ...TYPO.headlineMedium, color: COULEURS.texteSombre, marginTop: 4 },
   cote: { ...TYPO.titleMedium, color: COULEURS.texteSombre },
   consigne: { ...TYPO.bodyLarge, color: COULEURS.texteSombre },
   minuteur: { ...TYPO.displayLarge, color: COULEURS.texte, textAlign: 'center', fontVariant: ['tabular-nums'] },

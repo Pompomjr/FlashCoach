@@ -1,6 +1,8 @@
+import { MUR, RAYONS } from './dessin';
 import { calculerPoints, LONGUEURS, SOL_Y, type Bras, type Jambe, type Point, type Pose } from './squelette';
 
-export type AnimationFigurine = { cles: Pose[]; dureeCycleMs: number; accessoire?: 'mur' };
+/** `continu` : vitesse constante d'une clé à l'autre, pour un geste circulaire sans à-coups. */
+export type AnimationFigurine = { cles: Pose[]; dureeCycleMs: number; accessoire?: 'mur'; continu?: boolean };
 const bras = (epaule = 0, coude = 0): Bras => ({ epaule, coude });
 const jambe = (hanche = 0, genou = 0, cheville = -hanche - genou): Jambe => ({ hanche, genou, cheville });
 const debout = (vue: Pose['vue'] = 'profil'): Pose => ({
@@ -25,7 +27,8 @@ function brasVers(pose: Pose, gauche: Point, droite: Point): Pose {
 }
 
 const calme = debout('face');
-const inspiration = { ...calme, brasGauche: bras(-18, -25), brasDroit: bras(18, 25), dos: -2 };
+// La poitrine s'ouvre et les bras s'écartent un peu du corps, coudes souples.
+const inspiration: Pose = { ...calme, poitrine: 1, brasGauche: bras(-26, -18), brasDroit: bras(26, 18) };
 const REPLI: AnimationFigurine = { cles: [calme, inspiration], dureeCycleMs: 6000 };
 
 const squatHaut = { ...debout(), appuiPieds: true, brasGauche: bras(65, 20), brasDroit: bras(65, 20) };
@@ -36,7 +39,9 @@ const squatBas: Pose = { ...squatHaut, racine: { x: 81, y: SOL_Y - 34 * (Math.co
 function pompe(inclinaison: number): Pose {
   const pose: Pose = { ...debout(), racine: { x: 110 + 68 * Math.sin(rad(inclinaison)), y: SOL_Y - 68 * Math.cos(rad(inclinaison)) },
     tronc: inclinaison, jambeGauche: jambe(-inclinaison), jambeDroite: jambe(-inclinaison) };
-  return brasVers(pose, { x: 164, y: 82 }, { x: 164, y: 86 });
+  // Mains à plat contre le mur, à hauteur d'épaules.
+  const contact = MUR.x - RAYONS.main - 0.5;
+  return brasVers(pose, { x: contact, y: 80 }, { x: contact, y: 84 });
 }
 
 const marcheDroite: Pose = { ...debout(), appuiPieds: true, jambeDroite: jambe(90, -90),
@@ -49,10 +54,13 @@ const fenteDroite: Pose = { ...debout(), appuiPieds: true, racine: { x: 100, y: 
   brasGauche: bras(10, 90), brasDroit: bras(10, 90) };
 const fenteGauche: Pose = { ...fenteDroite, jambeDroite: fenteDroite.jambeGauche, jambeGauche: fenteDroite.jambeDroite };
 
-const quatrePattes: Pose = { ...debout(), racine: { x: 75, y: 146 }, tronc: 75,
-  jambeGauche: jambe(0, -90, 90), jambeDroite: jambe(0, -90, 90) };
-const chat = brasVers({ ...quatrePattes, tete: 35, dos: -13 }, { x: 133, y: SOL_Y }, { x: 139, y: SOL_Y });
-const vache = brasVers({ ...quatrePattes, tete: -25, dos: 9 }, { x: 133, y: SOL_Y }, { x: 139, y: SOL_Y });
+// Genoux sous les hanches, mains sous les épaules, cou-de-pied à plat derrière.
+const quatrePattes: Pose = { ...debout(), racine: { x: 70, y: SOL_Y - LONGUEURS.cuisse }, tronc: 70,
+  jambeGauche: jambe(0, -90, -90), jambeDroite: jambe(0, -90, -90) };
+const mainsAuSol = (pose: Pose) => brasVers(pose, { x: 110, y: SOL_Y }, { x: 115, y: SOL_Y });
+// Chat : le dos s'arrondit vers le plafond, la tête rentre. Vache : le dos se creuse, le regard monte.
+const chat = mainsAuSol({ ...quatrePattes, tete: 55, dos: 14 });
+const vache = mainsAuSol({ ...quatrePattes, tete: -40, dos: -11 });
 
 // Avant-bras horizontaux au sol, jambes tendues, pointe de pied en appui.
 const anglePlanche = 80;
@@ -61,18 +69,17 @@ const planche: Pose = { ...debout(), racine: { x: 90, y: 180 - 26 + 42 * Math.co
   jambeDroite: jambe(-anglePlanche, 0, 48), jambeGauche: jambe(-anglePlanche, 0, 48) };
 
 export const POSES_PAR_EXERCICE: Record<string, AnimationFigurine> = {
-  'rotation-epaules': { cles: [
-    { ...calme, brasGauche: bras(-20, -125), brasDroit: bras(20, 125) },
-    { ...calme, brasGauche: bras(-100, -90), brasDroit: bras(100, 90) },
-    { ...calme, brasGauche: bras(-55, -135), brasDroit: bras(55, 135) },
-  ], dureeCycleMs: 5000 },
+  // De profil, bouts des doigts sur les épaules : le coude dessine un grand cercle (avant, haut, arrière, bas).
+  // En haut, le coude passe un peu en arrière de la tête pour ne pas masquer le visage.
+  'rotation-epaules': { cles: [0, 90, 200, 290].map(angle => ({ ...debout(),
+    brasGauche: bras(angle - 4, -165), brasDroit: bras(angle + 4, -165) })), dureeCycleMs: 5000, continu: true },
   // Deux poses répétées donnent inspire / maintien / expire / maintien de 4 s.
   'respiration-carree': { cles: [calme, inspiration, inspiration, calme], dureeCycleMs: 16000 },
   'inclinaison-laterale': { cles: [
     { ...calme, tronc: -18, brasGauche: bras(-170, -10), brasDroit: bras(170, 10) },
     { ...calme, tronc: 18, brasGauche: bras(-170, -10), brasDroit: bras(170, 10) },
   ], dureeCycleMs: 6000 },
-  'pompes-mur': { cles: [pompe(5), pompe(18)], dureeCycleMs: 2000, accessoire: 'mur' },
+  'pompes-mur': { cles: [pompe(5), pompe(16)], dureeCycleMs: 2000, accessoire: 'mur' },
   'squat-lent': { cles: [squatHaut, squatBas], dureeCycleMs: 5000 },
   'marche-genoux-hauts': { cles: [marcheDroite, { ...debout(), appuiPieds: true }, marcheGauche, { ...debout(), appuiPieds: true }], dureeCycleMs: 1800 },
   'jumping-jacks': { cles: [calme, { ...calme, racine: { x: 100, y: 112 },
@@ -80,7 +87,8 @@ export const POSES_PAR_EXERCICE: Record<string, AnimationFigurine> = {
     jambeGauche: jambe(-25), jambeDroite: jambe(25) }], dureeCycleMs: 1400 },
   'fentes-arriere': { cles: [{ ...debout(), appuiPieds: true }, fenteDroite, { ...debout(), appuiPieds: true }, fenteGauche], dureeCycleMs: 6000 },
   'chat-vache': { cles: [chat, vache], dureeCycleMs: 6000 },
-  'planche': { cles: [planche, { ...planche, dos: -1.5 }], dureeCycleMs: 5000 },
+  // On tient : seul le souffle soulève à peine le dos.
+  'planche': { cles: [planche, { ...planche, dos: 1.2 }], dureeCycleMs: 5000 },
 };
 
 export function posesPour(exerciceId: string): AnimationFigurine {

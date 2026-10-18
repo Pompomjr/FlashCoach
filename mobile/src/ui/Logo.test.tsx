@@ -20,4 +20,17 @@ describe('Marque', () => {
     expect(screen.getByRole('header', { name: 'Flash Coach' })).toBeTruthy();
     expect(screen.queryByRole('image')).toBeNull();
   });
+
+  it('met le logo en grand au-dessus du nom, plus petit sur un écran court', async () => {
+    const largeurLogo = () =>
+      screen
+        .getAllByLabelText('Flash Coach', { includeHiddenElements: true })
+        .map((element) => element.props.style?.width)
+        .find((largeur) => largeur !== undefined);
+    await render(<Marque />);
+    expect(screen.getByText('Flash Coach', { includeHiddenElements: true })).toBeTruthy();
+    expect(largeurLogo()).toBe(76);
+    await screen.rerender(<Marque compacte />);
+    expect(largeurLogo()).toBe(48);
+  });
 });

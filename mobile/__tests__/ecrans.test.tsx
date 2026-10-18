@@ -1,5 +1,5 @@
 /// <reference path="../node_modules/expo-router/build/ts-declarations/expect.d.ts" />
-import { fireEvent, waitFor } from '@testing-library/react-native';
+import { fireEvent, waitFor, within } from '@testing-library/react-native';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { act, renderRouter, screen } from 'expo-router/testing-library';
@@ -72,6 +72,19 @@ describe('écran de départ', () => {
     await renderRouter(ROUTES, { initialUrl: '/' });
     expect(await screen.findByRole('header', { name: 'Flash Coach' })).toBeTruthy();
     expect(screen.getByText('Où que tu sois, 5 minutes pour te sentir mieux.')).toBeTruthy();
+  });
+
+  it('centre le logo et le nom, avec « Mon journal » en bouton icône et des titres de section', async () => {
+    await renderRouter(ROUTES, { initialUrl: '/' });
+    const marque = await screen.findByRole('header', { name: 'Flash Coach' });
+    expect(within(marque).getByText('Flash Coach', { includeHiddenElements: true })).toBeTruthy();
+    const journal = screen.getByRole('button', { name: 'Mon journal' });
+    expect(within(journal).getByTestId('icone-journal', { includeHiddenElements: true })).toBeTruthy();
+    expect(journal).toHaveStyle({ width: 48, height: 48, position: 'absolute' });
+    expect(screen.queryByText('Mon journal')).toBeNull();
+    for (const titre of ['Où es-tu ?', 'Comment tu te sens ?', 'Combien de temps ?']) {
+      expect(screen.getByRole('header', { name: titre })).toBeTruthy();
+    }
   });
 
   it('dessine une icône sur chaque carte de contexte et de ressenti, sans emoji', async () => {

@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { contexteDisponible } from '../src/abonnement/acces';
@@ -20,15 +20,18 @@ import { ICONE_CONTEXTE, ICONE_RESSENTI, Icone } from '../src/ui/icones';
 import { LIBELLES_RESSENTI } from '../src/ui/libelles';
 import { Marque } from '../src/ui/Logo';
 import { CIBLE_MIN, COULEURS, ESPACE, TYPO } from '../src/ui/theme';
-import { ondulation } from '../src/ui/toucher';
+import { enfoncement, ondulation } from '../src/ui/toucher';
 
 const MESSAGE_PREMIUM = 'Bientôt avec Premium';
+// En dessous de cette hauteur (dp), l'en-tête rétrécit pour que tout tienne sans défilement.
+const HAUTEUR_COMPACTE = 780;
 
 // Zéro configuration : tout est présélectionné, un seul tap suffit pour lancer la séance.
 export default function Depart() {
   const [choix, setChoix] = useState<Choix>(CHOIX_PAR_DEFAUT);
   const [derniersExercices, setDerniersExercices] = useState<string[]>([]);
   const [message, setMessage] = useState<string | null>(null);
+  const compacte = useWindowDimensions().height < HAUTEUR_COMPACTE;
 
   // Nombre de choix faits par l'utilisateur : une lecture démarrée avant ne doit pas écraser sa sélection.
   const choixUtilisateur = useRef(0);
@@ -109,22 +112,26 @@ export default function Depart() {
   return (
     <SafeAreaView style={styles.ecran}>
       <ScrollView contentContainerStyle={styles.contenu}>
-        <View style={styles.entete}>
-          <Marque />
+        <View style={[styles.entete, compacte && styles.enteteCompact]}>
+          <Marque compacte={compacte} />
+          <Text style={[styles.slogan, compacte && styles.sloganCompact]}>
+            Où que tu sois, 5 minutes pour te sentir mieux.
+          </Text>
+          {/* Hors du flux : le bloc logo, nom et slogan reste centré sur l'écran. */}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Mon journal"
             onPress={ouvrirJournal}
             android_ripple={ondulation(COULEURS.texte)}
-            style={styles.cibleJournal}
+            style={({ pressed }) => [styles.boutonJournal, enfoncement(pressed)]}
           >
-            <Icone nom="journal" />
-            <Text style={styles.lienJournal}>Mon journal</Text>
+            <Icone nom="journal" taille={26} />
           </Pressable>
         </View>
-        <Text style={styles.slogan}>Où que tu sois, 5 minutes pour te sentir mieux.</Text>
 
-        <Text style={styles.section}>Où es-tu ?</Text>
+        <Text style={styles.section} accessibilityRole="header">
+          Où es-tu ?
+        </Text>
         <View style={styles.grille}>
           {contextes.map((contexte) => (
             <CarteOption
@@ -147,7 +154,9 @@ export default function Depart() {
           </View>
         )}
 
-        <Text style={styles.section}>Comment tu te sens ?</Text>
+        <Text style={styles.section} accessibilityRole="header">
+          Comment tu te sens ?
+        </Text>
         <View style={styles.grille}>
           {RESSENTIS.map((ressenti) => (
             <CarteOption
@@ -161,7 +170,9 @@ export default function Depart() {
           ))}
         </View>
 
-        <Text style={styles.section}>Combien de temps ?</Text>
+        <Text style={styles.section} accessibilityRole="header">
+          Combien de temps ?
+        </Text>
         <View style={styles.ligne}>
           {DUREES.map((duree) => (
             <CarteOption
@@ -183,14 +194,23 @@ export default function Depart() {
 
 const styles = StyleSheet.create({
   ecran: { flex: 1, backgroundColor: COULEURS.fond },
-  contenu: { padding: ESPACE, paddingBottom: ESPACE * 2, gap: 12 },
-  // Si la place manque (grande police), le lien passe sous la marque, toujours calé à droite.
-  entete: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', columnGap: 12 },
-  // Cible tactile d'au moins 48 dp, seule ou en rangée avec la marque.
-  cibleJournal: { minHeight: CIBLE_MIN, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 8, marginLeft: 'auto' },
-  lienJournal: { ...TYPO.labelLarge, color: COULEURS.texte, textDecorationLine: 'underline' },
-  slogan: { ...TYPO.bodyLarge, color: COULEURS.texteDiscret, marginBottom: 8 },
-  section: { ...TYPO.titleLarge, color: COULEURS.texte, marginTop: 12 },
+  contenu: { padding: ESPACE, gap: 12 },
+  entete: { alignItems: 'center', gap: 4, marginBottom: 4 },
+  enteteCompact: { gap: 2, marginBottom: 0 },
+  boutonJournal: {
+    position: 'absolute',
+    top: -4,
+    right: -8,
+    width: CIBLE_MIN,
+    height: CIBLE_MIN,
+    borderRadius: CIBLE_MIN / 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  slogan: { ...TYPO.bodyLarge, color: COULEURS.texteDiscret, textAlign: 'center' },
+  sloganCompact: TYPO.bodyMedium,
+  section: { ...TYPO.headlineSmall, color: COULEURS.texte, marginTop: 8 },
   grille: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   ligne: { flexDirection: 'row', gap: 10 },
   demiLargeur: { flexBasis: '47%', flexGrow: 1 },

@@ -21,19 +21,25 @@ export function Logo({ taille }: LogoProps) {
   );
 }
 
-// Logo et nom côte à côte : le titre de l'écran de départ. Lu une seule fois, comme un titre.
-export function Marque() {
+interface MarqueProps {
+  // Écran court (≈ 740 dp) : logo et nom plus petits, pour que le départ tienne sans défilement.
+  compacte?: boolean;
+}
+
+// Logo en grand, le nom dessous : le titre de l'écran de départ. Lu une seule fois, comme un titre.
+export function Marque({ compacte = false }: MarqueProps) {
   return (
-    <View style={styles.marque} accessible accessibilityRole="header" accessibilityLabel="Flash Coach">
+    <View style={[styles.marque, compacte && styles.marqueCompacte]} accessible accessibilityRole="header" accessibilityLabel="Flash Coach">
       <View aria-hidden>
-        <Logo taille={40} />
+        <Logo taille={compacte ? 48 : 76} />
       </View>
-      <Text style={styles.nom}>Flash Coach</Text>
+      <Text style={[styles.nom, compacte ? TYPO.headlineMedium : TYPO.displaySmall]}>Flash Coach</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  marque: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  nom: { ...TYPO.headlineMedium, color: COULEURS.texte },
+  marque: { alignItems: 'center', gap: 6 },
+  marqueCompacte: { gap: 2 },
+  nom: { color: COULEURS.texte, textAlign: 'center' },
 });

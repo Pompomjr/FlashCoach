@@ -1,0 +1,45 @@
+import { calculerPoints, interpolerPose, poseALinstant, type Pose } from './squelette';
+
+export const DEBOUT: Pose = {
+  vue: 'profil', racine: { x: 100, y: 112 }, tronc: 0, tete: 0,
+  brasGauche: { epaule: 0, coude: 0 }, brasDroit: { epaule: 0, coude: 0 },
+  jambeGauche: { hanche: 0, genou: 0, cheville: 0 },
+  jambeDroite: { hanche: 0, genou: 0, cheville: 0 },
+};
+
+test('cinématique debout : dimensions et articulations connues', () => {
+  const p = calculerPoints(DEBOUT);
+  for (const [nom, attendu] of Object.entries({ bassin: [100,112], cou: [100,64], tete: [100,53],
+    epauleDroite: [103,70], coudeDroit: [103,96], mainDroite: [103,120],
+    genouDroit: [103,146], chevilleDroite: [103,180], orteilsDroits: [116,180] })) {
+    const point = p[nom as keyof typeof p];
+    expect(point.x).toBeCloseTo(attendu[0], 0);
+    expect(point.y).toBeCloseTo(attendu[1], 0);
+  }
+});
+
+test('interpolation aux bornes et milieu, sans mutation', () => {
+  const b = { ...DEBOUT, racine: { x: 120, y: 100 }, tronc: 40 };
+  expect(interpolerPose(DEBOUT, b, 0)).toEqual(DEBOUT);
+  expect(interpolerPose(DEBOUT, b, 1)).toEqual(b);
+  expect(interpolerPose(DEBOUT, b, .5)).toMatchObject({ racine: { x: 110, y: 106 }, tronc: 20 });
+  expect(DEBOUT.racine.y).toBe(112);
+});
+
+test('350 vers 10 traverse zéro pour chaque angle', () => {
+  const a = { ...DEBOUT, tronc: 350, brasDroit: { epaule: 350, coude: 350 } };
+  const b = { ...DEBOUT, tronc: 10, brasDroit: { epaule: 10, coude: 10 } };
+  const p = interpolerPose(a, b, .5);
+  expect(p.tronc % 360).toBe(0);
+  expect(p.brasDroit.coude % 360).toBe(0);
+});
+
+test('boucle continue avec easing et clé unique', () => {
+  const cles = [DEBOUT, { ...DEBOUT, tronc: 40 }];
+  expect(poseALinstant(cles, .5).tronc).toBe(40);
+  expect(poseALinstant(cles, .125).tronc).toBeCloseTo(5.857864);
+  expect(poseALinstant(cles, 1 - 1e-7).tronc).toBeCloseTo(0, 5);
+  expect(poseALinstant(cles, 1)).toEqual(poseALinstant(cles, 0));
+  expect(poseALinstant([DEBOUT], .7)).toEqual(DEBOUT);
+  expect(() => poseALinstant([], 0)).toThrow();
+});

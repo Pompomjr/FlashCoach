@@ -1,5 +1,6 @@
 import type { Exercice } from '../catalogue/types';
 import { choisirAuHasard, creerAleatoire } from './aleatoire';
+import { tailleAppariement } from './appariement';
 import { cibleDePhase, correspond, type Cible } from './cibles';
 import { filtrerCatalogue } from './filtres';
 import { STRUCTURE_PAR_DUREE } from './structure';
@@ -10,7 +11,10 @@ const NIVEAUX: NiveauAssouplissement[] = [0, 1, 2, 3, 4];
 interface Situation {
   precedent: Exercice | undefined;
   cible: Cible;
-  // Cibles des phases suivantes : on évite de leur prendre un exercice idéal.
+  // Cibles des places restantes, après celle-ci, et exercices encore inutilisés pour les remplir.
+  placesAVenir: Cible[];
+  libres: Exercice[];
+  // Cibles des phases suivantes : à appariement égal, on évite encore de leur prendre un exercice idéal.
   ciblesAVenir: Cible[];
   recents: Set<string>;
 }
@@ -23,12 +27,21 @@ function distance(exercice: Exercice, cible: Cible): number {
   return 3;
 }
 
+// Places restantes qui ne pourront plus être idéales si l'on prend cet exercice.
+// Choisir à chaque place un exercice sans perte garantit le niveau 0 dès qu'un appariement complet existe.
+function perte(exercice: Exercice, situation: Situation, appariementActuel: () => number): number {
+  const { placesAVenir, libres } = situation;
+  if (!libres.includes(exercice) || !placesAVenir.some((aVenir) => correspond(exercice, aVenir, 0))) return 0;
+  return appariementActuel() - tailleAppariement(placesAVenir, libres.filter((libre) => libre !== exercice));
+}
+
 // Clé de préférence, comparée dans l'ordre : plus petit = mieux.
-function cle(exercice: Exercice, situation: Situation): number[] {
+function cle(exercice: Exercice, situation: Situation, appariementActuel: () => number): number[] {
   const { precedent, cible, ciblesAVenir, recents } = situation;
   return [
     precedent !== undefined && precedent.id === exercice.id ? 1 : 0,
     distance(exercice, cible),
+    perte(exercice, situation, appariementActuel),
     recents.has(exercice.id) ? 1 : 0,
     ciblesAVenir.some((aVenir) => correspond(exercice, aVenir, 0)) ? 1 : 0,
     precedent !== undefined && precedent.zone === exercice.zone ? 1 : 0,
@@ -43,7 +56,10 @@ function comparerCles(a: number[], b: number[]): number {
 }
 
 function departager(candidats: Exercice[], situation: Situation, alea: () => number): Exercice {
-  const cles = candidats.map((exercice) => cle(exercice, situation));
+  // Calculé au plus une fois, et seulement si un candidat est idéal pour une place restante.
+  let taille: number | undefined;
+  const appariementActuel = () => (taille ??= tailleAppariement(situation.placesAVenir, situation.libres));
+  const cles = candidats.map((exercice) => cle(exercice, situation, appariementActuel));
   const meilleure = cles.reduce((min, courante) => (comparerCles(courante, min) < 0 ? courante : min));
   return choisirAuHasard(
     candidats.filter((_, index) => comparerCles(cles[index], meilleure) === 0),
@@ -64,12 +80,17 @@ export function genererSeance(params: ParametresSeance, catalogue: Exercice[]): 
   const blocs: Bloc[] = [];
   let assouplissement: NiveauAssouplissement = 0;
   const structure = STRUCTURE_PAR_DUREE[params.duree];
+  const places = structure.flatMap((plan) =>
+    Array.from({ length: plan.nombre }, () => cibleDePhase(plan.phase, params.ressenti)),
+  );
 
   structure.forEach((plan, indexPhase) => {
     const cible = cibleDePhase(plan.phase, params.ressenti);
     const ciblesAVenir = structure.slice(indexPhase + 1).map((suivant) => cibleDePhase(suivant.phase, params.ressenti));
     for (let i = 0; i < plan.nombre; i++) {
       const precedent = blocs.length > 0 ? blocs[blocs.length - 1].exercice : undefined;
+      const placesAVenir = places.slice(blocs.length + 1);
+      const libres = compatibles.filter((exercice) => !utilises.has(exercice.id));
       let place = false;
       // 2-3. Classer selon la cible et choisir, en assouplissant niveau par niveau.
       for (const niveau of NIVEAUX) {
@@ -77,7 +98,7 @@ export function genererSeance(params: ParametresSeance, catalogue: Exercice[]): 
           (exercice) => (niveau >= 3 || !utilises.has(exercice.id)) && correspond(exercice, cible, niveau),
         );
         if (candidats.length === 0) continue;
-        const exercice = departager(candidats, { precedent, cible, ciblesAVenir, recents }, alea);
+        const exercice = departager(candidats, { precedent, cible, placesAVenir, libres, ciblesAVenir, recents }, alea);
         utilises.add(exercice.id);
         blocs.push({ exercice, phase: plan.phase, transitionS: plan.transitionS, effortS: plan.effortS });
         if (niveau > assouplissement) assouplissement = niveau;

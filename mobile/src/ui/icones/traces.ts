@@ -32,7 +32,8 @@ export const TRACES = {
   // Éclair.
   en_forme: ['M13 2.5 5 13.5h6l-1 8 8-11h-6z'],
   cadenas: [rect(5, 11, 14, 10, 2.5), 'M8 11V8a4 4 0 0 1 8 0v3', 'M12 15v2.5'],
-  retour: ['M15 5l-7 7 7 7'],
+  // Flèche retour Material (arrow_back).
+  retour: ['M19 12H5', 'M12 19l-7-7 7-7'],
   // Carnet à reliure.
   journal: [rect(5, 3, 14, 18, 2.5), 'M9 3v18', 'M12.5 8h3', 'M12.5 12h3'],
   mieux: [cercle(12, 12, 9), point(9, 9.5), point(15, 9.5), 'M8 14.5a5 5 0 0 0 8 0'],

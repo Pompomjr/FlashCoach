@@ -11,15 +11,15 @@ const hauteurMin = (points: { y: number }[]) => Math.min(...points.map((p) => p.
 test.each(ANIMATIONS)('%s : tout le dessin reste dans le cadre et rien ne passe sous le sol', (id) => {
   const animation = posesPour(id);
   const cadre = cadrer(animation.cles, animation.continu, animation.accessoire === 'mur');
-  expect(cadre.taille).toBeGreaterThanOrEqual(150);
-  expect(cadre.taille).toBeLessThanOrEqual(200);
+  expect(Math.min(cadre.largeur, cadre.hauteur)).toBeGreaterThanOrEqual(110);
+  expect(Math.max(cadre.largeur, cadre.hauteur)).toBeLessThanOrEqual(210);
   for (const t of instants(48)) {
     const dessin = dessinerFigurine(poseALinstant(animation.cles, t, animation.continu));
     const { minX, minY, maxX, maxY } = dessin.bornes;
     expect(minX).toBeGreaterThanOrEqual(cadre.x);
     expect(minY).toBeGreaterThanOrEqual(cadre.y);
-    expect(maxX).toBeLessThanOrEqual(cadre.x + cadre.taille);
-    expect(maxY).toBeLessThanOrEqual(cadre.y + cadre.taille);
+    expect(maxX).toBeLessThanOrEqual(cadre.x + cadre.largeur);
+    expect(maxY).toBeLessThanOrEqual(cadre.y + cadre.hauteur);
     expect(minX).toBeGreaterThanOrEqual(0);
     expect(maxX).toBeLessThanOrEqual(200);
     expect(minY).toBeGreaterThanOrEqual(0);
@@ -104,9 +104,20 @@ test('respiration : la poitrine s’ouvre et les bras montent légèrement', () 
   expect(calculerPoints(inspiration).mainDroite.y).toBeLessThan(calculerPoints(calme).mainDroite.y - 3);
 });
 
-test('planche : cadrée au milieu de la carte, pas tassée en bas', () => {
-  const animation = posesPour('planche');
-  const cadre = cadrer(animation.cles);
-  const sol = (SOL_Y - cadre.y) / cadre.taille;
-  expect(sol).toBeLessThan(0.75);
+test('cadre ajusté à la pose : large et bas pour la planche, haut et étroit debout', () => {
+  const planche = posesPour('planche');
+  const couche = cadrer(planche.cles);
+  expect(couche.largeur / couche.hauteur).toBeGreaterThan(1.5);
+  const debout = cadrer(posesPour('inconnu').cles);
+  expect(debout.hauteur).toBeGreaterThan(debout.largeur);
+});
+
+test('un visage : cheveux avec queue de cheval et un œil de profil, frange et deux yeux de face', () => {
+  const teintes = (pose: Pose) => dessinerFigurine(pose).formes.map((forme) => forme.teinte);
+  const profil = teintes(posesPour('squat-lent').cles[0]);
+  expect(profil.filter((t) => t === 'cheveux')).toHaveLength(3);
+  expect(profil.filter((t) => t === 'oeil')).toHaveLength(1);
+  const face = teintes(posesPour('inconnu').cles[0]);
+  expect(face.filter((t) => t === 'cheveux')).toHaveLength(1);
+  expect(face.filter((t) => t === 'oeil')).toHaveLength(2);
 });

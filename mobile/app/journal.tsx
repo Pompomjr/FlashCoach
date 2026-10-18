@@ -8,7 +8,7 @@ import { Figurine } from '../src/illustrations/Figurine';
 import { formaterBilan, formaterDate, texteResume } from '../src/journal/affichage';
 import { lireJournal, resumeJournal, type EntreeJournal } from '../src/journal/journal';
 import { stockageTelephone } from '../src/preferences/stockage';
-import { ICONE_APRES, ICONE_CONTEXTE, ICONE_RESSENTI, Icone } from '../src/ui/icones';
+import { ICONE_APRES, ICONE_CONTEXTE, Icone } from '../src/ui/icones';
 import { LIBELLES_RESSENTI } from '../src/ui/libelles';
 import { CIBLE_MIN, COULEURS, ELEVATION, ESPACE, RAYON, TYPO } from '../src/ui/theme';
 import { ondulation } from '../src/ui/toucher';
@@ -72,7 +72,7 @@ export default function Journal() {
           ListHeaderComponent={
             <View style={styles.resume}>
               <View style={styles.iconeResume}>
-                <Icone nom="mieux" taille={28} couleur={COULEURS.orange} />
+                <Icone nom="mieux" taille={26} couleur={COULEURS.texteSurOrange} />
               </View>
               <Text style={styles.texteResume}>{resume}</Text>
             </View>
@@ -105,29 +105,18 @@ function LigneJournal({ entree }: { entree: EntreeJournal }) {
         {iconeContexte !== undefined && <Icone nom={iconeContexte} taille={22} />}
       </View>
       <View style={styles.corps}>
-        {/* Les icônes avant → après partagent la ligne de la date : le texte principal garde toute la largeur. */}
-        <View style={styles.enHaut}>
-          <Text style={styles.date}>{date}</Text>
-          <View style={styles.ressentis}>
-            <Icone nom={ICONE_RESSENTI[entree.ressenti]} taille={20} couleur={COULEURS.texteDiscret} />
-            {entree.apres !== null && (
-              <>
-                <View style={styles.fleche}>
-                  <Icone nom="retour" taille={14} couleur={COULEURS.texteDiscret} />
-                </View>
-                {/* Sur la carte bleue, l'orange seul manque de contraste : l'icône se pose sur une pastille. */}
-                <View style={styles.pastilleApres}>
-                  <Icone nom={ICONE_APRES[entree.apres]} taille={18} couleur={COULEURS.texteSurOrange} />
-                </View>
-              </>
-            )}
-          </View>
-        </View>
+        <Text style={styles.date}>{date}</Text>
         <Text style={styles.principal}>
           {`${nomContexte} · ${avant.libelle}${apres === null ? '' : ` → ${apres.libelle}`}`}
         </Text>
         <Text style={styles.detail}>{bilan}</Text>
       </View>
+      {/* Seule la réponse a son icône : sur la carte bleue, l'orange seul manque de contraste, d'où la pastille. */}
+      {entree.apres !== null && (
+        <View style={styles.pastilleApres}>
+          <Icone nom={ICONE_APRES[entree.apres]} taille={20} couleur={COULEURS.texteSurOrange} />
+        </View>
+      )}
     </View>
   );
 }
@@ -149,29 +138,30 @@ const styles = StyleSheet.create({
   },
   texteVide: { ...TYPO.titleMedium, color: COULEURS.texte, textAlign: 'center' },
   liste: { padding: ESPACE, gap: 12 },
+  // Résumé sur une surface de carte : l'orange reste réservé à l'action, il ne marque que l'icône.
   resume: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    backgroundColor: COULEURS.orange,
+    backgroundColor: COULEURS.carte,
     borderRadius: RAYON,
     padding: ESPACE,
     marginBottom: 4,
-    ...ELEVATION.niveau2,
+    ...ELEVATION.niveau1,
   },
   iconeResume: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: COULEURS.texteSurOrange,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COULEURS.orange,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  texteResume: { ...TYPO.titleMedium, color: COULEURS.texteSurOrange, flex: 1 },
+  texteResume: { ...TYPO.titleMedium, color: COULEURS.texte, flex: 1 },
   pastilleApres: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: COULEURS.orange,
     alignItems: 'center',
     justifyContent: 'center',
@@ -179,9 +169,6 @@ const styles = StyleSheet.create({
   ligne: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: COULEURS.carte, borderRadius: RAYON, padding: ESPACE, ...ELEVATION.niveau1 },
   pastille: { width: 40, height: 40, borderRadius: 20, backgroundColor: COULEURS.fond, alignItems: 'center', justifyContent: 'center' },
   corps: { flex: 1, gap: 2 },
-  enHaut: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, minHeight: 26 },
-  ressentis: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  fleche: { transform: [{ rotate: '180deg' }] },
   date: { ...TYPO.bodyMedium, color: COULEURS.texteDiscret },
   principal: { ...TYPO.labelLarge, color: COULEURS.texte },
   detail: { ...TYPO.bodyMedium, color: COULEURS.texteDiscret },

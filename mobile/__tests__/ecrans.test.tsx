@@ -198,6 +198,14 @@ describe('écran de séance', () => {
     expect(screen.getByText('0:05')).toBeTruthy();
   });
 
+  it('montre « Terminer » sur une ligne, lu « Terminer la séance », et la phase dans l’en-tête', async () => {
+    await renderRouter(ROUTES, { initialUrl: SEANCE });
+    const terminer = await screen.findByRole('button', { name: 'Terminer la séance' });
+    expect(within(terminer).getByText('Terminer')).toBeTruthy();
+    expect(screen.queryByText('Terminer la séance')).toBeNull();
+    expect(screen.getByText('Mise en route · ')).toBeTruthy();
+  });
+
   it('renvoie au départ si les paramètres sont invalides', async () => {
     await renderRouter(ROUTES, { initialUrl: '/seance?contexte=bureau&ressenti=mou&duree=5&graine=1' });
     await waitFor(() => expect(screen).toHavePathname('/'));
@@ -268,7 +276,9 @@ describe('effets de la séance', () => {
   it('montre la figurine figée pendant « À suivre », animée pendant l’effort, figée en pause', async () => {
     jest.spyOn(AccessibilityInfo, 'isReduceMotionEnabled').mockResolvedValue(false);
     await renderRouter(ROUTES, { initialUrl: SEANCE });
-    expect(await screen.findByText('À suivre')).toBeTruthy();
+    // Pas d'étiquette au-dessus du nom : « À suivre » est porté par le titre, la phase par l'en-tête.
+    expect(await screen.findByText(/^À suivre\s*: /)).toBeTruthy();
+    expect(screen.getByText('Mise en route · ')).toBeTruthy();
     const instantane = () => JSON.stringify(screen.getByRole('image', { name: /^Illustration : / }));
     const transition = instantane();
     await act(async () => {
@@ -279,7 +289,7 @@ describe('effets de la séance', () => {
     await act(async () => {
       jest.advanceTimersByTime(3600);
     });
-    expect(screen.queryByText('À suivre')).toBeNull();
+    expect(screen.queryByText(/^À suivre/)).toBeNull();
     const effort = instantane();
     await act(async () => {
       jest.advanceTimersByTime(700);
@@ -585,7 +595,7 @@ describe('écran Mon journal', () => {
     expect(screen.getAllByText('dim. 18 oct. · 7h05')).toHaveLength(3);
   });
 
-  it('remplace les emojis par les icônes du contexte et du ressenti', async () => {
+  it('marque chaque ligne de l’icône du contexte et d’une seule pastille de réponse, sans emoji', async () => {
     memoire.contenu[CLE_JOURNAL] = JSON.stringify([
       fabriquerEntree({ id: 'a', apres: 'mieux' }),
       fabriquerEntree({ id: 'b', apres: 'pareil', contexteId: 'reveil', ressenti: 'raide' }),
@@ -593,8 +603,12 @@ describe('écran Mon journal', () => {
     await renderRouter(ROUTES, { initialUrl: '/journal' });
     await screen.findByText('À la maison · Mou → Mieux');
     const toutes = { includeHiddenElements: true };
-    for (const nom of ['maison', 'mou', 'reveil', 'raide', 'pareil']) {
+    for (const nom of ['maison', 'reveil', 'pareil']) {
       expect(screen.getAllByTestId(`icone-${nom}`, toutes)).toHaveLength(1);
+    }
+    // Le ressenti est dit par le texte (« Mou → Mieux ») : pas d'icône en double, ni de chevron.
+    for (const nom of ['mou', 'raide', 'retour']) {
+      expect(screen.queryAllByTestId(`icone-${nom}`, toutes).length).toBeLessThanOrEqual(nom === 'retour' ? 1 : 0);
     }
     // « Mieux » : la ligne, plus l'icône forte de la carte de résumé.
     expect(screen.getAllByTestId('icone-mieux', toutes)).toHaveLength(2);

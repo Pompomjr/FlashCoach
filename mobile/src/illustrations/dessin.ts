@@ -6,7 +6,7 @@ import { calculerPoints, LONGUEURS, poseALinstant, SOL_Y, type Point, type Pose 
 
 /** `separation` : liseré de la couleur du fond de carte, posé sous le bras proche pour le détacher
  * du tronc quand il passe devant (même orange, il s'y fondrait). */
-export type Teinte = 'proche' | 'loin' | 'cheveux' | 'separation';
+export type Teinte = 'proche' | 'loin' | 'cheveux' | 'oeil' | 'separation';
 export type FormeFigurine = { d: string; teinte: Teinte };
 export type Ombre = { cx: number; cy: number; rx: number; ry: number; opacite: number };
 export type Bornes = { minX: number; minY: number; maxX: number; maxY: number };
@@ -111,23 +111,38 @@ export function contourTronc(pose: Pose, bassin: Point, epaules: Point): Point[]
   return [...devant, ...derriere.reverse()];
 }
 
-/** Calotte de cheveux sur l'arrière et le haut du crâne (profil) ou le haut (face). */
-function cheveux(pose: Pose, centre: Point, haut: Point, r: number): string {
+/** Cheveux et yeux, dessinés dans le repère de la tête : `u` vers le visage, `v` vers le haut du crâne.
+ * Profil : chevelure avec frange sur le front, queue de cheval qui pend (vers le bas du cadre, quelle que
+ * soit l'inclinaison de la tête), un œil. Face : frange balayée sur le côté, deux yeux. */
+function tete(pose: Pose, centre: Point, haut: Point, r: number) {
   const avant = { x: -haut.y, y: haut.x };
-  const dir = (degres: number) => {
-    // 0° = haut de la tête, positif vers l'avant du visage.
-    const a = degres * Math.PI / 180;
-    return plus(fois(haut, Math.cos(a)), fois(avant, Math.sin(a)));
-  };
-  const face = pose.vue === 'face';
-  const [debut, fin] = face ? [-100, 100] : [-150, 38];
+  const en = (u: number, v: number) => plus(centre, plus(fois(avant, u * r), fois(haut, v * r)));
   const R = r + 0.8;
-  const p1 = plus(centre, fois(dir(debut), R));
-  const p2 = plus(centre, fois(dir(fin), R));
-  // Ligne des cheveux : de face, elle remonte au milieu du front ; de profil, elle descend vers la nuque.
-  const ligne = face ? plus(centre, fois(haut, r * 0.62)) : plus(centre, plus(fois(haut, r * 0.35), fois(avant, -r * 0.1)));
-  const grand = fin - debut > 180 ? 1 : 0;
-  return `M${pt(p1)}A${f(R)} ${f(R)} 0 ${grand} 1 ${pt(p2)}Q${pt(ligne)} ${pt(p1)}Z`;
+  const surCrane = (degres: number) => {
+    const a = degres * Math.PI / 180;
+    return plus(centre, fois(plus(fois(haut, Math.cos(a)), fois(avant, Math.sin(a))), R));
+  };
+  if (pose.vue === 'face') {
+    const gauche = surCrane(-104), droite = surCrane(104);
+    const chevelure = `M${pt(gauche)}A${f(R)} ${f(R)} 0 1 1 ${pt(droite)}`
+      + `Q${pt(en(0.62, 0.42))} ${pt(en(0.12, 0.2))}Q${pt(en(-0.3, 0.18))} ${pt(en(-0.62, 0.02))}`
+      + `Q${pt(en(-0.86, -0.1))} ${pt(gauche)}Z`;
+    return { arriere: [], cheveux: [chevelure], yeux: [cercle(en(-0.36, -0.14), 1.3), cercle(en(0.36, -0.14), 1.3)],
+      etendue: [] as Cercle[] };
+  }
+  const nuque = surCrane(-150), front = surCrane(60);
+  const chevelure = `M${pt(nuque)}A${f(R)} ${f(R)} 0 1 1 ${pt(front)}`
+    + `Q${pt(en(0.92, 0.12))} ${pt(en(0.6, 0.12))}Q${pt(en(0.3, 0.42))} ${pt(en(-0.08, 0.2))}`
+    + `Q${pt(en(-0.32, -0.42))} ${pt(nuque)}Z`;
+  // Queue de cheval : attachée en haut de l'arrière du crâne, elle tombe vers le sol.
+  const attache = en(-0.82, 0.42);
+  const bout = plus(plus(attache, fois(avant, -0.45 * r)), { x: 0, y: 1.05 * r });
+  return {
+    arriere: [capsule(attache, 0.42 * r, bout, 0.2 * r)],
+    cheveux: [chevelure, cercle(attache, 0.36 * r)],
+    yeux: [cercle(en(0.56, -0.04), 1.3)],
+    etendue: [{ c: attache, r: 0.42 * r }, { c: bout, r: 0.2 * r }],
+  };
 }
 
 /** Ombre au sol, sous les appuis ; plus petite et plus pâle quand la figurine est en l'air. */
@@ -179,6 +194,8 @@ export function dessinerFigurine(pose: Pose): DessinFigurine {
   const r = LONGUEURS.rayonTete;
   // De profil, le membre gauche est éloigné : plus foncé, dessiné derrière le tronc.
   const loin: Teinte = profil ? 'loin' : 'proche';
+  const visage = tete(pose, p.tete, haut, r);
+  cercles.push(...visage.etendue);
   // De face, les deux bras sont au premier plan, devant le tronc ; de profil, le bras gauche passe derrière.
   const devant = profil ? [bras(false)] : [bras(true), bras(false)];
   const formes: FormeFigurine[] = [
@@ -187,8 +204,10 @@ export function dessinerFigurine(pose: Pose): DessinFigurine {
     { d: capsuleNotee(p.epaules, RAYONS.cou, plus(p.tete, fois(haut, -r * 0.6)), RAYONS.cou), teinte: 'proche' },
     { d: contourLisse(contour), teinte: 'proche' },
     ...jambe(false).map(d => ({ d, teinte: 'proche' as const })),
+    ...visage.arriere.map(d => ({ d, teinte: 'cheveux' as const })),
     { d: cercleNote(p.tete, r), teinte: 'proche' },
-    { d: cheveux(pose, p.tete, haut, r), teinte: 'cheveux' },
+    ...visage.cheveux.map(d => ({ d, teinte: 'cheveux' as const })),
+    ...visage.yeux.map(d => ({ d, teinte: 'oeil' as const })),
     ...devant.flatMap(membre => [
       ...membre.map(d => ({ d, teinte: 'separation' as const })),
       ...membre.map(d => ({ d, teinte: 'proche' as const })),
@@ -209,12 +228,13 @@ export function dessinerFigurine(pose: Pose): DessinFigurine {
   };
 }
 
-export type Cadre = { x: number; y: number; taille: number };
-// Échelle d'affichage bornée : jamais plus petite que le cadre d'origine, jamais plus d'un tiers de zoom.
-const CADRE_MIN = 150, CADRE_MAX = 200, MARGE_CADRE = 12;
+/** Rectangle (viewBox) ajusté à tout ce que l'animation dessine au long de son cycle, avec une marge.
+ * Pas forcé au carré : une planche ou un chat-vache, couchés, gardent un cadre large et bas, et la vue
+ * les agrandit autant que la place le permet, centrés. */
+export type Cadre = { x: number; y: number; largeur: number; hauteur: number };
+// Dimension minimale : une pose compacte n'est jamais agrandie au point de remplir toute la carte.
+const COTE_MIN = 110, MARGE_CADRE = 10;
 
-/** Cadre carré (viewBox) centré sur tout ce que l'animation dessine au long de son cycle : une planche
- * ou un chat-vache, couchés près du sol, se retrouvent au milieu de la carte, pas tassés en bas. */
 export function cadrer(cles: Pose[], continu = false, mur = false): Cadre {
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   for (let i = 0; i < 24; i++) {
@@ -225,6 +245,7 @@ export function cadrer(cles: Pose[], continu = false, mur = false): Cadre {
     maxY = Math.max(maxY, d.bornes.maxY, d.ombre.cy + d.ombre.ry);
   }
   if (mur) { maxX = Math.max(maxX, MUR.x + MUR.largeur); minY = Math.min(minY, MUR.haut); }
-  const taille = Math.min(CADRE_MAX, Math.max(CADRE_MIN, maxX - minX + 2 * MARGE_CADRE, maxY - minY + 2 * MARGE_CADRE));
-  return { x: f((minX + maxX - taille) / 2), y: f((minY + maxY - taille) / 2), taille: f(taille) };
+  const largeur = Math.max(COTE_MIN, maxX - minX + 2 * MARGE_CADRE);
+  const hauteur = Math.max(COTE_MIN, maxY - minY + 2 * MARGE_CADRE);
+  return { x: f((minX + maxX - largeur) / 2), y: f((minY + maxY - hauteur) / 2), largeur: f(largeur), hauteur: f(hauteur) };
 }

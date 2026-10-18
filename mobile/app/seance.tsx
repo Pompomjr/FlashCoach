@@ -1,8 +1,8 @@
 import * as Haptics from 'expo-haptics';
 import { Redirect, router, useIsFocused, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AccessibilityInfo, Platform, Pressable, ScrollView, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EXERCICES } from '../src/catalogue/exercices';
 import { genererSeance } from '../src/generateur/generer';
@@ -22,18 +22,8 @@ import { CIBLE_MIN, COULEURS, ELEVATION, ESPACE, RAYON, TYPO } from '../src/ui/t
 import { ondulation } from '../src/ui/toucher';
 
 const PADDING_CARTE = 16;
-// Hauteur occupée par tout ce qui n'est pas la figurine (en-tête, textes de la carte, minuteur, actions).
-const HAUTEUR_HORS_FIGURINE = 530;
-
-// La figurine en grand : environ 45 % de la hauteur utile, carrée, sans dépasser la largeur de la carte
-// ni pousser les actions hors de l'écran.
-function useTailleFigurine() {
-  const { width, height } = useWindowDimensions();
-  const { top, bottom } = useSafeAreaInsets();
-  const utile = height - top - bottom;
-  const largeur = width - 2 * ESPACE - 2 * PADDING_CARTE;
-  return Math.round(Math.max(160, Math.min(largeur, utile * 0.45, utile - HAUTEUR_HORS_FIGURINE)));
-}
+// Avant la première mesure (et dans les tests, où rien n'est mesuré) : une zone carrée raisonnable.
+const ZONE_PAR_DEFAUT = { largeur: 240, hauteur: 240 };
 
 export default function EcranSeance() {
   const { contexte, ressenti, duree, graine, exclure } = useLocalSearchParams<{
@@ -58,7 +48,17 @@ function LecteurSeance({ parametres }: { parametres: ParametresSeance }) {
   const bloc = etat.blocs[etat.index];
   const cote = coteCourant(etat);
   const aLeFocus = useIsFocused();
-  const tailleFigurine = useTailleFigurine();
+  // La figurine prend toute la hauteur que laissent les textes, le minuteur et les actions (≈ 45 % de
+  // l'écran sur un téléphone courant) : la zone est mesurée, pas devinée.
+  const [zone, setZone] = useState(ZONE_PAR_DEFAUT);
+  const mesurerZone = (evenement: LayoutChangeEvent) => {
+    const { width, height } = evenement.nativeEvent.layout;
+    setZone((actuelle) =>
+      Math.round(width) === actuelle.largeur && Math.round(height) === actuelle.hauteur
+        ? actuelle
+        : { largeur: Math.round(width), hauteur: Math.round(height) },
+    );
+  };
   const enTransition = etat.etape === 'transition';
   const [idJournal] = useState(creerIdentifiant);
   // Vrai quand la séance se termine par « Terminer la séance » plutôt que d'aller au bout.
@@ -154,38 +154,50 @@ function LecteurSeance({ parametres }: { parametres: ParametresSeance }) {
             android_ripple={ondulation(COULEURS.texte)}
             style={styles.retour}
           >
-            <Icone nom="retour" taille={28} />
+            <Icone nom="retour" taille={26} />
           </Pressable>
-          <Text style={styles.compteur}>{`${etat.index + 1} / ${etat.blocs.length}`}</Text>
+          <View style={styles.progression}>
+            <Text style={styles.phase}>{`${LIBELLES_PHASE[bloc.phase]} · `}</Text>
+            <Text style={styles.compteur}>{`${etat.index + 1} / ${etat.blocs.length}`}</Text>
+          </View>
         </View>
 
         <View style={styles.carte} accessibilityLiveRegion="polite">
-          <Text style={styles.phase}>{enTransition ? 'À suivre' : LIBELLES_PHASE[bloc.phase]}</Text>
           {/* « À suivre » montre le geste à venir, immobile ; il s'anime pendant l'effort, se fige en pause. */}
-          <View style={styles.illustration}>
+          <View style={styles.illustration} onLayout={mesurerZone}>
             <Figurine
               exerciceId={bloc.exercice.id}
               libelle={bloc.exercice.nom}
               anime={!enTransition}
               enPause={etat.enPause}
-              taille={tailleFigurine}
+              taille={zone.largeur}
+              hauteur={zone.hauteur}
             />
           </View>
-          <Text style={styles.nom}>{bloc.exercice.nom}</Text>
+          <Text style={styles.nom}>{enTransition ? `À suivre : ${bloc.exercice.nom}` : bloc.exercice.nom}</Text>
           {cote !== null && <Text style={styles.cote}>{cote === 'gauche' ? 'Côté gauche' : 'Côté droit'}</Text>}
           <Text style={styles.consigne}>{bloc.exercice.consigne}</Text>
         </View>
 
-        <Text style={styles.minuteur} accessibilityRole="timer">
-          {formaterTemps(etat.restantMs)}
-        </Text>
-        {etat.enPause && <Text style={styles.pause}>En pause</Text>}
+        <View>
+          <Text style={styles.minuteur} accessibilityRole="timer">
+            {formaterTemps(etat.restantMs)}
+          </Text>
+          {/* Place réservée : la mise en pause ne fait pas sauter la figurine. */}
+          <View style={styles.zonePause}>{etat.enPause && <Text style={styles.pause}>En pause</Text>}</View>
+        </View>
 
         <View style={styles.actions}>
           <Bouton libelle={etat.enPause ? 'Reprendre' : 'Pause'} variante="secondaire" onPress={actionPause} />
           <View style={styles.ligne}>
             <Bouton libelle="Passer" onPress={passer} style={styles.moitie} />
-            <Bouton libelle="Terminer la séance" variante="secondaire" onPress={terminerAvantLaFin} style={styles.moitie} />
+            <Bouton
+              libelle="Terminer"
+              nomAccessible="Terminer la séance"
+              variante="secondaire"
+              onPress={terminerAvantLaFin}
+              style={styles.moitie}
+            />
           </View>
         </View>
       </ScrollView>
@@ -195,19 +207,22 @@ function LecteurSeance({ parametres }: { parametres: ParametresSeance }) {
 
 const styles = StyleSheet.create({
   ecran: { flex: 1, backgroundColor: COULEURS.fond },
-  contenu: { flexGrow: 1, padding: ESPACE, gap: 12 },
+  contenu: { flexGrow: 1, padding: ESPACE, paddingTop: 8, gap: 12 },
   entete: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   retour: { width: CIBLE_MIN, height: CIBLE_MIN, borderRadius: CIBLE_MIN / 2, alignItems: 'center', justifyContent: 'center' },
+  progression: { flexDirection: 'row', alignItems: 'baseline', flexShrink: 1 },
+  phase: { ...TYPO.bodyLarge, color: COULEURS.texteDiscret },
   compteur: { ...TYPO.titleMedium, color: COULEURS.texte },
-  carte: { backgroundColor: COULEURS.carteClaire, borderRadius: RAYON, padding: PADDING_CARTE, gap: 6, ...ELEVATION.niveau1 },
-  illustration: { alignItems: 'center' },
-  phase: { ...TYPO.bodyMedium, color: COULEURS.texteSombre, fontWeight: '700', textTransform: 'uppercase' },
+  // La carte et sa zone d'illustration absorbent toute la hauteur libre.
+  carte: { flex: 1, backgroundColor: COULEURS.carteClaire, borderRadius: RAYON, padding: PADDING_CARTE, gap: 6, ...ELEVATION.niveau1 },
+  illustration: { flex: 1, minHeight: 160, alignItems: 'center', justifyContent: 'center' },
   nom: { ...TYPO.headlineMedium, color: COULEURS.texteSombre, marginTop: 4 },
   cote: { ...TYPO.titleMedium, color: COULEURS.texteSombre },
   consigne: { ...TYPO.bodyLarge, color: COULEURS.texteSombre },
   minuteur: { ...TYPO.displayLarge, color: COULEURS.texte, textAlign: 'center', fontVariant: ['tabular-nums'] },
+  zonePause: { minHeight: TYPO.bodyLarge.lineHeight, alignItems: 'center' },
   pause: { ...TYPO.bodyLarge, color: COULEURS.texteDiscret, textAlign: 'center' },
-  actions: { marginTop: 'auto', gap: 12 },
+  actions: { gap: 12 },
   ligne: { flexDirection: 'row', gap: 12 },
   moitie: { flex: 1 },
 });

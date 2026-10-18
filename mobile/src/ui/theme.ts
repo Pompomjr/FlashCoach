@@ -16,6 +16,10 @@ export const COULEURS = {
   texteSombre: '#2D3748',
   texteSurOrange: '#000000',
   texteDiscret: '#CBD5E0',
+  // Illustrations (figurine, décor) : jamais pour du texte.
+  cheveux: '#9A3412',
+  mur: '#CBD5E1',
+  areteMur: '#94A3B8',
 } as const;
 
 export const RAYON = 16;

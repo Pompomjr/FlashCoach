@@ -84,6 +84,53 @@ describe('journal', () => {
     await expect(mettreAJourEntree(enPanne, 'a', { apres: 'mieux' })).resolves.toBeUndefined();
   });
 
+  it('ne réécrit pas le journal quand la lecture échoue', async () => {
+    const contenu: Record<string, string> = { [CLE_JOURNAL]: JSON.stringify([fabriquerEntree({ id: 'a' })]) };
+    const original = contenu[CLE_JOURNAL];
+    const lectureEnPanne: Stockage = {
+      lire: async () => {
+        throw new Error('panne');
+      },
+      ecrire: async (cle, valeur) => {
+        contenu[cle] = valeur;
+      },
+    };
+    await ajouterEntree(lectureEnPanne, fabriquerEntree({ id: 'b' }));
+    await mettreAJourEntree(lectureEnPanne, 'a', { apres: 'mieux' });
+    expect(contenu[CLE_JOURNAL]).toBe(original);
+    expect(await lireJournal(lectureEnPanne)).toEqual([]);
+  });
+
+  it('ne bloque pas quand seule l’écriture est en panne', async () => {
+    const ecritureEnPanne: Stockage = {
+      lire: async () => null,
+      ecrire: async () => {
+        throw new Error('panne');
+      },
+    };
+    await expect(ajouterEntree(ecritureEnPanne, fabriquerEntree())).resolves.toBeUndefined();
+    await expect(mettreAJourEntree(ecritureEnPanne, 'a', { apres: 'mieux' })).resolves.toBeUndefined();
+  });
+
+  it('remplace une entrée déjà présente et la remet en tête', async () => {
+    const stockage = creerStockageMemoire();
+    await ajouterEntree(stockage, fabriquerEntree({ id: 'a', exercicesFaits: 2 }));
+    await ajouterEntree(stockage, fabriquerEntree({ id: 'b' }));
+    await ajouterEntree(stockage, fabriquerEntree({ id: 'a', exercicesFaits: 9 }));
+    const journal = await lireJournal(stockage);
+    expect(journal.map((e) => e.id)).toEqual(['a', 'b']);
+    expect(journal[0].exercicesFaits).toBe(9);
+  });
+
+  it('n’écrit rien quand la mise à jour produit une entrée invalide', async () => {
+    const stockage = creerStockageMemoire();
+    await ajouterEntree(stockage, fabriquerEntree({ id: 'a' }));
+    const avant = stockage.contenu[CLE_JOURNAL];
+    await mettreAJourEntree(stockage, 'a', { ecouleMs: NaN });
+    expect(stockage.contenu[CLE_JOURNAL]).toBe(avant);
+    expect(await lireJournal(stockage)).toEqual([fabriquerEntree({ id: 'a' })]);
+  });
+
   it('crée des identifiants différents', () => {
     expect(creerIdentifiant()).not.toBe(creerIdentifiant());
   });

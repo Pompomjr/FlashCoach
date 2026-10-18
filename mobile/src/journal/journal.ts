@@ -49,14 +49,23 @@ function estEntree(valeur: unknown): valeur is EntreeJournal {
   );
 }
 
+// Distingue « lecture en échec » (on ne sait pas ce qu'il y a dans le stockage) de « journal vide ou abîmé ».
+type Lecture = { lue: true; entrees: EntreeJournal[] } | { lue: false };
+
 // Le journal ne doit jamais bloquer une séance : lecture et écriture absorbent toutes les erreurs.
-async function lireSansErreur(stockage: Stockage): Promise<EntreeJournal[]> {
+async function lireBrut(stockage: Stockage): Promise<Lecture> {
+  let texte: string | null;
   try {
-    const texte = await stockage.lire(CLE_JOURNAL);
-    const valeur: unknown = texte === null ? [] : JSON.parse(texte);
-    return Array.isArray(valeur) ? valeur.filter(estEntree) : [];
+    texte = await stockage.lire(CLE_JOURNAL);
   } catch {
-    return [];
+    return { lue: false };
+  }
+  try {
+    const valeur: unknown = texte === null ? [] : JSON.parse(texte);
+    return { lue: true, entrees: Array.isArray(valeur) ? valeur.filter(estEntree) : [] };
+  } catch {
+    // JSON abîmé : traité comme un journal vide.
+    return { lue: true, entrees: [] };
   }
 }
 
@@ -79,24 +88,34 @@ function enSerie<T>(stockage: Stockage, operation: () => Promise<T>): Promise<T>
 }
 
 export function lireJournal(stockage: Stockage): Promise<EntreeJournal[]> {
-  return enSerie(stockage, () => lireSansErreur(stockage));
+  return enSerie(stockage, async () => {
+    const lecture = await lireBrut(stockage);
+    return lecture.lue ? lecture.entrees : [];
+  });
 }
 
 export function ajouterEntree(stockage: Stockage, entree: EntreeJournal): Promise<void> {
   return enSerie(stockage, async () => {
-    const entrees = await lireSansErreur(stockage);
-    const sansDoublon = entrees.filter((e) => e.id !== entree.id);
+    const lecture = await lireBrut(stockage);
+    // Lecture en échec : on n'écrit pas, pour ne pas effacer l'historique existant.
+    if (!lecture.lue) return;
+    const sansDoublon = lecture.entrees.filter((e) => e.id !== entree.id);
     await ecrireSansErreur(stockage, [entree, ...sansDoublon].slice(0, TAILLE_MAX_JOURNAL));
   });
 }
 
 export function mettreAJourEntree(stockage: Stockage, id: string, changement: ChangementEntree): Promise<void> {
   return enSerie(stockage, async () => {
-    const entrees = await lireSansErreur(stockage);
-    if (!entrees.some((e) => e.id === id)) return;
+    const lecture = await lireBrut(stockage);
+    if (!lecture.lue) return;
+    const cible = lecture.entrees.find((e) => e.id === id);
+    if (!cible) return;
+    const modifiee: unknown = { ...cible, ...changement };
+    // Une entrée devenue invalide ne doit pas être écrite : elle disparaîtrait à la prochaine lecture.
+    if (!estEntree(modifiee)) return;
     await ecrireSansErreur(
       stockage,
-      entrees.map((e) => (e.id === id ? { ...e, ...changement } : e)),
+      lecture.entrees.map((e) => (e.id === id ? modifiee : e)),
     );
   });
 }

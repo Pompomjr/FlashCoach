@@ -22,5 +22,9 @@ export function formaterBilan(ecouleMs: number, exercicesFaits: number, terminee
 export function texteResume(resume: { seances: number; repondues: number; mieux: number }): string | null {
   if (resume.seances === 0) return null;
   if (resume.repondues === 0) return 'Réponds à « Tu te sens mieux ? » après une séance pour suivre tes progrès.';
+  if (resume.mieux === 0) {
+    const n = resume.repondues;
+    return `Tu as noté ${n} séance${n > 1 ? 's' : ''}. Chaque séance compte.`;
+  }
   return `Séances qui t’ont fait du bien : ${resume.mieux} sur ${resume.repondues}`;
 }

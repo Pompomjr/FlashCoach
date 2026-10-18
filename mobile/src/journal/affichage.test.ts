@@ -34,6 +34,11 @@ describe('texteResume', () => {
     );
   });
 
+  it('dit combien de séances ont été notées quand aucune ne fait du bien', () => {
+    expect(texteResume({ seances: 3, repondues: 2, mieux: 0 })).toBe('Tu as noté 2 séances. Chaque séance compte.');
+    expect(texteResume({ seances: 3, repondues: 1, mieux: 0 })).toBe('Tu as noté 1 séance. Chaque séance compte.');
+  });
+
   it('montre la preuve de la promesse', () => {
     expect(texteResume({ seances: 12, repondues: 10, mieux: 9 })).toBe('Séances qui t’ont fait du bien : 9 sur 10');
   });

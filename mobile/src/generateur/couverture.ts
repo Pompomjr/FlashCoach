@@ -1,5 +1,6 @@
 import { DUREES, RESSENTIS, type Contexte, type Duree, type Effet, type Exercice, type Ressenti } from '../catalogue/types';
-import { cibleDePhase, correspond, type Cible } from './cibles';
+import { apparier } from './appariement';
+import { cibleDePhase, type Cible } from './cibles';
 import { filtrerCatalogue } from './filtres';
 import { STRUCTURE_PAR_DUREE } from './structure';
 import type { Phase } from './types';
@@ -16,33 +17,6 @@ export interface Manque {
 }
 
 const ORDRE_PHASES: readonly Phase[] = ['mise_en_route', 'coeur', 'retour_au_calme'];
-
-// Appariement biparti maximal (algorithme de Kuhn) entre les places d'une séance et les exercices idéaux :
-// un exercice ne remplit qu'une place, même s'il convient à plusieurs phases (cœur « stresse » et retour au calme).
-// Renvoie, pour chaque place, si elle est remplie.
-// Une place remplie le reste quand on cherche à remplir les suivantes : l'ensemble des places remplies ne dépend
-// donc que de l'ordre des places, jamais de l'ordre du catalogue. Les places manquantes tombent sur les dernières.
-function apparier(places: Cible[], exercices: Exercice[]): boolean[] {
-  const candidats = places.map((cible) =>
-    exercices.flatMap((exercice, index) => (correspond(exercice, cible, 0) ? [index] : [])),
-  );
-  const titulaire: (number | undefined)[] = exercices.map(() => undefined);
-
-  const augmenter = (place: number, vus: Set<number>): boolean => {
-    for (const exercice of candidats[place]) {
-      if (vus.has(exercice)) continue;
-      vus.add(exercice);
-      const occupant = titulaire[exercice];
-      if (occupant === undefined || augmenter(occupant, vus)) {
-        titulaire[exercice] = place;
-        return true;
-      }
-    }
-    return false;
-  };
-
-  return places.map((_, place) => augmenter(place, new Set()));
-}
 
 // Places non remplies d'une séance, par phase. Vide si le niveau 0 suffit à toute la séance.
 function manquesDeSeance(compatibles: Exercice[], contexteId: string, ressenti: Ressenti, duree: Duree): Manque[] {

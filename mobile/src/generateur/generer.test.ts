@@ -176,6 +176,24 @@ describe('genererSeance : phases calmes', () => {
     }
   });
 
+  it('ne prend pas en mise en route l’exercice dont le retour au calme a besoin', () => {
+    // Seule séance idéale : mise en route e0, cœur e4 + e2, retour au calme e1 + e3.
+    // e3 est idéal pour la mise en route, mais le retour au calme n'a que e1 et e3.
+    const catalogue = [
+      fabriquerExercice({ id: 'e0', effets: ['mobilite'], intensite: 1 }),
+      fabriquerExercice({ id: 'e1', effets: ['detente'], intensite: 1 }),
+      fabriquerExercice({ id: 'e2', effets: ['mobilite', 'detente', 'energie'], intensite: 2 }),
+      fabriquerExercice({ id: 'e3', effets: ['mobilite', 'detente', 'energie'], intensite: 1 }),
+      fabriquerExercice({ id: 'e4', effets: ['mobilite', 'energie'], intensite: 2 }),
+    ];
+    for (let graine = 1; graine <= 50; graine++) {
+      const seance = genererSeance(parametres({ graine, ressenti: 'raide', duree: 3 }), catalogue);
+      expect(seance.assouplissement).toBe(0);
+      expect(ids(seance)[0]).toBe('e0');
+      expect(ids(seance).slice(3).sort()).toEqual(['e1', 'e3']);
+    }
+  });
+
   it('n’utilise l’énergie dans une phase calme qu’en dernier recours', () => {
     const seance = genererSeance(parametres({ ressenti: 'stresse' }), ENERGIE);
     expect(seance.assouplissement).toBe(4);

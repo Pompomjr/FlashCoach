@@ -1,7 +1,8 @@
 import { CONTEXTES } from '../catalogue/contextes';
 import { EXERCICES } from '../catalogue/exercices';
-import { DUREES, RESSENTIS, type Contexte, type Exercice } from '../catalogue/types';
+import { DUREES, RESSENTIS, type Contexte, type Effet, type Exercice, type Intensite, type Zone } from '../catalogue/types';
 import { fabriquerExercice, SANS_CONTRAINTE } from '../test-utils/fabrique';
+import { creerAleatoire } from './aleatoire';
 import { analyserCouverture, formaterRapport, type Manque } from './couverture';
 import { genererSeance } from './generer';
 
@@ -21,6 +22,7 @@ const COMPLET: Exercice[] = [
 const sans = (prefixe: string) => COMPLET.filter((ex) => !ex.id.startsWith(`${prefixe}-`));
 
 const GRAINES = [1, 2, 3, 42, 2026];
+const ZONES: Zone[] = ['haut', 'bas', 'tronc', 'global'];
 
 describe('analyserCouverture', () => {
   it('ne signale rien quand le catalogue suffit partout', () => {
@@ -89,9 +91,6 @@ describe('analyserCouverture', () => {
 });
 
 // Le rapport et le générateur doivent dire la même chose : sans manque signalé, aucune séance n'assouplit.
-// Limite connue : le générateur choisit phase par phase sans retour arrière, et peut encore assouplir sur certains
-// catalogues pourtant couverts (ex. 3 min « raide » : mob/1, det/1, mob+det+ene/2, mob+det+ene/1, mob+ene/2,
-// où la mise en route prend l'exercice mixte d'intensité 1 dont le retour au calme avait besoin).
 describe('couverture et générateur', () => {
   // Renvoie le nombre de combinaisons sans manque, donc vérifiées.
   function verifier(catalogue: Exercice[], contextes: Contexte[]): number {
@@ -142,6 +141,52 @@ describe('couverture et générateur', () => {
     const manques = analyserCouverture(catalogue, [LIBRE]);
     expect(manques.some((m) => m.ressenti === 'raide' && m.duree === 10)).toBe(false);
     expect(verifier(catalogue, [LIBRE])).toBeGreaterThan(0);
+  });
+
+  it('sur des catalogues aléatoires, même en excluant une partie des exercices', () => {
+    const alea = creerAleatoire(7);
+    const entier = (min: number, max: number) => min + Math.floor(alea() * (max - min + 1));
+    const COMBINAISONS_EFFETS: Effet[][] = [
+      ['mobilite'],
+      ['detente'],
+      ['energie'],
+      ['mobilite', 'detente'],
+      ['mobilite', 'energie'],
+      ['detente', 'energie'],
+      ['mobilite', 'detente', 'energie'],
+    ];
+    const echecs: string[] = [];
+    let verifiees = 0;
+    for (let essai = 0; essai < 300; essai++) {
+      const catalogue = Array.from({ length: entier(5, 16) }, (_, i) =>
+        fabriquerExercice({
+          id: `e${i}`,
+          effets: COMBINAISONS_EFFETS[entier(0, COMBINAISONS_EFFETS.length - 1)],
+          intensite: entier(1, 3) as Intensite,
+          zone: ZONES[entier(0, ZONES.length - 1)],
+        }),
+      );
+      const exclure = catalogue.filter(() => alea() < 0.3).map((ex) => ex.id);
+      const manques = analyserCouverture(catalogue, [LIBRE]);
+      for (const ressenti of RESSENTIS) {
+        for (const duree of DUREES) {
+          if (manques.some((m) => m.ressenti === ressenti && m.duree === duree)) continue;
+          verifiees++;
+          for (const graine of GRAINES) {
+            const seance = genererSeance(
+              { contexteId: LIBRE.id, contraintes: LIBRE.contraintes, ressenti, duree, graine, exclure },
+              catalogue,
+            );
+            if (seance.assouplissement !== 0) {
+              const description = catalogue.map((ex) => `${ex.id} ${ex.effets.join('+')}/${ex.intensite}`).join(', ');
+              echecs.push(`${ressenti} ${duree} min, graine ${graine}, niveau ${seance.assouplissement} : ${description}`);
+            }
+          }
+        }
+      }
+    }
+    expect(echecs).toEqual([]);
+    expect(verifiees).toBeGreaterThan(100);
   });
 });
 

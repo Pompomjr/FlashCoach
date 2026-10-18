@@ -15,8 +15,10 @@ import { lireParametresSeance } from '../src/seance/parametres';
 import { useEcranAllume } from '../src/seance/useEcranAllume';
 import { useLecteurSeance } from '../src/seance/useLecteurSeance';
 import { Bouton } from '../src/ui/Bouton';
+import { Icone } from '../src/ui/icones';
 import { LIBELLES_PHASE } from '../src/ui/libelles';
-import { COULEURS, ESPACE, RAYON } from '../src/ui/theme';
+import { CIBLE_MIN, COULEURS, ESPACE, RAYON, TYPO } from '../src/ui/theme';
+import { ondulation } from '../src/ui/toucher';
 
 export default function EcranSeance() {
   const { contexte, ressenti, duree, graine, exclure } = useLocalSearchParams<{
@@ -128,8 +130,14 @@ function LecteurSeance({ parametres }: { parametres: ParametresSeance }) {
     <SafeAreaView style={styles.ecran}>
       <ScrollView contentContainerStyle={styles.contenu}>
         <View style={styles.entete}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Quitter la séance" onPress={quitter} hitSlop={12}>
-            <Text style={styles.retour}>‹</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Quitter la séance"
+            onPress={quitter}
+            android_ripple={ondulation(COULEURS.texte)}
+            style={styles.retour}
+          >
+            <Icone nom="retour" taille={28} />
           </Pressable>
           <Text style={styles.compteur}>{`${etat.index + 1} / ${etat.blocs.length}`}</Text>
         </View>
@@ -162,15 +170,15 @@ const styles = StyleSheet.create({
   ecran: { flex: 1, backgroundColor: COULEURS.fond },
   contenu: { flexGrow: 1, padding: ESPACE, gap: 16 },
   entete: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  retour: { color: COULEURS.texte, fontSize: 32, paddingHorizontal: 8 },
-  compteur: { color: COULEURS.texte, fontSize: 18, fontWeight: '600' },
+  retour: { width: CIBLE_MIN, height: CIBLE_MIN, borderRadius: CIBLE_MIN / 2, alignItems: 'center', justifyContent: 'center' },
+  compteur: { ...TYPO.titleMedium, color: COULEURS.texte },
   carte: { backgroundColor: COULEURS.carteClaire, borderRadius: RAYON, padding: 24, gap: 8, minHeight: 220, justifyContent: 'center' },
-  phase: { color: COULEURS.texteSombre, fontSize: 14, fontWeight: '700', textTransform: 'uppercase' },
-  nom: { color: COULEURS.texteSombre, fontSize: 28, fontWeight: '800' },
-  cote: { color: COULEURS.texteSombre, fontSize: 18, fontWeight: '700' },
-  consigne: { color: COULEURS.texteSombre, fontSize: 16, lineHeight: 22 },
-  minuteur: { color: COULEURS.texte, fontSize: 64, fontWeight: '800', textAlign: 'center', fontVariant: ['tabular-nums'] },
-  pause: { color: COULEURS.texteDiscret, fontSize: 16, textAlign: 'center' },
+  phase: { ...TYPO.bodyMedium, color: COULEURS.texteSombre, fontWeight: '700', textTransform: 'uppercase' },
+  nom: { ...TYPO.headlineMedium, color: COULEURS.texteSombre },
+  cote: { ...TYPO.titleMedium, color: COULEURS.texteSombre },
+  consigne: { ...TYPO.bodyLarge, color: COULEURS.texteSombre },
+  minuteur: { ...TYPO.displayLarge, color: COULEURS.texte, textAlign: 'center', fontVariant: ['tabular-nums'] },
+  pause: { ...TYPO.bodyLarge, color: COULEURS.texteDiscret, textAlign: 'center' },
   actions: { marginTop: 'auto', gap: 12 },
   ligne: { flexDirection: 'row', gap: 12 },
   moitie: { flex: 1 },

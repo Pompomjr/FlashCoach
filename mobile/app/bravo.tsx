@@ -6,7 +6,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { mettreAJourEntree, type Apres } from '../src/journal/journal';
 import { stockageTelephone } from '../src/preferences/stockage';
 import { Bouton } from '../src/ui/Bouton';
-import { COULEURS, ESPACE } from '../src/ui/theme';
+import { Icone } from '../src/ui/icones';
+import { COULEURS, ESPACE, TYPO } from '../src/ui/theme';
 
 // En dessous de ce temps d'activité, sans exercice complet, on ne demande pas comment on se sent.
 const SECONDES_MIN_ACTIVITE = 10;
@@ -37,7 +38,7 @@ export default function Bravo() {
     <SafeAreaView style={styles.ecran}>
       <View style={styles.centre}>
         <View style={styles.coche} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-          <Text style={styles.texteCoche}>✓</Text>
+          <Icone nom="coche" taille={56} couleur={COULEURS.texteSurOrange} />
         </View>
         <Text style={styles.titre}>{rienFait ? 'À bientôt !' : 'Bravo !'}</Text>
         <Text style={styles.resume}>{resume(minutes, exercices, rienFait)}</Text>
@@ -65,11 +66,10 @@ const styles = StyleSheet.create({
   ecran: { flex: 1, backgroundColor: COULEURS.fond, padding: ESPACE },
   centre: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16 },
   coche: { width: 96, height: 96, borderRadius: 48, backgroundColor: COULEURS.orange, alignItems: 'center', justifyContent: 'center' },
-  texteCoche: { color: COULEURS.texteSurOrange, fontSize: 48, fontWeight: '800' },
-  titre: { color: COULEURS.texte, fontSize: 36, fontWeight: '800' },
-  resume: { color: COULEURS.texte, fontSize: 18, textAlign: 'center' },
-  question: { color: COULEURS.texte, fontSize: 18, fontWeight: '700', marginTop: 24 },
+  titre: { ...TYPO.displaySmall, color: COULEURS.texte },
+  resume: { ...TYPO.bodyLarge, color: COULEURS.texte, textAlign: 'center' },
+  question: { ...TYPO.titleMedium, color: COULEURS.texte, marginTop: 24 },
   ligne: { flexDirection: 'row', gap: 12, alignSelf: 'stretch' },
   moitie: { flex: 1 },
-  merci: { color: COULEURS.texteDiscret, fontSize: 18 },
+  merci: { ...TYPO.bodyLarge, color: COULEURS.texteDiscret },
 });

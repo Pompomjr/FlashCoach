@@ -7,12 +7,14 @@ import { CONTEXTES } from '../src/catalogue/contextes';
 import { formaterBilan, formaterDate, texteResume } from '../src/journal/affichage';
 import { lireJournal, resumeJournal, type EntreeJournal } from '../src/journal/journal';
 import { stockageTelephone } from '../src/preferences/stockage';
+import { ICONE_APRES, ICONE_CONTEXTE, ICONE_RESSENTI, Icone } from '../src/ui/icones';
 import { LIBELLES_RESSENTI } from '../src/ui/libelles';
-import { COULEURS, ESPACE, RAYON } from '../src/ui/theme';
+import { CIBLE_MIN, COULEURS, ELEVATION, ESPACE, RAYON, TYPO } from '../src/ui/theme';
+import { ondulation } from '../src/ui/toucher';
 
 const LIBELLES_APRES = {
-  mieux: { emoji: '😊', libelle: 'Mieux' },
-  pareil: { emoji: '😐', libelle: 'Pareil' },
+  mieux: { libelle: 'Mieux' },
+  pareil: { libelle: 'Pareil' },
 } as const;
 
 export default function Journal() {
@@ -37,8 +39,14 @@ export default function Journal() {
   return (
     <SafeAreaView style={styles.ecran}>
       <View style={styles.entete}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Retour" onPress={retour} hitSlop={12}>
-          <Text style={styles.retour}>‹</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Retour"
+          onPress={retour}
+          android_ripple={ondulation(COULEURS.texte)}
+          style={styles.retour}
+        >
+          <Icone nom="retour" taille={28} />
         </Pressable>
         <Text style={styles.titre} accessibilityRole="header">
           Mon journal
@@ -69,9 +77,10 @@ function LigneJournal({ entree }: { entree: EntreeJournal }) {
   const nomContexte = contexte?.nom ?? entree.contexteId;
   const avant = LIBELLES_RESSENTI[entree.ressenti];
   const apres = entree.apres === null ? null : LIBELLES_APRES[entree.apres];
+  const iconeContexte = ICONE_CONTEXTE[entree.contexteId];
   const date = formaterDate(entree.debut);
   const bilan = formaterBilan(entree.ecouleMs, entree.exercicesFaits, entree.terminee);
-  // Un seul élément accessible, lu en phrase : les emojis et la flèche ne sont pas prononcés.
+  // Un seul élément accessible, lu en phrase : les icônes et la flèche ne sont pas prononcées.
   const lecture = [
     date.replace(' · ', ' à '),
     nomContexte,
@@ -80,11 +89,27 @@ function LigneJournal({ entree }: { entree: EntreeJournal }) {
   ].join(', ');
   return (
     <View style={styles.ligne} accessible accessibilityLabel={lecture}>
-      <Text style={styles.date}>{date}</Text>
-      <Text style={styles.principal}>
-        {`${contexte?.emoji ?? '📍'} ${nomContexte} · ${avant.emoji} ${avant.libelle}${apres === null ? '' : ` → ${apres.emoji} ${apres.libelle}`}`}
-      </Text>
-      <Text style={styles.detail}>{bilan}</Text>
+      <View style={styles.pastille}>
+        {iconeContexte !== undefined && <Icone nom={iconeContexte} taille={22} />}
+      </View>
+      <View style={styles.corps}>
+        <Text style={styles.date}>{date}</Text>
+        <Text style={styles.principal}>
+          {`${nomContexte} · ${avant.libelle}${apres === null ? '' : ` → ${apres.libelle}`}`}
+        </Text>
+        <Text style={styles.detail}>{bilan}</Text>
+      </View>
+      <View style={styles.ressentis}>
+        <Icone nom={ICONE_RESSENTI[entree.ressenti]} taille={22} couleur={COULEURS.texteDiscret} />
+        {entree.apres !== null && (
+          <>
+            <View style={styles.fleche}>
+              <Icone nom="retour" taille={16} couleur={COULEURS.texteDiscret} />
+            </View>
+            <Icone nom={ICONE_APRES[entree.apres]} taille={22} couleur={COULEURS.orange} />
+          </>
+        )}
+      </View>
     </View>
   );
 }
@@ -92,14 +117,18 @@ function LigneJournal({ entree }: { entree: EntreeJournal }) {
 const styles = StyleSheet.create({
   ecran: { flex: 1, backgroundColor: COULEURS.fond },
   entete: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: ESPACE },
-  retour: { color: COULEURS.texte, fontSize: 32, paddingHorizontal: 8 },
-  titre: { color: COULEURS.texte, fontSize: 24, fontWeight: '800' },
-  vide: { color: COULEURS.texteDiscret, fontSize: 16, textAlign: 'center', marginTop: 48, paddingHorizontal: ESPACE },
+  retour: { width: CIBLE_MIN, height: CIBLE_MIN, borderRadius: CIBLE_MIN / 2, alignItems: 'center', justifyContent: 'center' },
+  titre: { ...TYPO.headlineMedium, color: COULEURS.texte },
+  vide: { ...TYPO.bodyLarge, color: COULEURS.texteDiscret, textAlign: 'center', marginTop: 48, paddingHorizontal: ESPACE },
   liste: { padding: ESPACE, gap: 12 },
-  resume: { backgroundColor: COULEURS.orange, borderRadius: RAYON, padding: ESPACE, marginBottom: 4 },
-  texteResume: { color: COULEURS.texteSurOrange, fontSize: 18, fontWeight: '700' },
-  ligne: { backgroundColor: COULEURS.carte, borderRadius: RAYON, padding: ESPACE, gap: 4 },
-  date: { color: COULEURS.texteDiscret, fontSize: 14 },
-  principal: { color: COULEURS.texte, fontSize: 16, fontWeight: '600' },
-  detail: { color: COULEURS.texteDiscret, fontSize: 14 },
+  resume: { backgroundColor: COULEURS.orange, borderRadius: RAYON, padding: ESPACE, marginBottom: 4, ...ELEVATION.niveau2 },
+  texteResume: { ...TYPO.titleMedium, color: COULEURS.texteSurOrange },
+  ligne: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: COULEURS.carte, borderRadius: RAYON, padding: ESPACE, ...ELEVATION.niveau1 },
+  pastille: { width: 40, height: 40, borderRadius: 20, backgroundColor: COULEURS.fond, alignItems: 'center', justifyContent: 'center' },
+  corps: { flex: 1, gap: 2 },
+  ressentis: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  fleche: { transform: [{ rotate: '180deg' }] },
+  date: { ...TYPO.bodyMedium, color: COULEURS.texteDiscret },
+  principal: { ...TYPO.labelLarge, color: COULEURS.texte },
+  detail: { ...TYPO.bodyMedium, color: COULEURS.texteDiscret },
 });

@@ -1,11 +1,11 @@
 import type { Ressenti } from '../catalogue/types';
 import type { Phase } from '../generateur/types';
 
-export const LIBELLES_RESSENTI: Record<Ressenti, { libelle: string; emoji: string }> = {
-  raide: { libelle: 'Raide', emoji: '😣' },
-  stresse: { libelle: 'Stressé', emoji: '😰' },
-  mou: { libelle: 'Mou', emoji: '😴' },
-  en_forme: { libelle: 'En forme', emoji: '💪' },
+export const LIBELLES_RESSENTI: Record<Ressenti, { libelle: string }> = {
+  raide: { libelle: 'Raide' },
+  stresse: { libelle: 'Stressé' },
+  mou: { libelle: 'Mou' },
+  en_forme: { libelle: 'En forme' },
 };
 
 export const LIBELLES_PHASE: Record<Phase, string> = {

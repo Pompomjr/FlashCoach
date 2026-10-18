@@ -16,8 +16,13 @@ import {
 import { stockageTelephone } from '../src/preferences/stockage';
 import { Bouton } from '../src/ui/Bouton';
 import { CarteOption } from '../src/ui/CarteOption';
+import { ICONE_CONTEXTE, ICONE_RESSENTI, Icone } from '../src/ui/icones';
 import { LIBELLES_RESSENTI } from '../src/ui/libelles';
-import { COULEURS, ESPACE } from '../src/ui/theme';
+import { Marque } from '../src/ui/Logo';
+import { CIBLE_MIN, COULEURS, ESPACE, TYPO } from '../src/ui/theme';
+import { ondulation } from '../src/ui/toucher';
+
+const MESSAGE_PREMIUM = 'Bientôt avec Premium';
 
 // Zéro configuration : tout est présélectionné, un seul tap suffit pour lancer la séance.
 export default function Depart() {
@@ -70,7 +75,7 @@ export default function Depart() {
 
   const choisirContexte = (contexteId: string) => {
     if (!contexteDisponible(contexteId)) {
-      const texte = 'Bientôt avec Premium 🔒';
+      const texte = MESSAGE_PREMIUM;
       setMessage(texte);
       // accessibilityLiveRegion ne couvre qu'Android : sur iOS, on annonce explicitement.
       if (Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(texte);
@@ -105,11 +110,18 @@ export default function Depart() {
     <SafeAreaView style={styles.ecran}>
       <ScrollView contentContainerStyle={styles.contenu}>
         <View style={styles.entete}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Mon journal" onPress={ouvrirJournal} hitSlop={8} style={styles.cibleJournal}>
+          <Marque />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Mon journal"
+            onPress={ouvrirJournal}
+            android_ripple={ondulation(COULEURS.texte)}
+            style={styles.cibleJournal}
+          >
+            <Icone nom="journal" />
             <Text style={styles.lienJournal}>Mon journal</Text>
           </Pressable>
         </View>
-        <Text style={styles.titre}>Flash Coach</Text>
         <Text style={styles.slogan}>Où que tu sois, 5 minutes pour te sentir mieux.</Text>
 
         <Text style={styles.section}>Où es-tu ?</Text>
@@ -118,7 +130,7 @@ export default function Depart() {
             <CarteOption
               key={contexte.id}
               libelle={contexte.nom}
-              emoji={contexte.emoji}
+              icone={ICONE_CONTEXTE[contexte.id]}
               selectionne={choix.contexteId === contexte.id}
               verrouille={!contexteDisponible(contexte.id)}
               onPress={() => choisirContexte(contexte.id)}
@@ -127,9 +139,12 @@ export default function Depart() {
           ))}
         </View>
         {message !== null && (
-          <Text style={styles.message} accessibilityLiveRegion="polite">
-            {message}
-          </Text>
+          <View style={styles.message}>
+            <Icone nom="cadenas" taille={20} couleur={COULEURS.texteDiscret} />
+            <Text style={styles.texteMessage} accessibilityLiveRegion="polite">
+              {message}
+            </Text>
+          </View>
         )}
 
         <Text style={styles.section}>Comment tu te sens ?</Text>
@@ -138,7 +153,7 @@ export default function Depart() {
             <CarteOption
               key={ressenti}
               libelle={LIBELLES_RESSENTI[ressenti].libelle}
-              emoji={LIBELLES_RESSENTI[ressenti].emoji}
+              icone={ICONE_RESSENTI[ressenti]}
               selectionne={choix.ressenti === ressenti}
               onPress={() => modifier({ ressenti })}
               style={styles.demiLargeur}
@@ -169,17 +184,18 @@ export default function Depart() {
 const styles = StyleSheet.create({
   ecran: { flex: 1, backgroundColor: COULEURS.fond },
   contenu: { padding: ESPACE, paddingBottom: ESPACE * 2, gap: 12 },
-  entete: { flexDirection: 'row', justifyContent: 'flex-end' },
-  // Cible tactile d'au moins 44 px de haut.
-  cibleJournal: { minHeight: 44, justifyContent: 'center' },
-  lienJournal: { color: COULEURS.texte, fontSize: 15, fontWeight: '600', textDecorationLine: 'underline' },
-  titre: { color: COULEURS.texte, fontSize: 28, fontWeight: '800', textAlign: 'center', marginTop: 8 },
-  slogan: { color: COULEURS.texteDiscret, fontSize: 15, textAlign: 'center', marginBottom: 8 },
-  section: { color: COULEURS.texte, fontSize: 20, fontWeight: '700', marginTop: 12 },
+  // Si la place manque (grande police), le lien passe sous la marque, toujours calé à droite.
+  entete: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', columnGap: 12 },
+  // Cible tactile d'au moins 48 dp, seule ou en rangée avec la marque.
+  cibleJournal: { minHeight: CIBLE_MIN, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 8, marginLeft: 'auto' },
+  lienJournal: { ...TYPO.labelLarge, color: COULEURS.texte, textDecorationLine: 'underline' },
+  slogan: { ...TYPO.bodyLarge, color: COULEURS.texteDiscret, marginBottom: 8 },
+  section: { ...TYPO.titleLarge, color: COULEURS.texte, marginTop: 12 },
   grille: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   ligne: { flexDirection: 'row', gap: 10 },
   demiLargeur: { flexBasis: '47%', flexGrow: 1 },
-  tiers: { flex: 1, alignItems: 'center' },
-  message: { color: COULEURS.texteDiscret, fontSize: 15 },
+  tiers: { flex: 1, justifyContent: 'center' },
+  message: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  texteMessage: { ...TYPO.bodyLarge, color: COULEURS.texteDiscret, flexShrink: 1 },
   pied: { padding: ESPACE },
 });

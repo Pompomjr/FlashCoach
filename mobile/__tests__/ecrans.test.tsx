@@ -27,6 +27,9 @@ jest.mock('expo-haptics', () => ({
   ImpactFeedbackStyle: { Medium: 'medium' },
 }));
 
+// Pictogrammes et emoji : plus aucun dans l'interface.
+const EMOJI = new RegExp(String.raw`\p{Extended_Pictographic}|[✓‹]`, 'u');
+
 const memoire = stockageTelephone as unknown as { contenu: Record<string, string> };
 const ROUTES = { _layout: Layout, index: Depart, seance: EcranSeance, bravo: Bravo, journal: Journal };
 const SEANCE = '/seance?contexte=maison&ressenti=mou&duree=5&graine=1';
@@ -65,6 +68,26 @@ describe('écran de départ', () => {
     expect(screen.getByRole('button', { name: '3 min' })).toBeSelected();
   });
 
+  it('affiche la marque en titre, avec le slogan dessous', async () => {
+    await renderRouter(ROUTES, { initialUrl: '/' });
+    expect(await screen.findByRole('header', { name: 'Flash Coach' })).toBeTruthy();
+    expect(screen.getByText('Où que tu sois, 5 minutes pour te sentir mieux.')).toBeTruthy();
+  });
+
+  it('dessine une icône sur chaque carte de contexte et de ressenti, sans emoji', async () => {
+    await renderRouter(ROUTES, { initialUrl: '/' });
+    await screen.findByRole('button', { name: 'À la maison' });
+    for (const nom of ['reveil', 'maison', 'cadenas', 'raide', 'stresse', 'mou', 'en_forme', 'journal']) {
+      expect(screen.getAllByTestId(`icone-${nom}`, { includeHiddenElements: true }).length).toBeGreaterThan(0);
+    }
+    // Les trois contextes Premium montrent le cadenas, pas leur icône.
+    expect(screen.getAllByTestId('icone-cadenas', { includeHiddenElements: true })).toHaveLength(3);
+    for (const nom of ['bureau', 'voyage', 'dehors']) {
+      expect(screen.queryByTestId(`icone-${nom}`, { includeHiddenElements: true })).toBeNull();
+    }
+    expect(screen.queryAllByText(EMOJI)).toHaveLength(0);
+  });
+
   it('lance la séance en un seul tap et retient les choix', async () => {
     await renderRouter(ROUTES, { initialUrl: '/' });
     await fireEvent.press(await screen.findByRole('button', { name: 'Lancer ma séance' }));
@@ -75,7 +98,7 @@ describe('écran de départ', () => {
   it('annonce Premium sans changer la sélection', async () => {
     await renderRouter(ROUTES, { initialUrl: '/' });
     await fireEvent.press(await screen.findByRole('button', { name: 'Au bureau, Premium' }));
-    expect(screen.getByText('Bientôt avec Premium 🔒')).toBeTruthy();
+    expect(screen.getByText('Bientôt avec Premium')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'À la maison' })).toBeSelected();
   });
 
@@ -108,9 +131,19 @@ describe('écran de départ', () => {
   it('efface le message Premium dès qu’on fait un autre choix', async () => {
     await renderRouter(ROUTES, { initialUrl: '/' });
     await fireEvent.press(await screen.findByRole('button', { name: 'Au bureau, Premium' }));
-    expect(screen.getByText('Bientôt avec Premium 🔒')).toBeTruthy();
+    expect(screen.getByText('Bientôt avec Premium')).toBeTruthy();
     await fireEvent.press(screen.getByRole('button', { name: 'Raide' }));
-    expect(screen.queryByText('Bientôt avec Premium 🔒')).toBeNull();
+    expect(screen.queryByText('Bientôt avec Premium')).toBeNull();
+  });
+
+  it('accompagne « Bientôt avec Premium » du cadenas', async () => {
+    await renderRouter(ROUTES, { initialUrl: '/' });
+    expect(screen.queryByText('Bientôt avec Premium')).toBeNull();
+    await fireEvent.press(await screen.findByRole('button', { name: 'Au bureau, Premium' }));
+    const message = screen.getByText('Bientôt avec Premium');
+    expect(message).toBeTruthy();
+    // 3 cartes verrouillées + le cadenas du message.
+    expect(screen.getAllByTestId('icone-cadenas', { includeHiddenElements: true })).toHaveLength(4);
   });
 
   it('annonce le message Premium aux lecteurs d’écran (iOS)', async () => {
@@ -118,7 +151,7 @@ describe('écran de départ', () => {
     const annonce = espionnerAnnonces();
     await renderRouter(ROUTES, { initialUrl: '/' });
     await fireEvent.press(await screen.findByRole('button', { name: 'Au bureau, Premium' }));
-    expect(annonce).toHaveBeenCalledWith('Bientôt avec Premium 🔒');
+    expect(annonce).toHaveBeenCalledWith('Bientôt avec Premium');
   });
 
   it('n’annonce pas deux fois le message Premium sur Android (zone live déjà en place)', async () => {
@@ -126,7 +159,7 @@ describe('écran de départ', () => {
     const annonce = espionnerAnnonces();
     await renderRouter(ROUTES, { initialUrl: '/' });
     await fireEvent.press(await screen.findByRole('button', { name: 'Au bureau, Premium' }));
-    expect(screen.getByText('Bientôt avec Premium 🔒')).toBeTruthy();
+    expect(screen.getByText('Bientôt avec Premium')).toBeTruthy();
     expect(annonce).not.toHaveBeenCalled();
   });
 
@@ -288,13 +321,13 @@ describe('retour au départ après une séance', () => {
   it('efface le message Premium au retour sur le départ', async () => {
     await renderRouter(ROUTES, { initialUrl: '/' });
     await fireEvent.press(await screen.findByRole('button', { name: 'Au bureau, Premium' }));
-    expect(screen.getByText('Bientôt avec Premium 🔒')).toBeTruthy();
+    expect(screen.getByText('Bientôt avec Premium')).toBeTruthy();
     await fireEvent.press(screen.getByRole('button', { name: 'Lancer ma séance' }));
     await fireEvent.press(await screen.findByRole('button', { name: 'Terminer la séance' }));
     await waitFor(() => expect(screen).toHavePathname('/bravo'));
     await fireEvent.press(screen.getByRole('button', { name: 'Et on est repartis' }));
     await waitFor(() => expect(screen).toHavePathname('/'));
-    expect(screen.queryByText('Bientôt avec Premium 🔒')).toBeNull();
+    expect(screen.queryByText('Bientôt avec Premium')).toBeNull();
   });
 
   it('relit les derniers exercices au retour : ceux de la séance qui vient d’avoir lieu', async () => {
@@ -460,9 +493,23 @@ describe('écran Mon journal', () => {
     ]);
     await renderRouter(ROUTES, { initialUrl: '/journal' });
     expect(await screen.findByText('Séances qui t’ont fait du bien : 1 sur 2')).toBeTruthy();
-    expect(screen.getByText('🏠 À la maison · 😴 Mou → 😊 Mieux')).toBeTruthy();
-    expect(screen.getByText('🛏️ Au réveil · 😣 Raide → 😐 Pareil')).toBeTruthy();
+    expect(screen.getByText('À la maison · Mou → Mieux')).toBeTruthy();
+    expect(screen.getByText('Au réveil · Raide → Pareil')).toBeTruthy();
     expect(screen.getByText('Moins d’une minute · écourtée')).toBeTruthy();
     expect(screen.getAllByText('dim. 18 oct. · 7h05')).toHaveLength(3);
+  });
+
+  it('remplace les emojis par les icônes du contexte et du ressenti', async () => {
+    memoire.contenu[CLE_JOURNAL] = JSON.stringify([
+      fabriquerEntree({ id: 'a', apres: 'mieux' }),
+      fabriquerEntree({ id: 'b', apres: 'pareil', contexteId: 'reveil', ressenti: 'raide' }),
+    ]);
+    await renderRouter(ROUTES, { initialUrl: '/journal' });
+    await screen.findByText('À la maison · Mou → Mieux');
+    const toutes = { includeHiddenElements: true };
+    for (const nom of ['maison', 'mou', 'mieux', 'reveil', 'raide', 'pareil']) {
+      expect(screen.getAllByTestId(`icone-${nom}`, toutes)).toHaveLength(1);
+    }
+    expect(screen.queryAllByText(EMOJI)).toHaveLength(0);
   });
 });

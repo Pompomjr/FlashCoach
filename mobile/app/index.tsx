@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useRef, useState } from 'react';
-import { AccessibilityInfo, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { AccessibilityInfo, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { contexteDisponible } from '../src/abonnement/acces';
@@ -27,16 +27,30 @@ export default function Depart() {
 
   // Nombre de choix faits par l'utilisateur : une lecture démarrée avant ne doit pas écraser sa sélection.
   const choixUtilisateur = useRef(0);
+  // Premier retour de focus = le montage : seuls les retours suivants ne relisent pas les choix.
+  const premierFocus = useRef(true);
+  // Garde contre le double appui : une seule séance part, jusqu'au prochain retour sur le départ.
+  const lancement = useRef(false);
 
-  // À chaque retour sur l'écran (au montage, puis au retour de Bravo), on relit les préférences :
-  // les derniers exercices doivent être ceux de la séance qui vient d'avoir lieu.
+  const contextes = useMemo(() => [...CONTEXTES].sort((a, b) => a.ordre - b.ordre), []);
+
+  // Au montage on lit les choix retenus et les derniers exercices. À chaque retour sur l'écran
+  // (après une séance), on relit seulement les derniers exercices, qui doivent être ceux de la
+  // séance qui vient d'avoir lieu, et on efface le message Premium devenu périmé.
   useFocusEffect(
     useCallback(() => {
+      lancement.current = false;
       let actif = true;
       const dejaChoisi = choixUtilisateur.current;
-      Promise.all([lireChoix(stockageTelephone), lireDerniersExercices(stockageTelephone)]).then(([lus, ids]) => {
+      const lireLesChoix = premierFocus.current;
+      premierFocus.current = false;
+      if (!lireLesChoix) setMessage(null);
+      Promise.all([
+        lireLesChoix ? lireChoix(stockageTelephone) : Promise.resolve(null),
+        lireDerniersExercices(stockageTelephone),
+      ]).then(([lus, ids]) => {
         if (!actif) return;
-        if (choixUtilisateur.current === dejaChoisi) setChoix(lus);
+        if (lus !== null && choixUtilisateur.current === dejaChoisi) setChoix(lus);
         setDerniersExercices(ids);
       });
       return () => {
@@ -55,14 +69,16 @@ export default function Depart() {
     if (!contexteDisponible(contexteId)) {
       const texte = 'Bientôt avec Premium 🔒';
       setMessage(texte);
-      // accessibilityLiveRegion ne couvre qu'Android : on annonce aussi explicitement (iOS).
-      AccessibilityInfo.announceForAccessibility(texte);
+      // accessibilityLiveRegion ne couvre qu'Android : sur iOS, on annonce explicitement.
+      if (Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(texte);
       return;
     }
     modifier({ contexteId });
   };
 
   const lancer = () => {
+    if (lancement.current) return;
+    lancement.current = true;
     ecrireChoix(stockageTelephone, choix).catch(() => undefined);
     router.push({
       pathname: '/seance',
@@ -84,7 +100,7 @@ export default function Depart() {
 
         <Text style={styles.section}>Où es-tu ?</Text>
         <View style={styles.grille}>
-          {CONTEXTES.map((contexte) => (
+          {contextes.map((contexte) => (
             <CarteOption
               key={contexte.id}
               libelle={contexte.nom}

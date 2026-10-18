@@ -1,7 +1,7 @@
 import * as Haptics from 'expo-haptics';
-import { Redirect, router, useLocalSearchParams } from 'expo-router';
+import { Redirect, router, useIsFocused, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef } from 'react';
-import { AccessibilityInfo, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EXERCICES } from '../src/catalogue/exercices';
@@ -39,10 +39,14 @@ function LecteurSeance({ parametres }: { parametres: ParametresSeance }) {
   const { etat, passer, basculerPause, terminer } = useLecteurSeance(seance.blocs);
   const bloc = etat.blocs[etat.index];
   const cote = coteCourant(etat);
+  const aLeFocus = useIsFocused();
+
+  // Sur un lien direct, il n'y a rien derrière : on retourne au départ.
+  const quitter = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
   const actionPause = () => {
-    // accessibilityLiveRegion ne couvre qu'Android : on annonce aussi explicitement (iOS).
-    if (!etat.enPause) AccessibilityInfo.announceForAccessibility('En pause');
+    // accessibilityLiveRegion ne couvre qu'Android : sur iOS, on annonce explicitement.
+    if (!etat.enPause && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility('En pause');
     basculerPause();
   };
 
@@ -51,35 +55,38 @@ function LecteurSeance({ parametres }: { parametres: ParametresSeance }) {
     ecrireDerniersExercices(stockageTelephone, seance.blocs.map((b) => b.exercice.id)).catch(() => undefined);
   }, [seance]);
 
-  // Une vibration à chaque changement d'étape, pas au démarrage.
+  // Une vibration (et, sur iOS, l'annonce de l'exercice) à chaque changement d'étape, pas au démarrage.
   const premierRendu = useRef(true);
+  const nomExercice = bloc.exercice.nom;
   useEffect(() => {
     if (premierRendu.current) {
       premierRendu.current = false;
       return;
     }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
-  }, [etat.index, etat.etape]);
+    if (Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(nomExercice);
+  }, [etat.index, etat.etape, nomExercice]);
 
+  // Un lecteur resté en arrière-plan (écran recouvert) ne doit jamais prendre la main sur l'écran visible.
   useEffect(() => {
-    if (!etat.termine) return;
+    if (!etat.termine || !aLeFocus) return;
     router.replace({
       pathname: '/bravo',
       params: { minutes: String(minutesEffectuees(etat.ecouleMs)), exercices: String(etat.exercicesFaits) },
     });
-  }, [etat.termine, etat.ecouleMs, etat.exercicesFaits]);
+  }, [etat.termine, aLeFocus, etat.ecouleMs, etat.exercicesFaits]);
 
   return (
     <SafeAreaView style={styles.ecran}>
       <ScrollView contentContainerStyle={styles.contenu}>
         <View style={styles.entete}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Quitter la séance" onPress={() => router.back()} hitSlop={12}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Quitter la séance" onPress={quitter} hitSlop={12}>
             <Text style={styles.retour}>‹</Text>
           </Pressable>
           <Text style={styles.compteur}>{`${etat.index + 1} / ${etat.blocs.length}`}</Text>
         </View>
 
-        <View style={styles.carte}>
+        <View style={styles.carte} accessibilityLiveRegion="polite">
           <Text style={styles.phase}>{etat.etape === 'transition' ? 'À suivre' : LIBELLES_PHASE[bloc.phase]}</Text>
           <Text style={styles.nom}>{bloc.exercice.nom}</Text>
           {cote !== null && <Text style={styles.cote}>{cote === 'gauche' ? 'Côté gauche' : 'Côté droit'}</Text>}

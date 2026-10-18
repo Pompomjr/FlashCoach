@@ -7,8 +7,9 @@ import { Bouton } from '../src/ui/Bouton';
 import { COULEURS, ESPACE } from '../src/ui/theme';
 
 function resume(minutes: number, exercices: number): string {
-  if (exercices === 0) return 'Pas grave, on remet ça quand tu veux.';
+  if (exercices === 0 && minutes === 0) return 'Pas grave, on remet ça quand tu veux.';
   const duree = minutes === 0 ? 'Moins d’une minute' : `${minutes} min`;
+  if (exercices === 0) return duree;
   return `${duree} · ${exercices} exercice${exercices > 1 ? 's' : ''}`;
 }
 
@@ -18,14 +19,15 @@ export default function Bravo() {
   const exercices = Number(params.exercices) || 0;
   // La réponse sera enregistrée dans le journal au jalon 3.
   const [repondu, setRepondu] = useState(false);
+  const rienFait = exercices === 0 && minutes === 0;
 
   return (
     <SafeAreaView style={styles.ecran}>
       <View style={styles.centre}>
-        <View style={styles.coche}>
+        <View style={styles.coche} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
           <Text style={styles.texteCoche}>✓</Text>
         </View>
-        <Text style={styles.titre}>{exercices === 0 ? 'À bientôt !' : 'Bravo !'}</Text>
+        <Text style={styles.titre}>{rienFait ? 'À bientôt !' : 'Bravo !'}</Text>
         <Text style={styles.resume}>{resume(minutes, exercices)}</Text>
 
         <Text style={styles.question}>Tu te sens mieux ?</Text>

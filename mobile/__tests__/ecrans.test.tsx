@@ -3,7 +3,7 @@ import { fireEvent, waitFor } from '@testing-library/react-native';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { act, renderRouter, screen } from 'expo-router/testing-library';
-import { AccessibilityInfo } from 'react-native';
+import { AccessibilityInfo, Platform } from 'react-native';
 
 import Layout from '../app/_layout';
 import Depart from '../app/index';
@@ -27,6 +27,13 @@ jest.mock('expo-haptics', () => ({
 const memoire = stockageTelephone as unknown as { contenu: Record<string, string> };
 const ROUTES = { _layout: Layout, index: Depart, seance: EcranSeance, bravo: Bravo };
 const SEANCE = '/seance?contexte=maison&ressenti=mou&duree=5&graine=1';
+
+// Le compteur est remis à zéro : un espion déjà posé par un test précédent garderait son historique.
+function espionnerAnnonces() {
+  const espion = jest.spyOn(AccessibilityInfo, 'announceForAccessibility').mockImplementation(() => undefined);
+  espion.mockClear();
+  return espion;
+}
 
 beforeEach(() => {
   for (const cle of Object.keys(memoire.contenu)) delete memoire.contenu[cle];
@@ -102,11 +109,32 @@ describe('écran de départ', () => {
     expect(screen.queryByText('Bientôt avec Premium 🔒')).toBeNull();
   });
 
-  it('annonce le message Premium aux lecteurs d’écran', async () => {
-    const annonce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility').mockImplementation(() => undefined);
+  it('annonce le message Premium aux lecteurs d’écran (iOS)', async () => {
+    jest.replaceProperty(Platform, 'OS', 'ios');
+    const annonce = espionnerAnnonces();
     await renderRouter(ROUTES, { initialUrl: '/' });
     await fireEvent.press(await screen.findByRole('button', { name: 'Au bureau, Premium' }));
     expect(annonce).toHaveBeenCalledWith('Bientôt avec Premium 🔒');
+  });
+
+  it('n’annonce pas deux fois le message Premium sur Android (zone live déjà en place)', async () => {
+    jest.replaceProperty(Platform, 'OS', 'android');
+    const annonce = espionnerAnnonces();
+    await renderRouter(ROUTES, { initialUrl: '/' });
+    await fireEvent.press(await screen.findByRole('button', { name: 'Au bureau, Premium' }));
+    expect(screen.getByText('Bientôt avec Premium 🔒')).toBeTruthy();
+    expect(annonce).not.toHaveBeenCalled();
+  });
+
+  it('ne lance qu’une séance malgré un double appui', async () => {
+    await renderRouter(ROUTES, { initialUrl: '/' });
+    const lancer = await screen.findByRole('button', { name: 'Lancer ma séance' });
+    await fireEvent.press(lancer);
+    await fireEvent.press(lancer);
+    await waitFor(() => expect(screen).toHavePathname('/seance'));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Quitter la séance' }));
+    await waitFor(() => expect(screen).toHavePathname('/'));
+    expect(router.canGoBack()).toBe(false);
   });
 });
 
@@ -129,12 +157,28 @@ describe('écran de séance', () => {
     expect(screen.getByText('Pas grave, on remet ça quand tu veux.')).toBeTruthy();
   });
 
-  it('annonce la pause aux lecteurs d’écran', async () => {
-    const annonce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility').mockImplementation(() => undefined);
+  it('annonce la pause aux lecteurs d’écran (iOS)', async () => {
+    jest.replaceProperty(Platform, 'OS', 'ios');
+    const annonce = espionnerAnnonces();
     await renderRouter(ROUTES, { initialUrl: SEANCE });
     await fireEvent.press(await screen.findByRole('button', { name: 'Pause' }));
     expect(screen.getByText('En pause')).toBeTruthy();
     expect(annonce).toHaveBeenCalledWith('En pause');
+  });
+
+  it('n’annonce pas la pause deux fois sur Android', async () => {
+    jest.replaceProperty(Platform, 'OS', 'android');
+    const annonce = espionnerAnnonces();
+    await renderRouter(ROUTES, { initialUrl: SEANCE });
+    await fireEvent.press(await screen.findByRole('button', { name: 'Pause' }));
+    expect(screen.getByText('En pause')).toBeTruthy();
+    expect(annonce).not.toHaveBeenCalled();
+  });
+
+  it('quitte vers le départ sur un lien direct, sans historique', async () => {
+    await renderRouter(ROUTES, { initialUrl: SEANCE });
+    await fireEvent.press(await screen.findByRole('button', { name: 'Quitter la séance' }));
+    await waitFor(() => expect(screen).toHavePathname('/'));
   });
 });
 
@@ -152,6 +196,20 @@ describe('effets de la séance', () => {
       jest.advanceTimersByTime(5000);
     });
     expect(Haptics.impactAsync).toHaveBeenCalledTimes(1);
+  });
+
+  it('annonce l’exercice à chaque changement d’étape sur iOS, pas au démarrage', async () => {
+    jest.replaceProperty(Platform, 'OS', 'ios');
+    const annonce = espionnerAnnonces();
+    await renderRouter(ROUTES, { initialUrl: SEANCE });
+    expect(await screen.findByText('0:05')).toBeTruthy();
+    expect(annonce).not.toHaveBeenCalled();
+
+    await act(async () => {
+      jest.advanceTimersByTime(5000);
+    });
+    expect(annonce).toHaveBeenCalledTimes(1);
+    expect(annonce).toHaveBeenCalledWith(expect.stringMatching(/\S/));
   });
 
   it('retient les exercices de la séance pour la prochaine fois', async () => {
@@ -186,6 +244,25 @@ describe('écran Bravo', () => {
     expect(screen.getByText('Merci !')).toBeTruthy();
   });
 
+  it('félicite après des minutes d’effort sans exercice complet', async () => {
+    await renderRouter(ROUTES, { initialUrl: '/bravo?minutes=3&exercices=0' });
+    expect(await screen.findByText('Bravo !')).toBeTruthy();
+    expect(screen.getByText('3 min')).toBeTruthy();
+    expect(screen.queryByText('À bientôt !')).toBeNull();
+  });
+
+  it('reste doux quand rien n’a été fait', async () => {
+    await renderRouter(ROUTES, { initialUrl: '/bravo?minutes=0&exercices=0' });
+    expect(await screen.findByText('À bientôt !')).toBeTruthy();
+    expect(screen.getByText('Pas grave, on remet ça quand tu veux.')).toBeTruthy();
+  });
+
+  it('cache la coche décorative aux lecteurs d’écran', async () => {
+    await renderRouter(ROUTES, { initialUrl: '/bravo?minutes=5&exercices=8' });
+    expect(await screen.findByText('Bravo !')).toBeTruthy();
+    expect(screen.queryByText('✓')).toBeNull();
+  });
+
   it('repart vers le départ', async () => {
     await renderRouter(ROUTES, { initialUrl: '/bravo?minutes=5&exercices=8' });
     await fireEvent.press(await screen.findByRole('button', { name: 'Et on est repartis' }));
@@ -202,6 +279,18 @@ describe('retour au départ après une séance', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Et on est repartis' }));
     await waitFor(() => expect(screen).toHavePathname('/'));
     expect(router.canGoBack()).toBe(false);
+  });
+
+  it('efface le message Premium au retour sur le départ', async () => {
+    await renderRouter(ROUTES, { initialUrl: '/' });
+    await fireEvent.press(await screen.findByRole('button', { name: 'Au bureau, Premium' }));
+    expect(screen.getByText('Bientôt avec Premium 🔒')).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: 'Lancer ma séance' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Terminer la séance' }));
+    await waitFor(() => expect(screen).toHavePathname('/bravo'));
+    await fireEvent.press(screen.getByRole('button', { name: 'Et on est repartis' }));
+    await waitFor(() => expect(screen).toHavePathname('/'));
+    expect(screen.queryByText('Bientôt avec Premium 🔒')).toBeNull();
   });
 
   it('relit les derniers exercices au retour : ceux de la séance qui vient d’avoir lieu', async () => {

@@ -37,6 +37,8 @@ Usage sur téléphone, souvent à une main, dans des lieux variés (chambre au r
 - Nom : Flash Coach. Slogan : « Où que tu sois, 5 minutes pour te sentir mieux. » Phrase signature : « Et on est repartis ».
 - Ton : motivant, direct, positif, complice, jamais culpabilisant ; jamais « pas d'excuse » ni promesse de perte de poids ; une séance non finie est « écourtée ».
 - Palette de la fiche Notion : bleu #3A506B, orange #F97316, gris foncé #2D3748, gris clair #EDF2F7, noir #000000. Jamais de texte blanc sur l'orange (contraste insuffisant).
+- Répartition validée par Mattia le 2026-10-18, comme la maquette : fond bleu nuit profond #22344A, cartes et surfaces en bleu #3A506B (plus claires que le fond), orange pour l'action.
+- En-tête de l'écran de départ : logo centré au-dessus, « Flash Coach » en dessous, puis le slogan (choix de Mattia).
 - Référence visuelle validée : docs/reference/maquette-parcours-seance.png (départ, séance, Bravo).
 
 ## Evidence on Hand

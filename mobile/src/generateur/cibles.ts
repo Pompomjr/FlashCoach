@@ -14,8 +14,8 @@ export const CIBLE_PAR_RESSENTI: Record<Ressenti, Cible> = {
   en_forme: { effet: 'energie', intensiteMin: 2, intensiteMax: 3 },
 };
 
-const CIBLE_MISE_EN_ROUTE: Cible = { effet: 'mobilite', intensiteMin: 1, intensiteMax: 1 };
-const CIBLE_RETOUR_AU_CALME: Cible = { effet: 'detente', intensiteMin: 1, intensiteMax: 1 };
+export const CIBLE_MISE_EN_ROUTE: Cible = { effet: 'mobilite', intensiteMin: 1, intensiteMax: 1 };
+export const CIBLE_RETOUR_AU_CALME: Cible = { effet: 'detente', intensiteMin: 1, intensiteMax: 1 };
 
 export function cibleDePhase(phase: Phase, ressenti: Ressenti): Cible {
   if (phase === 'mise_en_route') return CIBLE_MISE_EN_ROUTE;

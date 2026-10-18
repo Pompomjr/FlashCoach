@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { mettreAJourEntree, type Apres } from '../src/journal/journal';
+import { stockageTelephone } from '../src/preferences/stockage';
 import { Bouton } from '../src/ui/Bouton';
 import { COULEURS, ESPACE } from '../src/ui/theme';
 
@@ -14,12 +16,16 @@ function resume(minutes: number, exercices: number): string {
 }
 
 export default function Bravo() {
-  const params = useLocalSearchParams<{ minutes: string; exercices: string }>();
+  const params = useLocalSearchParams<{ minutes: string; exercices: string; seance: string }>();
   const minutes = Number(params.minutes) || 0;
   const exercices = Number(params.exercices) || 0;
-  // La réponse sera enregistrée dans le journal au jalon 3.
   const [repondu, setRepondu] = useState(false);
   const rienFait = exercices === 0 && minutes === 0;
+
+  const repondre = (apres: Apres) => {
+    if (params.seance) mettreAJourEntree(stockageTelephone, params.seance, { apres });
+    setRepondu(true);
+  };
 
   return (
     <SafeAreaView style={styles.ecran}>
@@ -30,14 +36,18 @@ export default function Bravo() {
         <Text style={styles.titre}>{rienFait ? 'À bientôt !' : 'Bravo !'}</Text>
         <Text style={styles.resume}>{resume(minutes, exercices)}</Text>
 
-        <Text style={styles.question}>Tu te sens mieux ?</Text>
-        {repondu ? (
-          <Text style={styles.merci}>Merci !</Text>
-        ) : (
-          <View style={styles.ligne}>
-            <Bouton libelle="Mieux" variante="secondaire" onPress={() => setRepondu(true)} style={styles.moitie} />
-            <Bouton libelle="Pareil" variante="secondaire" onPress={() => setRepondu(true)} style={styles.moitie} />
-          </View>
+        {!rienFait && (
+          <>
+            <Text style={styles.question}>Tu te sens mieux ?</Text>
+            {repondu ? (
+              <Text style={styles.merci}>Merci !</Text>
+            ) : (
+              <View style={styles.ligne}>
+                <Bouton libelle="Mieux" variante="secondaire" onPress={() => repondre('mieux')} style={styles.moitie} />
+                <Bouton libelle="Pareil" variante="secondaire" onPress={() => repondre('pareil')} style={styles.moitie} />
+              </View>
+            )}
+          </>
         )}
       </View>
       <Bouton libelle="Et on est repartis" onPress={() => router.dismissTo('/')} />

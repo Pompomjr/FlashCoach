@@ -1,12 +1,13 @@
 import * as Haptics from 'expo-haptics';
 import { Redirect, router, useIsFocused, useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EXERCICES } from '../src/catalogue/exercices';
 import { genererSeance } from '../src/generateur/generer';
 import type { ParametresSeance } from '../src/generateur/types';
+import { ajouterEntree, creerIdentifiant, mettreAJourEntree } from '../src/journal/journal';
 import { ecrireDerniersExercices } from '../src/preferences/preferences';
 import { stockageTelephone } from '../src/preferences/stockage';
 import { coteCourant, formaterTemps, minutesEffectuees } from '../src/seance/affichage';
@@ -40,6 +41,15 @@ function LecteurSeance({ parametres }: { parametres: ParametresSeance }) {
   const bloc = etat.blocs[etat.index];
   const cote = coteCourant(etat);
   const aLeFocus = useIsFocused();
+  const [idJournal] = useState(creerIdentifiant);
+  // Vrai quand la séance se termine par « Terminer la séance » plutôt que d'aller au bout.
+  const termineeParUtilisateur = useRef(false);
+  // Vrai dès que l'entrée du journal a reçu son état final : le démontage ne l'écrase plus.
+  const finalisee = useRef(false);
+  const dernierEtat = useRef(etat);
+  useEffect(() => {
+    dernierEtat.current = etat;
+  });
 
   // Sur un lien direct, il n'y a rien derrière : on retourne au départ.
   const quitter = () => (router.canGoBack() ? router.back() : router.replace('/'));
@@ -50,10 +60,32 @@ function LecteurSeance({ parametres }: { parametres: ParametresSeance }) {
     basculerPause();
   };
 
-  // Les exercices de cette séance seront évités la prochaine fois.
+  // Au lancement : derniers exercices (évités la prochaine fois) et entrée du journal, écourtée par défaut.
+  // Si l'on quitte (‹, retour système), on garde le temps réellement fait.
   useEffect(() => {
-    ecrireDerniersExercices(stockageTelephone, seance.blocs.map((b) => b.exercice.id)).catch(() => undefined);
-  }, [seance]);
+    const ids = seance.blocs.map((b) => b.exercice.id);
+    ecrireDerniersExercices(stockageTelephone, ids).catch(() => undefined);
+    ajouterEntree(stockageTelephone, {
+      id: idJournal,
+      debut: new Date().toISOString(),
+      contexteId: seance.contexteId,
+      ressenti: seance.ressenti,
+      duree: seance.duree,
+      graine: seance.graine,
+      exercices: ids,
+      ecouleMs: 0,
+      exercicesFaits: 0,
+      terminee: false,
+      apres: null,
+    });
+    const etatAuDemontage = dernierEtat;
+    return () => {
+      if (finalisee.current) return;
+      // Lecture voulue au nettoyage : on veut le dernier état, pas celui du lancement.
+      const { ecouleMs, exercicesFaits } = etatAuDemontage.current;
+      mettreAJourEntree(stockageTelephone, idJournal, { ecouleMs, exercicesFaits });
+    };
+  }, [seance, idJournal]);
 
   // Une vibration (et, sur iOS, l'annonce de l'exercice) à chaque changement d'étape, pas au démarrage.
   const premierRendu = useRef(true);
@@ -70,11 +102,26 @@ function LecteurSeance({ parametres }: { parametres: ParametresSeance }) {
   // Un lecteur resté en arrière-plan (écran recouvert) ne doit jamais prendre la main sur l'écran visible.
   useEffect(() => {
     if (!etat.termine || !aLeFocus) return;
+    finalisee.current = true;
+    mettreAJourEntree(stockageTelephone, idJournal, {
+      ecouleMs: etat.ecouleMs,
+      exercicesFaits: etat.exercicesFaits,
+      terminee: !termineeParUtilisateur.current,
+    });
     router.replace({
       pathname: '/bravo',
-      params: { minutes: String(minutesEffectuees(etat.ecouleMs)), exercices: String(etat.exercicesFaits) },
+      params: {
+        minutes: String(minutesEffectuees(etat.ecouleMs)),
+        exercices: String(etat.exercicesFaits),
+        seance: idJournal,
+      },
     });
-  }, [etat.termine, aLeFocus, etat.ecouleMs, etat.exercicesFaits]);
+  }, [etat.termine, aLeFocus, etat.ecouleMs, etat.exercicesFaits, idJournal]);
+
+  const terminerAvantLaFin = () => {
+    termineeParUtilisateur.current = true;
+    terminer();
+  };
 
   return (
     <SafeAreaView style={styles.ecran}>
@@ -102,7 +149,7 @@ function LecteurSeance({ parametres }: { parametres: ParametresSeance }) {
           <Bouton libelle={etat.enPause ? 'Reprendre' : 'Pause'} variante="secondaire" onPress={actionPause} />
           <View style={styles.ligne}>
             <Bouton libelle="Passer" onPress={passer} style={styles.moitie} />
-            <Bouton libelle="Terminer la séance" variante="secondaire" onPress={terminer} style={styles.moitie} />
+            <Bouton libelle="Terminer la séance" variante="secondaire" onPress={terminerAvantLaFin} style={styles.moitie} />
           </View>
         </View>
       </ScrollView>

@@ -8,8 +8,11 @@ import { AccessibilityInfo, Platform } from 'react-native';
 import Layout from '../app/_layout';
 import Depart from '../app/index';
 import Bravo from '../app/bravo';
+import Journal from '../app/journal';
 import EcranSeance from '../app/seance';
+import { CLE_JOURNAL } from '../src/journal/journal';
 import { stockageTelephone } from '../src/preferences/stockage';
+import { fabriquerEntree } from '../src/test-utils/journal';
 
 jest.mock('../src/preferences/stockage', () => {
   const { creerStockageMemoire } = jest.requireActual('../src/test-utils/stockageMemoire');
@@ -25,8 +28,9 @@ jest.mock('expo-haptics', () => ({
 }));
 
 const memoire = stockageTelephone as unknown as { contenu: Record<string, string> };
-const ROUTES = { _layout: Layout, index: Depart, seance: EcranSeance, bravo: Bravo };
+const ROUTES = { _layout: Layout, index: Depart, seance: EcranSeance, bravo: Bravo, journal: Journal };
 const SEANCE = '/seance?contexte=maison&ressenti=mou&duree=5&graine=1';
+const journalEnMemoire = () => JSON.parse(memoire.contenu[CLE_JOURNAL] ?? '[]');
 
 // Le compteur est remis à zéro : un espion déjà posé par un test précédent garderait son historique.
 function espionnerAnnonces() {
@@ -227,7 +231,7 @@ describe('effets de la séance', () => {
       jest.advanceTimersByTime(300_000);
     });
     expect(screen).toHavePathname('/bravo');
-    expect(getSearchParams()).toEqual({ minutes: '5', exercices: '8' });
+    expect(getSearchParams()).toEqual({ minutes: '5', exercices: '8', seance: journalEnMemoire()[0].id });
   });
 });
 
@@ -306,5 +310,97 @@ describe('retour au départ après une séance', () => {
     await fireEvent.press(await screen.findByRole('button', { name: 'Lancer ma séance' }));
     await waitFor(() => expect(screen).toHavePathname('/seance'));
     expect(getSearchParams().exclure).toBe(vus.join(','));
+  });
+});
+
+describe('journal : enregistrement', () => {
+  it('crée une entrée écourtée dès le début de la séance', async () => {
+    await renderRouter(ROUTES, { initialUrl: SEANCE });
+    await waitFor(() => expect(journalEnMemoire()).toHaveLength(1));
+    expect(journalEnMemoire()[0]).toMatchObject({
+      contexteId: 'maison',
+      ressenti: 'mou',
+      duree: 5,
+      graine: 1,
+      terminee: false,
+      apres: null,
+      ecouleMs: 0,
+      exercicesFaits: 0,
+    });
+    expect(journalEnMemoire()[0].exercices).toHaveLength(8);
+  });
+
+  it('marque la séance allée au bout et passe son identifiant à Bravo', async () => {
+    jest.useFakeTimers();
+    const { getSearchParams } = await renderRouter(ROUTES, { initialUrl: SEANCE });
+    await act(async () => {
+      jest.advanceTimersByTime(301000);
+    });
+    await waitFor(() => expect(screen).toHavePathname('/bravo'));
+    const [entree] = journalEnMemoire();
+    expect(entree).toMatchObject({ terminee: true, exercicesFaits: 8, ecouleMs: 300000 });
+    expect(getSearchParams().seance).toBe(entree.id);
+  });
+
+  it('garde la séance écourtée quand on termine avant la fin', async () => {
+    jest.useFakeTimers();
+    await renderRouter(ROUTES, { initialUrl: SEANCE });
+    await act(async () => {
+      jest.advanceTimersByTime(7000);
+    });
+    await fireEvent.press(screen.getByRole('button', { name: 'Terminer la séance' }));
+    await waitFor(() => expect(screen).toHavePathname('/bravo'));
+    expect(journalEnMemoire()[0]).toMatchObject({ terminee: false, ecouleMs: 7000, exercicesFaits: 0 });
+  });
+
+  it('garde le temps fait quand on quitte la séance', async () => {
+    jest.useFakeTimers();
+    await renderRouter(ROUTES, { initialUrl: SEANCE });
+    await act(async () => {
+      jest.advanceTimersByTime(7000);
+    });
+    await fireEvent.press(screen.getByRole('button', { name: 'Quitter la séance' }));
+    await waitFor(() => expect(journalEnMemoire()[0]).toMatchObject({ terminee: false, ecouleMs: 7000 }));
+  });
+
+  it('enregistre la réponse à « Tu te sens mieux ? »', async () => {
+    memoire.contenu[CLE_JOURNAL] = JSON.stringify([fabriquerEntree({ id: 'e1' })]);
+    await renderRouter(ROUTES, { initialUrl: '/bravo?minutes=5&exercices=8&seance=e1' });
+    await fireEvent.press(await screen.findByRole('button', { name: 'Mieux' }));
+    await waitFor(() => expect(journalEnMemoire()[0].apres).toBe('mieux'));
+    expect(screen.getByText('Merci !')).toBeTruthy();
+  });
+
+  it('ne pose pas la question quand rien n’a été fait', async () => {
+    await renderRouter(ROUTES, { initialUrl: '/bravo?minutes=0&exercices=0' });
+    expect(await screen.findByText('À bientôt !')).toBeTruthy();
+    expect(screen.queryByText('Tu te sens mieux ?')).toBeNull();
+  });
+});
+
+describe('écran Mon journal', () => {
+  it('s’ouvre depuis le départ sans gêner le lancement', async () => {
+    await renderRouter(ROUTES, { initialUrl: '/' });
+    await fireEvent.press(await screen.findByRole('button', { name: 'Mon journal' }));
+    await waitFor(() => expect(screen).toHavePathname('/journal'));
+  });
+
+  it('invite à faire une première séance quand il est vide', async () => {
+    await renderRouter(ROUTES, { initialUrl: '/journal' });
+    expect(await screen.findByText('Ta première séance apparaîtra ici.')).toBeTruthy();
+  });
+
+  it('montre la preuve de la promesse et les séances', async () => {
+    memoire.contenu[CLE_JOURNAL] = JSON.stringify([
+      fabriquerEntree({ id: 'a', apres: 'mieux' }),
+      fabriquerEntree({ id: 'b', apres: 'pareil', contexteId: 'reveil', ressenti: 'raide' }),
+      fabriquerEntree({ id: 'c', apres: null, terminee: false, ecouleMs: 20000, exercicesFaits: 0 }),
+    ]);
+    await renderRouter(ROUTES, { initialUrl: '/journal' });
+    expect(await screen.findByText('Séances qui t’ont fait du bien : 1 sur 2')).toBeTruthy();
+    expect(screen.getByText('🏠 À la maison · 😴 Mou → 😊 Mieux')).toBeTruthy();
+    expect(screen.getByText('🛏️ Au réveil · 😣 Raide → 😐 Pareil')).toBeTruthy();
+    expect(screen.getByText('Moins d’une minute · écourtée')).toBeTruthy();
+    expect(screen.getAllByText('dim. 18 oct. · 7h05')).toHaveLength(3);
   });
 });

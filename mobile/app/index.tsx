@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { contexteDisponible } from '../src/abonnement/acces';
@@ -95,6 +95,11 @@ export default function Depart() {
   return (
     <SafeAreaView style={styles.ecran}>
       <ScrollView contentContainerStyle={styles.contenu}>
+        <View style={styles.entete}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Mon journal" onPress={() => router.push('/journal')} hitSlop={8}>
+            <Text style={styles.lienJournal}>Mon journal</Text>
+          </Pressable>
+        </View>
         <Text style={styles.titre}>Flash Coach</Text>
         <Text style={styles.slogan}>Où que tu sois, 5 minutes pour te sentir mieux.</Text>
 
@@ -155,6 +160,8 @@ export default function Depart() {
 const styles = StyleSheet.create({
   ecran: { flex: 1, backgroundColor: COULEURS.fond },
   contenu: { padding: ESPACE, paddingBottom: ESPACE * 2, gap: 12 },
+  entete: { flexDirection: 'row', justifyContent: 'flex-end' },
+  lienJournal: { color: COULEURS.texte, fontSize: 15, fontWeight: '600', textDecorationLine: 'underline' },
   titre: { color: COULEURS.texte, fontSize: 28, fontWeight: '800', textAlign: 'center', marginTop: 8 },
   slogan: { color: COULEURS.texteDiscret, fontSize: 15, textAlign: 'center', marginBottom: 8 },
   section: { color: COULEURS.texte, fontSize: 20, fontWeight: '700', marginTop: 12 },

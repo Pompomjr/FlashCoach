@@ -10,7 +10,10 @@ import { stockageTelephone } from '../src/preferences/stockage';
 import { LIBELLES_RESSENTI } from '../src/ui/libelles';
 import { COULEURS, ESPACE, RAYON } from '../src/ui/theme';
 
-const LIBELLES_APRES = { mieux: '😊 Mieux', pareil: '😐 Pareil' } as const;
+const LIBELLES_APRES = {
+  mieux: { emoji: '😊', libelle: 'Mieux' },
+  pareil: { emoji: '😐', libelle: 'Pareil' },
+} as const;
 
 export default function Journal() {
   const [entrees, setEntrees] = useState<EntreeJournal[] | null>(null);
@@ -50,11 +53,9 @@ export default function Journal() {
           keyExtractor={(entree) => entree.id}
           contentContainerStyle={styles.liste}
           ListHeaderComponent={
-            resume === null ? undefined : (
-              <View style={styles.resume}>
-                <Text style={styles.texteResume}>{resume}</Text>
-              </View>
-            )
+            <View style={styles.resume}>
+              <Text style={styles.texteResume}>{resume}</Text>
+            </View>
           }
           renderItem={({ item }) => <LigneJournal entree={item} />}
         />
@@ -65,15 +66,25 @@ export default function Journal() {
 
 function LigneJournal({ entree }: { entree: EntreeJournal }) {
   const contexte = CONTEXTES.find((c) => c.id === entree.contexteId);
+  const nomContexte = contexte?.nom ?? entree.contexteId;
   const avant = LIBELLES_RESSENTI[entree.ressenti];
-  const apres = entree.apres === null ? '' : ` → ${LIBELLES_APRES[entree.apres]}`;
+  const apres = entree.apres === null ? null : LIBELLES_APRES[entree.apres];
+  const date = formaterDate(entree.debut);
+  const bilan = formaterBilan(entree.ecouleMs, entree.exercicesFaits, entree.terminee);
+  // Un seul élément accessible, lu en phrase : les emojis et la flèche ne sont pas prononcés.
+  const lecture = [
+    date.replace(' · ', ' à '),
+    nomContexte,
+    apres === null ? avant.libelle : `${avant.libelle}, puis ${apres.libelle}`,
+    bilan.replaceAll(' · ', ', '),
+  ].join(', ');
   return (
-    <View style={styles.ligne}>
-      <Text style={styles.date}>{formaterDate(entree.debut)}</Text>
+    <View style={styles.ligne} accessible accessibilityLabel={lecture}>
+      <Text style={styles.date}>{date}</Text>
       <Text style={styles.principal}>
-        {`${contexte?.emoji ?? '📍'} ${contexte?.nom ?? entree.contexteId} · ${avant.emoji} ${avant.libelle}${apres}`}
+        {`${contexte?.emoji ?? '📍'} ${nomContexte} · ${avant.emoji} ${avant.libelle}${apres === null ? '' : ` → ${apres.emoji} ${apres.libelle}`}`}
       </Text>
-      <Text style={styles.detail}>{formaterBilan(entree.ecouleMs, entree.exercicesFaits, entree.terminee)}</Text>
+      <Text style={styles.detail}>{bilan}</Text>
     </View>
   );
 }

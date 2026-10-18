@@ -31,6 +31,8 @@ export default function Depart() {
   const premierFocus = useRef(true);
   // Garde contre le double appui : une seule séance part, jusqu'au prochain retour sur le départ.
   const lancement = useRef(false);
+  // Même garde pour « Mon journal » : un seul écran s'ouvre, jusqu'au prochain retour sur le départ.
+  const ouvertureJournal = useRef(false);
 
   const contextes = useMemo(() => [...CONTEXTES].sort((a, b) => a.ordre - b.ordre), []);
 
@@ -40,6 +42,7 @@ export default function Depart() {
   useFocusEffect(
     useCallback(() => {
       lancement.current = false;
+      ouvertureJournal.current = false;
       let actif = true;
       const dejaChoisi = choixUtilisateur.current;
       const lireLesChoix = premierFocus.current;
@@ -76,6 +79,12 @@ export default function Depart() {
     modifier({ contexteId });
   };
 
+  const ouvrirJournal = () => {
+    if (ouvertureJournal.current) return;
+    ouvertureJournal.current = true;
+    router.push('/journal');
+  };
+
   const lancer = () => {
     if (lancement.current) return;
     lancement.current = true;
@@ -96,7 +105,7 @@ export default function Depart() {
     <SafeAreaView style={styles.ecran}>
       <ScrollView contentContainerStyle={styles.contenu}>
         <View style={styles.entete}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Mon journal" onPress={() => router.push('/journal')} hitSlop={8}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Mon journal" onPress={ouvrirJournal} hitSlop={8} style={styles.cibleJournal}>
             <Text style={styles.lienJournal}>Mon journal</Text>
           </Pressable>
         </View>
@@ -161,6 +170,8 @@ const styles = StyleSheet.create({
   ecran: { flex: 1, backgroundColor: COULEURS.fond },
   contenu: { padding: ESPACE, paddingBottom: ESPACE * 2, gap: 12 },
   entete: { flexDirection: 'row', justifyContent: 'flex-end' },
+  // Cible tactile d'au moins 44 px de haut.
+  cibleJournal: { minHeight: 44, justifyContent: 'center' },
   lienJournal: { color: COULEURS.texte, fontSize: 15, fontWeight: '600', textDecorationLine: 'underline' },
   titre: { color: COULEURS.texte, fontSize: 28, fontWeight: '800', textAlign: 'center', marginTop: 8 },
   slogan: { color: COULEURS.texteDiscret, fontSize: 15, textAlign: 'center', marginBottom: 8 },

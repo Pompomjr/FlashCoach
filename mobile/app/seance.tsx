@@ -106,7 +106,7 @@ function LecteurSeance({ parametres }: { parametres: ParametresSeance }) {
     mettreAJourEntree(stockageTelephone, idJournal, {
       ecouleMs: etat.ecouleMs,
       exercicesFaits: etat.exercicesFaits,
-      terminee: !termineeParUtilisateur.current,
+      terminee: !termineeParUtilisateur.current && etat.exercicesFaits === etat.blocs.length,
     });
     router.replace({
       pathname: '/bravo',
@@ -116,7 +116,7 @@ function LecteurSeance({ parametres }: { parametres: ParametresSeance }) {
         seance: idJournal,
       },
     });
-  }, [etat.termine, aLeFocus, etat.ecouleMs, etat.exercicesFaits, idJournal]);
+  }, [etat.termine, aLeFocus, etat.ecouleMs, etat.exercicesFaits, etat.blocs.length, idJournal]);
 
   const terminerAvantLaFin = () => {
     termineeParUtilisateur.current = true;

@@ -338,6 +338,7 @@ describe('journal : enregistrement', () => {
     });
     await waitFor(() => expect(screen).toHavePathname('/bravo'));
     const [entree] = journalEnMemoire();
+    expect(journalEnMemoire()).toHaveLength(1);
     expect(entree).toMatchObject({ terminee: true, exercicesFaits: 8, ecouleMs: 300000 });
     expect(getSearchParams().seance).toBe(entree.id);
   });
@@ -350,6 +351,7 @@ describe('journal : enregistrement', () => {
     });
     await fireEvent.press(screen.getByRole('button', { name: 'Terminer la séance' }));
     await waitFor(() => expect(screen).toHavePathname('/bravo'));
+    expect(journalEnMemoire()).toHaveLength(1);
     expect(journalEnMemoire()[0]).toMatchObject({ terminee: false, ecouleMs: 7000, exercicesFaits: 0 });
   });
 
@@ -361,6 +363,33 @@ describe('journal : enregistrement', () => {
     });
     await fireEvent.press(screen.getByRole('button', { name: 'Quitter la séance' }));
     await waitFor(() => expect(journalEnMemoire()[0]).toMatchObject({ terminee: false, ecouleMs: 7000 }));
+    expect(journalEnMemoire()).toHaveLength(1);
+  });
+
+  it('garde la séance écourtée quand on enchaîne « Passer » jusqu’à la fin', async () => {
+    jest.useFakeTimers();
+    await renderRouter(ROUTES, { initialUrl: SEANCE });
+    for (let i = 0; i < 8; i += 1) {
+      await fireEvent.press(await screen.findByRole('button', { name: 'Passer' }));
+    }
+    await waitFor(() => expect(screen).toHavePathname('/bravo'));
+    expect(journalEnMemoire()).toHaveLength(1);
+    expect(journalEnMemoire()[0]).toMatchObject({ terminee: false, exercicesFaits: 0 });
+  });
+
+  it('enregistre la réponse « Pareil »', async () => {
+    memoire.contenu[CLE_JOURNAL] = JSON.stringify([fabriquerEntree({ id: 'e1' })]);
+    await renderRouter(ROUTES, { initialUrl: '/bravo?minutes=5&exercices=8&seance=e1' });
+    await fireEvent.press(await screen.findByRole('button', { name: 'Pareil' }));
+    await waitFor(() => expect(journalEnMemoire()[0].apres).toBe('pareil'));
+    expect(screen.getByText('Merci !')).toBeTruthy();
+  });
+
+  it('remercie sans rien écrire quand Bravo n’a pas d’identifiant de séance', async () => {
+    await renderRouter(ROUTES, { initialUrl: '/bravo?minutes=5&exercices=8' });
+    await fireEvent.press(await screen.findByRole('button', { name: 'Mieux' }));
+    expect(screen.getByText('Merci !')).toBeTruthy();
+    expect(memoire.contenu[CLE_JOURNAL]).toBeUndefined();
   });
 
   it('enregistre la réponse à « Tu te sens mieux ? »', async () => {
@@ -383,6 +412,23 @@ describe('écran Mon journal', () => {
     await renderRouter(ROUTES, { initialUrl: '/' });
     await fireEvent.press(await screen.findByRole('button', { name: 'Mon journal' }));
     await waitFor(() => expect(screen).toHavePathname('/journal'));
+  });
+
+  it('n’ouvre qu’un seul journal malgré un double appui', async () => {
+    await renderRouter(ROUTES, { initialUrl: '/' });
+    const lien = await screen.findByRole('button', { name: 'Mon journal' });
+    await fireEvent.press(lien);
+    await fireEvent.press(lien);
+    await waitFor(() => expect(screen).toHavePathname('/journal'));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Retour' }));
+    await waitFor(() => expect(screen).toHavePathname('/'));
+    expect(router.canGoBack()).toBe(false);
+  });
+
+  it('rend chaque séance lisible d’un seul bloc par les lecteurs d’écran', async () => {
+    memoire.contenu[CLE_JOURNAL] = JSON.stringify([fabriquerEntree({ id: 'a', apres: 'mieux' })]);
+    await renderRouter(ROUTES, { initialUrl: '/journal' });
+    expect(await screen.findByLabelText('dim. 18 oct. à 7h05, À la maison, Mou, puis Mieux, 5 min, 8 exercices')).toBeTruthy();
   });
 
   it('invite à faire une première séance quand il est vide', async () => {

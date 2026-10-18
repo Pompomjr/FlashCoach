@@ -1,48 +1,135 @@
-import { useMemo, useState } from 'react';
+import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { contexteDisponible } from '../src/abonnement/acces';
 import { CONTEXTES } from '../src/catalogue/contextes';
-import { EXERCICES } from '../src/catalogue/exercices';
-import { genererSeance } from '../src/generateur/generer';
+import { DUREES, RESSENTIS } from '../src/catalogue/types';
+import {
+  CHOIX_PAR_DEFAUT,
+  ecrireChoix,
+  lireChoix,
+  lireDerniersExercices,
+  type Choix,
+} from '../src/preferences/preferences';
+import { stockageTelephone } from '../src/preferences/stockage';
+import { Bouton } from '../src/ui/Bouton';
+import { CarteOption } from '../src/ui/CarteOption';
+import { LIBELLES_RESSENTI } from '../src/ui/libelles';
+import { COULEURS, ESPACE } from '../src/ui/theme';
 
-// Écran provisoire du jalon 1 : affiche une séance générée pour vérifier que tout s'assemble.
-// Remplacé au jalon 2 par le parcours « Où es-tu ? » → « Comment tu te sens ? » → Go.
-export default function Accueil() {
-  const reveil = CONTEXTES[0];
-  // La graine est tirée une seule fois au montage : une nouvelle page donne une nouvelle séance.
-  const [graine] = useState(() => Date.now());
-  const seance = useMemo(
-    () =>
-      genererSeance(
-        { contexteId: reveil.id, contraintes: reveil.contraintes, ressenti: 'mou', duree: 5, graine },
-        EXERCICES,
-      ),
-    [reveil, graine],
-  );
+// Zéro configuration : tout est présélectionné, un seul tap suffit pour lancer la séance.
+export default function Depart() {
+  const [choix, setChoix] = useState<Choix>(CHOIX_PAR_DEFAUT);
+  const [derniersExercices, setDerniersExercices] = useState<string[]>([]);
+  const [message, setMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    let actif = true;
+    Promise.all([lireChoix(stockageTelephone), lireDerniersExercices(stockageTelephone)]).then(([lus, ids]) => {
+      if (!actif) return;
+      setChoix(lus);
+      setDerniersExercices(ids);
+    });
+    return () => {
+      actif = false;
+    };
+  }, []);
+
+  const choisirContexte = (contexteId: string) => {
+    if (!contexteDisponible(contexteId)) {
+      setMessage('Bientôt avec Premium 🔒');
+      return;
+    }
+    setMessage(null);
+    setChoix((actuel) => ({ ...actuel, contexteId }));
+  };
+
+  const lancer = () => {
+    ecrireChoix(stockageTelephone, choix).catch(() => undefined);
+    router.push({
+      pathname: '/seance',
+      params: {
+        contexte: choix.contexteId,
+        ressenti: choix.ressenti,
+        duree: String(choix.duree),
+        graine: String(Date.now()),
+        exclure: derniersExercices.join(','),
+      },
+    });
+  };
 
   return (
-    <ScrollView contentContainerStyle={styles.conteneur}>
-      <Text style={styles.titre}>Flash Coach</Text>
-      <Text style={styles.sousTitre}>
-        {reveil.emoji} {reveil.nom} · Mou · 5 min
-      </Text>
-      {seance.blocs.map((bloc, index) => (
-        <View key={`${bloc.exercice.id}-${index}`} style={styles.bloc}>
-          <Text style={styles.nom}>{bloc.exercice.nom}</Text>
-          <Text style={styles.detail}>
-            {bloc.phase} · {bloc.effortS} s
-          </Text>
+    <SafeAreaView style={styles.ecran}>
+      <ScrollView contentContainerStyle={styles.contenu}>
+        <Text style={styles.titre}>Flash Coach</Text>
+        <Text style={styles.slogan}>Où que tu sois, 5 minutes pour te sentir mieux.</Text>
+
+        <Text style={styles.section}>Où es-tu ?</Text>
+        <View style={styles.grille}>
+          {CONTEXTES.map((contexte) => (
+            <CarteOption
+              key={contexte.id}
+              libelle={contexte.nom}
+              emoji={contexte.emoji}
+              selectionne={choix.contexteId === contexte.id}
+              verrouille={!contexteDisponible(contexte.id)}
+              onPress={() => choisirContexte(contexte.id)}
+              style={styles.demiLargeur}
+            />
+          ))}
         </View>
-      ))}
-    </ScrollView>
+        {message !== null && (
+          <Text style={styles.message} accessibilityLiveRegion="polite">
+            {message}
+          </Text>
+        )}
+
+        <Text style={styles.section}>Comment tu te sens ?</Text>
+        <View style={styles.grille}>
+          {RESSENTIS.map((ressenti) => (
+            <CarteOption
+              key={ressenti}
+              libelle={LIBELLES_RESSENTI[ressenti].libelle}
+              emoji={LIBELLES_RESSENTI[ressenti].emoji}
+              selectionne={choix.ressenti === ressenti}
+              onPress={() => setChoix((actuel) => ({ ...actuel, ressenti }))}
+              style={styles.demiLargeur}
+            />
+          ))}
+        </View>
+
+        <Text style={styles.section}>Combien de temps ?</Text>
+        <View style={styles.ligne}>
+          {DUREES.map((duree) => (
+            <CarteOption
+              key={duree}
+              libelle={`${duree} min`}
+              selectionne={choix.duree === duree}
+              onPress={() => setChoix((actuel) => ({ ...actuel, duree }))}
+              style={styles.tiers}
+            />
+          ))}
+        </View>
+      </ScrollView>
+      <View style={styles.pied}>
+        <Bouton libelle="Lancer ma séance" onPress={lancer} />
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  conteneur: { flexGrow: 1, gap: 12, padding: 24, paddingTop: 64, backgroundColor: '#EDF2F7' },
-  titre: { fontSize: 32, fontWeight: '700', color: '#3A506B' },
-  sousTitre: { fontSize: 16, color: '#2D3748', marginBottom: 8 },
-  bloc: { padding: 16, borderRadius: 12, borderLeftWidth: 4, borderLeftColor: '#F97316', backgroundColor: '#FFFFFF' },
-  nom: { fontSize: 18, fontWeight: '600', color: '#2D3748' },
-  detail: { fontSize: 14, color: '#3A506B', marginTop: 4 },
+  ecran: { flex: 1, backgroundColor: COULEURS.fond },
+  contenu: { padding: ESPACE, paddingBottom: ESPACE * 2, gap: 12 },
+  titre: { color: COULEURS.texte, fontSize: 28, fontWeight: '800', textAlign: 'center', marginTop: 8 },
+  slogan: { color: COULEURS.texteDiscret, fontSize: 15, textAlign: 'center', marginBottom: 8 },
+  section: { color: COULEURS.texte, fontSize: 20, fontWeight: '700', marginTop: 12 },
+  grille: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  ligne: { flexDirection: 'row', gap: 10 },
+  demiLargeur: { flexBasis: '47%', flexGrow: 1 },
+  tiers: { flex: 1, alignItems: 'center' },
+  message: { color: COULEURS.texteDiscret, fontSize: 15 },
+  pied: { padding: ESPACE },
 });

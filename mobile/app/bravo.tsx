@@ -33,12 +33,12 @@ export default function Bravo() {
           <Text style={styles.merci}>Merci !</Text>
         ) : (
           <View style={styles.ligne}>
-            <Bouton libelle="Mieux" variante="secondaire" onPress={() => setRepondu(true)} />
-            <Bouton libelle="Pareil" variante="secondaire" onPress={() => setRepondu(true)} />
+            <Bouton libelle="Mieux" variante="secondaire" onPress={() => setRepondu(true)} style={styles.moitie} />
+            <Bouton libelle="Pareil" variante="secondaire" onPress={() => setRepondu(true)} style={styles.moitie} />
           </View>
         )}
       </View>
-      <Bouton libelle="Et on est repartis" onPress={() => router.replace('/')} />
+      <Bouton libelle="Et on est repartis" onPress={() => router.dismissTo('/')} />
     </SafeAreaView>
   );
 }
@@ -52,5 +52,6 @@ const styles = StyleSheet.create({
   resume: { color: COULEURS.texte, fontSize: 18, textAlign: 'center' },
   question: { color: COULEURS.texte, fontSize: 18, fontWeight: '700', marginTop: 24 },
   ligne: { flexDirection: 'row', gap: 12, alignSelf: 'stretch' },
+  moitie: { flex: 1 },
   merci: { color: COULEURS.texteDiscret, fontSize: 18 },
 });

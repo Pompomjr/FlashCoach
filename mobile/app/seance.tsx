@@ -1,8 +1,7 @@
 import * as Haptics from 'expo-haptics';
-import { useKeepAwake } from 'expo-keep-awake';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EXERCICES } from '../src/catalogue/exercices';
@@ -12,6 +11,7 @@ import { ecrireDerniersExercices } from '../src/preferences/preferences';
 import { stockageTelephone } from '../src/preferences/stockage';
 import { coteCourant, formaterTemps, minutesEffectuees } from '../src/seance/affichage';
 import { lireParametresSeance } from '../src/seance/parametres';
+import { useEcranAllume } from '../src/seance/useEcranAllume';
 import { useLecteurSeance } from '../src/seance/useLecteurSeance';
 import { Bouton } from '../src/ui/Bouton';
 import { LIBELLES_PHASE } from '../src/ui/libelles';
@@ -34,11 +34,17 @@ export default function EcranSeance() {
 }
 
 function LecteurSeance({ parametres }: { parametres: ParametresSeance }) {
-  useKeepAwake();
+  useEcranAllume();
   const seance = useMemo(() => genererSeance(parametres, EXERCICES), [parametres]);
   const { etat, passer, basculerPause, terminer } = useLecteurSeance(seance.blocs);
   const bloc = etat.blocs[etat.index];
   const cote = coteCourant(etat);
+
+  const actionPause = () => {
+    // accessibilityLiveRegion ne couvre qu'Android : on annonce aussi explicitement (iOS).
+    if (!etat.enPause) AccessibilityInfo.announceForAccessibility('En pause');
+    basculerPause();
+  };
 
   // Les exercices de cette séance seront évités la prochaine fois.
   useEffect(() => {
@@ -65,38 +71,41 @@ function LecteurSeance({ parametres }: { parametres: ParametresSeance }) {
 
   return (
     <SafeAreaView style={styles.ecran}>
-      <View style={styles.entete}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Quitter la séance" onPress={() => router.back()} hitSlop={12}>
-          <Text style={styles.retour}>‹</Text>
-        </Pressable>
-        <Text style={styles.compteur}>{`${etat.index + 1} / ${etat.blocs.length}`}</Text>
-      </View>
-
-      <View style={styles.carte}>
-        <Text style={styles.phase}>{etat.etape === 'transition' ? 'À suivre' : LIBELLES_PHASE[bloc.phase]}</Text>
-        <Text style={styles.nom}>{bloc.exercice.nom}</Text>
-        {cote !== null && <Text style={styles.cote}>{cote === 'gauche' ? 'Côté gauche' : 'Côté droit'}</Text>}
-        <Text style={styles.consigne}>{bloc.exercice.consigne}</Text>
-      </View>
-
-      <Text style={styles.minuteur} accessibilityRole="timer">
-        {formaterTemps(etat.restantMs)}
-      </Text>
-      {etat.enPause && <Text style={styles.pause}>En pause</Text>}
-
-      <View style={styles.actions}>
-        <Bouton libelle={etat.enPause ? 'Reprendre' : 'Pause'} variante="secondaire" onPress={basculerPause} />
-        <View style={styles.ligne}>
-          <Bouton libelle="Passer" onPress={passer} />
-          <Bouton libelle="Terminer la séance" variante="secondaire" onPress={terminer} />
+      <ScrollView contentContainerStyle={styles.contenu}>
+        <View style={styles.entete}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Quitter la séance" onPress={() => router.back()} hitSlop={12}>
+            <Text style={styles.retour}>‹</Text>
+          </Pressable>
+          <Text style={styles.compteur}>{`${etat.index + 1} / ${etat.blocs.length}`}</Text>
         </View>
-      </View>
+
+        <View style={styles.carte}>
+          <Text style={styles.phase}>{etat.etape === 'transition' ? 'À suivre' : LIBELLES_PHASE[bloc.phase]}</Text>
+          <Text style={styles.nom}>{bloc.exercice.nom}</Text>
+          {cote !== null && <Text style={styles.cote}>{cote === 'gauche' ? 'Côté gauche' : 'Côté droit'}</Text>}
+          <Text style={styles.consigne}>{bloc.exercice.consigne}</Text>
+        </View>
+
+        <Text style={styles.minuteur} accessibilityRole="timer">
+          {formaterTemps(etat.restantMs)}
+        </Text>
+        {etat.enPause && <Text style={styles.pause}>En pause</Text>}
+
+        <View style={styles.actions}>
+          <Bouton libelle={etat.enPause ? 'Reprendre' : 'Pause'} variante="secondaire" onPress={actionPause} />
+          <View style={styles.ligne}>
+            <Bouton libelle="Passer" onPress={passer} style={styles.moitie} />
+            <Bouton libelle="Terminer la séance" variante="secondaire" onPress={terminer} style={styles.moitie} />
+          </View>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  ecran: { flex: 1, backgroundColor: COULEURS.fond, padding: ESPACE, gap: 16 },
+  ecran: { flex: 1, backgroundColor: COULEURS.fond },
+  contenu: { flexGrow: 1, padding: ESPACE, gap: 16 },
   entete: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   retour: { color: COULEURS.texte, fontSize: 32, paddingHorizontal: 8 },
   compteur: { color: COULEURS.texte, fontSize: 18, fontWeight: '600' },
@@ -109,4 +118,5 @@ const styles = StyleSheet.create({
   pause: { color: COULEURS.texteDiscret, fontSize: 16, textAlign: 'center' },
   actions: { marginTop: 'auto', gap: 12 },
   ligne: { flexDirection: 'row', gap: 12 },
+  moitie: { flex: 1 },
 });

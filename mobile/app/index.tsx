@@ -1,6 +1,6 @@
-import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useRef, useState } from 'react';
+import { AccessibilityInfo, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { contexteDisponible } from '../src/abonnement/acces';
@@ -25,25 +25,41 @@ export default function Depart() {
   const [derniersExercices, setDerniersExercices] = useState<string[]>([]);
   const [message, setMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    let actif = true;
-    Promise.all([lireChoix(stockageTelephone), lireDerniersExercices(stockageTelephone)]).then(([lus, ids]) => {
-      if (!actif) return;
-      setChoix(lus);
-      setDerniersExercices(ids);
-    });
-    return () => {
-      actif = false;
-    };
-  }, []);
+  // Nombre de choix faits par l'utilisateur : une lecture démarrée avant ne doit pas écraser sa sélection.
+  const choixUtilisateur = useRef(0);
+
+  // À chaque retour sur l'écran (au montage, puis au retour de Bravo), on relit les préférences :
+  // les derniers exercices doivent être ceux de la séance qui vient d'avoir lieu.
+  useFocusEffect(
+    useCallback(() => {
+      let actif = true;
+      const dejaChoisi = choixUtilisateur.current;
+      Promise.all([lireChoix(stockageTelephone), lireDerniersExercices(stockageTelephone)]).then(([lus, ids]) => {
+        if (!actif) return;
+        if (choixUtilisateur.current === dejaChoisi) setChoix(lus);
+        setDerniersExercices(ids);
+      });
+      return () => {
+        actif = false;
+      };
+    }, []),
+  );
+
+  const modifier = (changement: Partial<Choix>) => {
+    choixUtilisateur.current += 1;
+    setMessage(null);
+    setChoix((actuel) => ({ ...actuel, ...changement }));
+  };
 
   const choisirContexte = (contexteId: string) => {
     if (!contexteDisponible(contexteId)) {
-      setMessage('Bientôt avec Premium 🔒');
+      const texte = 'Bientôt avec Premium 🔒';
+      setMessage(texte);
+      // accessibilityLiveRegion ne couvre qu'Android : on annonce aussi explicitement (iOS).
+      AccessibilityInfo.announceForAccessibility(texte);
       return;
     }
-    setMessage(null);
-    setChoix((actuel) => ({ ...actuel, contexteId }));
+    modifier({ contexteId });
   };
 
   const lancer = () => {
@@ -94,7 +110,7 @@ export default function Depart() {
               libelle={LIBELLES_RESSENTI[ressenti].libelle}
               emoji={LIBELLES_RESSENTI[ressenti].emoji}
               selectionne={choix.ressenti === ressenti}
-              onPress={() => setChoix((actuel) => ({ ...actuel, ressenti }))}
+              onPress={() => modifier({ ressenti })}
               style={styles.demiLargeur}
             />
           ))}
@@ -107,7 +123,7 @@ export default function Depart() {
               key={duree}
               libelle={`${duree} min`}
               selectionne={choix.duree === duree}
-              onPress={() => setChoix((actuel) => ({ ...actuel, duree }))}
+              onPress={() => modifier({ duree })}
               style={styles.tiers}
             />
           ))}

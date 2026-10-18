@@ -40,4 +40,22 @@ describe('Bouton', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'C’est parti' }));
     expect(onPress).toHaveBeenCalledTimes(1);
   });
+
+  it('garde sa hauteur naturelle : pas de flexGrow de base', async () => {
+    await render(<Bouton libelle="Seul" onPress={() => undefined} />);
+    expect(screen.getByRole('button', { name: 'Seul' })).not.toHaveStyle({ flexGrow: 1 });
+  });
+
+  it('applique le style reçu', async () => {
+    await render(<Bouton libelle="Côte à côte" onPress={() => undefined} style={{ flex: 1 }} />);
+    expect(screen.getByRole('button', { name: 'Côte à côte' })).toHaveStyle({ flex: 1 });
+  });
+});
+
+describe('CarteOption verrouillée', () => {
+  it('affiche le cadenas à la place de l’emoji', async () => {
+    await render(<CarteOption libelle="Au bureau" emoji="💼" selectionne={false} verrouille onPress={() => undefined} />);
+    expect(screen.getByText('🔒  Au bureau')).toBeTruthy();
+    expect(screen.queryByText(/💼/)).toBeNull();
+  });
 });

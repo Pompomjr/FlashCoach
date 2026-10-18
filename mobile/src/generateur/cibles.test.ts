@@ -39,4 +39,14 @@ describe('correspond', () => {
     expect(correspond(autreEffet, cible, 2)).toBe(true);
     expect(correspond(autreEffet, cible, 3)).toBe(true);
   });
+
+  it('ne donne jamais d’énergie à une cible calme avant le niveau 4', () => {
+    const calme: Cible = { effet: 'detente', intensiteMin: 1, intensiteMax: 1 };
+    const energie = fabriquerExercice({ effets: ['energie'], intensite: 1 });
+    const mobilite = fabriquerExercice({ effets: ['mobilite'], intensite: 1 });
+    expect(correspond(mobilite, calme, 2)).toBe(true);
+    expect(correspond(energie, calme, 2)).toBe(false);
+    expect(correspond(energie, calme, 3)).toBe(false);
+    expect(correspond(energie, calme, 4)).toBe(true);
+  });
 });

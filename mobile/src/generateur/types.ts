@@ -2,9 +2,10 @@ import type { Contraintes, Duree, Exercice, Ressenti } from '../catalogue/types'
 
 export type Phase = 'mise_en_route' | 'coeur' | 'retour_au_calme';
 
-// 0 : séance idéale ; 1 : intensité assouplie ; 2 : effet assoupli ; 3 : exercice répété.
+// 0 : séance idéale ; 1 : intensité assouplie ; 2 : effet assoupli (une phase calme reste calme) ;
+// 3 : exercice répété (même règle d'effet) ; 4 : dernier recours, énergie dans une phase calme.
 // Les contraintes, elles, ne sont jamais assouplies.
-export type NiveauAssouplissement = 0 | 1 | 2 | 3;
+export type NiveauAssouplissement = 0 | 1 | 2 | 3 | 4;
 
 export interface Bloc {
   exercice: Exercice;

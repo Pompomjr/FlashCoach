@@ -25,6 +25,13 @@ describe('générateur sur le catalogue embarqué', () => {
             for (const bloc of seance.blocs) {
               expect(respecteContraintes(bloc.exercice, contexte.contraintes)).toBe(true);
             }
+            // Les phases calmes ne reçoivent jamais d'énergie : le catalogue embarqué a des exercices calmes partout.
+            const coeurCalme = ressenti === 'raide' || ressenti === 'stresse';
+            for (const bloc of seance.blocs) {
+              if (bloc.phase !== 'coeur' || coeurCalme) {
+                expect(bloc.exercice.effets.some((effet) => effet !== 'energie')).toBe(true);
+              }
+            }
             for (let i = 1; i < seance.blocs.length; i++) {
               expect(seance.blocs[i].exercice.id).not.toBe(seance.blocs[i - 1].exercice.id);
             }

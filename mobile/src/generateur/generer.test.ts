@@ -1,4 +1,4 @@
-import type { Contraintes, Exercice } from '../catalogue/types';
+import type { Contraintes, Exercice, Zone } from '../catalogue/types';
 import { fabriquerExercice, SANS_CONTRAINTE } from '../test-utils/fabrique';
 import { genererSeance } from './generer';
 import type { ParametresSeance, Seance } from './types';
@@ -20,6 +20,7 @@ const ENERGIE = [
 ];
 const CATALOGUE: Exercice[] = [...MOBILITE, ...DETENTE, ...ENERGIE];
 const SILENCIEUX: Contraintes = { ...SANS_CONTRAINTE, bruit: 'silencieux' };
+const ZONES: Zone[] = ['haut', 'bas', 'tronc', 'global'];
 
 function parametres(surcharge: Partial<ParametresSeance> = {}): ParametresSeance {
   return { contexteId: 'test', contraintes: SANS_CONTRAINTE, ressenti: 'mou', duree: 5, graine: 1, ...surcharge };
@@ -123,5 +124,61 @@ describe('genererSeance', () => {
     expect(() => genererSeance(parametres({ contraintes: SILENCIEUX }), [saut])).toThrow(
       'Aucun exercice compatible avec le contexte test',
     );
+  });
+});
+
+describe('genererSeance : phases calmes', () => {
+  it('garde pour le retour au calme l’exercice mobilité + détente', () => {
+    const catalogue = [
+      fabriquerExercice({ id: 'mob-haut', effets: ['mobilite'], intensite: 1, zone: 'haut' }),
+      fabriquerExercice({ id: 'mob-bas', effets: ['mobilite'], intensite: 1, zone: 'bas' }),
+      fabriquerExercice({ id: 'mob-det', effets: ['mobilite', 'detente'], intensite: 1, zone: 'tronc' }),
+      fabriquerExercice({ id: 'det', effets: ['detente'], intensite: 1, zone: 'global' }),
+      ...ENERGIE,
+    ];
+    for (let graine = 1; graine <= 50; graine++) {
+      const seance = genererSeance(parametres({ graine }), catalogue);
+      expect(seance.assouplissement).toBe(0);
+      const retour = seance.blocs.filter((b) => b.phase === 'retour_au_calme').map((b) => b.exercice.id);
+      expect(retour.sort()).toEqual(['det', 'mob-det']);
+    }
+  });
+
+  it('oriente le cœur vers la mobilité pour « raide »', () => {
+    const mobilites = ZONES.concat(ZONES.slice(0, 2)).map((zone, i) =>
+      fabriquerExercice({ id: `mob-${i}`, effets: ['mobilite'], intensite: 1, zone }),
+    );
+    const seance = genererSeance(parametres({ ressenti: 'raide' }), [...mobilites, ...DETENTE, ...ENERGIE]);
+    expect(seance.assouplissement).toBe(0);
+    for (const bloc of seance.blocs.filter((b) => b.phase === 'coeur')) {
+      expect(bloc.exercice.effets).toContain('mobilite');
+    }
+  });
+
+  it('oriente le cœur et le retour au calme vers la détente pour « stressé »', () => {
+    const detentes = ZONES.concat(ZONES.slice(0, 2)).map((zone, i) =>
+      fabriquerExercice({ id: `det-${i}`, effets: ['detente'], intensite: 1, zone }),
+    );
+    const seance = genererSeance(parametres({ ressenti: 'stresse' }), [...MOBILITE, ...detentes, ...ENERGIE]);
+    expect(seance.assouplissement).toBe(0);
+    for (const bloc of seance.blocs.filter((b) => b.phase !== 'mise_en_route')) {
+      expect(bloc.exercice.effets).toContain('detente');
+    }
+  });
+
+  it('répète un exercice calme plutôt que de finir sur de l’énergie', () => {
+    for (let graine = 1; graine <= 20; graine++) {
+      const seance = genererSeance(parametres({ graine, ressenti: 'stresse' }), [MOBILITE[0], DETENTE[0], ...ENERGIE]);
+      for (const bloc of seance.blocs) {
+        expect(bloc.exercice.effets).not.toEqual(['energie']);
+      }
+      expect(seance.assouplissement).toBe(3);
+    }
+  });
+
+  it('n’utilise l’énergie dans une phase calme qu’en dernier recours', () => {
+    const seance = genererSeance(parametres({ ressenti: 'stresse' }), ENERGIE);
+    expect(seance.assouplissement).toBe(4);
+    expect(seance.dureeTotaleS).toBe(300);
   });
 });

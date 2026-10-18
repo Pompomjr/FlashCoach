@@ -23,9 +23,23 @@ export function cibleDePhase(phase: Phase, ressenti: Ressenti): Cible {
   return CIBLE_PAR_RESSENTI[ressenti];
 }
 
-// Ordre d'assouplissement de la fiche technique : l'intensité d'abord (niveau 1), puis l'effet (niveau 2).
+const EFFETS_CALMES: readonly Effet[] = ['mobilite', 'detente'];
+const TOUS_LES_EFFETS: readonly Effet[] = ['mobilite', 'detente', 'energie'];
+
+// Une phase calme (mobilité, détente) ne reçoit jamais d'énergie avant le dernier recours (niveau 4).
+function effetsAcceptables(cible: Cible): readonly Effet[] {
+  return EFFETS_CALMES.includes(cible.effet) ? EFFETS_CALMES : TOUS_LES_EFFETS;
+}
+
+// Ordre d'assouplissement : intensité (1), effet dans la même famille (2), répétition (3, géré par le générateur),
+// puis tout exercice compatible (4).
 export function correspond(exercice: Exercice, cible: Cible, niveau: NiveauAssouplissement): boolean {
-  const effetOk = niveau >= 2 || exercice.effets.includes(cible.effet);
+  if (niveau >= 4) return true;
+  if (niveau >= 2) {
+    const acceptables = effetsAcceptables(cible);
+    return exercice.effets.some((effet) => acceptables.includes(effet));
+  }
+  const effetOk = exercice.effets.includes(cible.effet);
   const intensiteOk =
     niveau >= 1 || (exercice.intensite >= cible.intensiteMin && exercice.intensite <= cible.intensiteMax);
   return effetOk && intensiteOk;

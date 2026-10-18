@@ -8,19 +8,25 @@ import { stockageTelephone } from '../src/preferences/stockage';
 import { Bouton } from '../src/ui/Bouton';
 import { COULEURS, ESPACE } from '../src/ui/theme';
 
-function resume(minutes: number, exercices: number): string {
-  if (exercices === 0 && minutes === 0) return 'Pas grave, on remet ça quand tu veux.';
+// En dessous de ce temps d'activité, sans exercice complet, on ne demande pas comment on se sent.
+const SECONDES_MIN_ACTIVITE = 10;
+
+function resume(minutes: number, exercices: number, rienFait: boolean): string {
+  if (rienFait) return 'Pas grave, on remet ça quand tu veux.';
   const duree = minutes === 0 ? 'Moins d’une minute' : `${minutes} min`;
   if (exercices === 0) return duree;
   return `${duree} · ${exercices} exercice${exercices > 1 ? 's' : ''}`;
 }
 
 export default function Bravo() {
-  const params = useLocalSearchParams<{ minutes: string; exercices: string; seance: string }>();
+  const params = useLocalSearchParams<{ minutes: string; exercices: string; secondes: string; seance: string }>();
   const minutes = Number(params.minutes) || 0;
   const exercices = Number(params.exercices) || 0;
+  // Sans paramètre « secondes » (ancien lien), on se rabat sur les minutes.
+  const secondesBrutes = Number(params.secondes);
+  const secondes = params.secondes !== undefined && Number.isFinite(secondesBrutes) ? secondesBrutes : minutes * 60;
   const [repondu, setRepondu] = useState(false);
-  const rienFait = exercices === 0 && minutes === 0;
+  const rienFait = exercices === 0 && secondes < SECONDES_MIN_ACTIVITE;
 
   const repondre = (apres: Apres) => {
     if (params.seance) mettreAJourEntree(stockageTelephone, params.seance, { apres });
@@ -34,7 +40,7 @@ export default function Bravo() {
           <Text style={styles.texteCoche}>✓</Text>
         </View>
         <Text style={styles.titre}>{rienFait ? 'À bientôt !' : 'Bravo !'}</Text>
-        <Text style={styles.resume}>{resume(minutes, exercices)}</Text>
+        <Text style={styles.resume}>{resume(minutes, exercices, rienFait)}</Text>
 
         {!rienFait && (
           <>

@@ -113,6 +113,7 @@ function LecteurSeance({ parametres }: { parametres: ParametresSeance }) {
       params: {
         minutes: String(minutesEffectuees(etat.ecouleMs)),
         exercices: String(etat.exercicesFaits),
+        secondes: String(Math.round(etat.ecouleMs / 1000)),
         seance: idJournal,
       },
     });

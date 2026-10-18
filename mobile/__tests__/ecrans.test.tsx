@@ -231,7 +231,7 @@ describe('effets de la séance', () => {
       jest.advanceTimersByTime(300_000);
     });
     expect(screen).toHavePathname('/bravo');
-    expect(getSearchParams()).toEqual({ minutes: '5', exercices: '8', seance: journalEnMemoire()[0].id });
+    expect(getSearchParams()).toEqual({ minutes: '5', exercices: '8', secondes: '300', seance: journalEnMemoire()[0].id });
   });
 });
 
@@ -398,6 +398,22 @@ describe('journal : enregistrement', () => {
     await fireEvent.press(await screen.findByRole('button', { name: 'Mieux' }));
     await waitFor(() => expect(journalEnMemoire()[0].apres).toBe('mieux'));
     expect(screen.getByText('Merci !')).toBeTruthy();
+  });
+
+  it('pose la question dès 10 secondes d’activité, même sans minute ni exercice complet', async () => {
+    memoire.contenu[CLE_JOURNAL] = JSON.stringify([fabriquerEntree({ id: 'e1', terminee: false })]);
+    await renderRouter(ROUTES, { initialUrl: '/bravo?minutes=0&exercices=0&secondes=20&seance=e1' });
+    expect(await screen.findByText('Bravo !')).toBeTruthy();
+    expect(screen.getByText('Moins d’une minute')).toBeTruthy();
+    await fireEvent.press(await screen.findByRole('button', { name: 'Mieux' }));
+    await waitFor(() => expect(journalEnMemoire()[0].apres).toBe('mieux'));
+    expect(screen.getByText('Merci !')).toBeTruthy();
+  });
+
+  it('ne pose pas la question sous 10 secondes sans exercice', async () => {
+    await renderRouter(ROUTES, { initialUrl: '/bravo?minutes=0&exercices=0&secondes=3&seance=e1' });
+    expect(await screen.findByText('À bientôt !')).toBeTruthy();
+    expect(screen.queryByText('Tu te sens mieux ?')).toBeNull();
   });
 
   it('ne pose pas la question quand rien n’a été fait', async () => {

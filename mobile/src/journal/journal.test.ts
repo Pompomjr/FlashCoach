@@ -112,6 +112,16 @@ describe('journal', () => {
     await expect(mettreAJourEntree(ecritureEnPanne, 'a', { apres: 'mieux' })).resolves.toBeUndefined();
   });
 
+  it('ne bloque pas quand l’écriture échoue sur une entrée existante', async () => {
+    const ecritureEnPanne: Stockage = {
+      lire: async () => JSON.stringify([fabriquerEntree({ id: 'a' })]),
+      ecrire: async () => {
+        throw new Error('panne');
+      },
+    };
+    await expect(mettreAJourEntree(ecritureEnPanne, 'a', { apres: 'mieux' })).resolves.toBeUndefined();
+  });
+
   it('remplace une entrée déjà présente et la remet en tête', async () => {
     const stockage = creerStockageMemoire();
     await ajouterEntree(stockage, fabriquerEntree({ id: 'a', exercicesFaits: 2 }));
@@ -129,6 +139,22 @@ describe('journal', () => {
     await mettreAJourEntree(stockage, 'a', { ecouleMs: NaN });
     expect(stockage.contenu[CLE_JOURNAL]).toBe(avant);
     expect(await lireJournal(stockage)).toEqual([fabriquerEntree({ id: 'a' })]);
+  });
+
+  it('ignore une mise à jour avec une valeur infinie ou non entière : l’entrée reste lisible', async () => {
+    const stockage = creerStockageMemoire();
+    await ajouterEntree(stockage, fabriquerEntree({ id: 'a' }));
+    const avant = stockage.contenu[CLE_JOURNAL];
+    await mettreAJourEntree(stockage, 'a', { ecouleMs: Infinity });
+    await mettreAJourEntree(stockage, 'a', { exercicesFaits: Infinity });
+    await mettreAJourEntree(stockage, 'a', { exercicesFaits: 2.5 });
+    expect(stockage.contenu[CLE_JOURNAL]).toBe(avant);
+    expect(await lireJournal(stockage)).toEqual([fabriquerEntree({ id: 'a' })]);
+  });
+
+  it('écarte à la lecture une entrée dont la graine ou la durée écoulée n’est pas finie', async () => {
+    const brut = '[{"id":"x","debut":"2026-10-18T05:05:00.000Z","contexteId":"maison","ressenti":"mou","duree":5,"graine":null,"exercices":[],"ecouleMs":0,"exercicesFaits":0,"terminee":false,"apres":null}]';
+    expect(await lireJournal(creerStockageMemoire({ [CLE_JOURNAL]: brut }))).toEqual([]);
   });
 
   it('crée des identifiants différents', () => {

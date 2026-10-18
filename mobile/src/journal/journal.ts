@@ -37,13 +37,13 @@ function estEntree(valeur: unknown): valeur is EntreeJournal {
     typeof v.contexteId === 'string' &&
     RESSENTIS.includes(v.ressenti as Ressenti) &&
     DUREES.includes(v.duree as Duree) &&
-    typeof v.graine === 'number' &&
+    Number.isFinite(v.graine) &&
     Array.isArray(v.exercices) &&
     v.exercices.every((id) => typeof id === 'string') &&
-    typeof v.ecouleMs === 'number' &&
-    v.ecouleMs >= 0 &&
-    typeof v.exercicesFaits === 'number' &&
-    v.exercicesFaits >= 0 &&
+    Number.isFinite(v.ecouleMs) &&
+    (v.ecouleMs as number) >= 0 &&
+    Number.isInteger(v.exercicesFaits) &&
+    (v.exercicesFaits as number) >= 0 &&
     typeof v.terminee === 'boolean' &&
     (v.apres === null || v.apres === 'mieux' || v.apres === 'pareil')
   );

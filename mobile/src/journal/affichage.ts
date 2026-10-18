@@ -26,5 +26,6 @@ export function texteResume(resume: { seances: number; repondues: number; mieux:
     const n = resume.repondues;
     return `Tu as noté ${n} séance${n > 1 ? 's' : ''}. Chaque séance compte.`;
   }
-  return `Séances qui t’ont fait du bien : ${resume.mieux} sur ${resume.repondues}`;
+  // Espace insécable avant le deux-points (typographie française) : jamais de « : » seul en début de ligne.
+  return `Séances qui t’ont fait du bien : ${resume.mieux} sur ${resume.repondues}`;
 }

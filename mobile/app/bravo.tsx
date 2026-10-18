@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { mettreAJourEntree, type Apres } from '../src/journal/journal';
 import { stockageTelephone } from '../src/preferences/stockage';
 import { Bouton } from '../src/ui/Bouton';
-import { Icone } from '../src/ui/icones';
+import { Celebration } from '../src/ui/Celebration';
 import { COULEURS, ESPACE, TYPO } from '../src/ui/theme';
 
 // En dessous de ce temps d'activité, sans exercice complet, on ne demande pas comment on se sent.
@@ -37,9 +37,7 @@ export default function Bravo() {
   return (
     <SafeAreaView style={styles.ecran}>
       <View style={styles.centre}>
-        <View style={styles.coche} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-          <Icone nom="coche" taille={56} couleur={COULEURS.texteSurOrange} />
-        </View>
+        <Celebration fete={!rienFait} />
         <Text style={styles.titre}>{rienFait ? 'À bientôt !' : 'Bravo !'}</Text>
         <Text style={styles.resume}>{resume(minutes, exercices, rienFait)}</Text>
 
@@ -65,7 +63,6 @@ export default function Bravo() {
 const styles = StyleSheet.create({
   ecran: { flex: 1, backgroundColor: COULEURS.fond, padding: ESPACE },
   centre: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16 },
-  coche: { width: 96, height: 96, borderRadius: 48, backgroundColor: COULEURS.orange, alignItems: 'center', justifyContent: 'center' },
   titre: { ...TYPO.displaySmall, color: COULEURS.texte },
   resume: { ...TYPO.bodyLarge, color: COULEURS.texte, textAlign: 'center' },
   question: { ...TYPO.titleMedium, color: COULEURS.texte, marginTop: 24 },

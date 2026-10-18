@@ -40,6 +40,6 @@ describe('texteResume', () => {
   });
 
   it('montre la preuve de la promesse', () => {
-    expect(texteResume({ seances: 12, repondues: 10, mieux: 9 })).toBe('Séances qui t’ont fait du bien : 9 sur 10');
+    expect(texteResume({ seances: 12, repondues: 10, mieux: 9 })).toBe('Séances qui t’ont fait du bien : 9 sur 10');
   });
 });

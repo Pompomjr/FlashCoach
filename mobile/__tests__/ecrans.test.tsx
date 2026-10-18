@@ -24,7 +24,9 @@ jest.mock('expo-keep-awake', () => ({
 }));
 jest.mock('expo-haptics', () => ({
   impactAsync: jest.fn(() => Promise.resolve()),
+  notificationAsync: jest.fn(() => Promise.resolve()),
   ImpactFeedbackStyle: { Medium: 'medium' },
+  NotificationFeedbackType: { Success: 'success' },
 }));
 
 // Pictogrammes et emoji : plus aucun dans l'interface.
@@ -45,6 +47,7 @@ function espionnerAnnonces() {
 beforeEach(() => {
   for (const cle of Object.keys(memoire.contenu)) delete memoire.contenu[cle];
   jest.mocked(Haptics.impactAsync).mockClear();
+  jest.mocked(Haptics.notificationAsync).mockClear();
 });
 
 afterEach(() => {
@@ -342,6 +345,44 @@ describe('écran Bravo', () => {
     expect(screen.queryByText('✓')).toBeNull();
   });
 
+  it('célèbre une séance faite : confettis et vibration de réussite, une seule fois', async () => {
+    jest.spyOn(AccessibilityInfo, 'isReduceMotionEnabled').mockResolvedValue(false);
+    await renderRouter(ROUTES, { initialUrl: '/bravo?minutes=5&exercices=8' });
+    expect(await screen.findByText('Bravo !')).toBeTruthy();
+    await waitFor(() => expect(screen.getByTestId('confettis', { includeHiddenElements: true })).toBeTruthy());
+    expect(Haptics.notificationAsync).toHaveBeenCalledTimes(1);
+    expect(Haptics.notificationAsync).toHaveBeenCalledWith('success');
+  });
+
+  it('ne lance ni confettis ni vibration quand rien n’a été fait', async () => {
+    jest.spyOn(AccessibilityInfo, 'isReduceMotionEnabled').mockResolvedValue(false);
+    await renderRouter(ROUTES, { initialUrl: '/bravo?minutes=0&exercices=0' });
+    expect(await screen.findByText('À bientôt !')).toBeTruthy();
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(screen.queryByTestId('confettis', { includeHiddenElements: true })).toBeNull();
+    expect(Haptics.notificationAsync).not.toHaveBeenCalled();
+  });
+
+  it('ne lance pas de confettis quand les animations sont réduites', async () => {
+    jest.spyOn(AccessibilityInfo, 'isReduceMotionEnabled').mockResolvedValue(true);
+    await renderRouter(ROUTES, { initialUrl: '/bravo?minutes=5&exercices=8' });
+    expect(await screen.findByText('Bravo !')).toBeTruthy();
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(screen.queryByTestId('confettis', { includeHiddenElements: true })).toBeNull();
+    expect(screen.getByTestId('icone-coche', { includeHiddenElements: true })).toBeTruthy();
+  });
+
+  it('absorbe une vibration impossible', async () => {
+    jest.mocked(Haptics.notificationAsync).mockRejectedValueOnce(new Error('indisponible'));
+    await renderRouter(ROUTES, { initialUrl: '/bravo?minutes=5&exercices=8' });
+    expect(await screen.findByText('Bravo !')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Et on est repartis' })).toBeTruthy();
+  });
+
   it('repart vers le départ', async () => {
     await renderRouter(ROUTES, { initialUrl: '/bravo?minutes=5&exercices=8' });
     await fireEvent.press(await screen.findByRole('button', { name: 'Et on est repartis' }));
@@ -525,6 +566,9 @@ describe('écran Mon journal', () => {
   it('invite à faire une première séance quand il est vide', async () => {
     await renderRouter(ROUTES, { initialUrl: '/journal' });
     expect(await screen.findByText('Ta première séance apparaîtra ici.')).toBeTruthy();
+    // La figurine au repos est un décor : visible, mais pas lue par les lecteurs d'écran.
+    expect(screen.queryByRole('image', { name: 'Illustration : Figurine au repos' })).toBeNull();
+    expect(screen.getByLabelText('Illustration : Figurine au repos', { includeHiddenElements: true })).toBeTruthy();
   });
 
   it('montre la preuve de la promesse et les séances', async () => {
@@ -534,7 +578,7 @@ describe('écran Mon journal', () => {
       fabriquerEntree({ id: 'c', apres: null, terminee: false, ecouleMs: 20000, exercicesFaits: 0 }),
     ]);
     await renderRouter(ROUTES, { initialUrl: '/journal' });
-    expect(await screen.findByText('Séances qui t’ont fait du bien : 1 sur 2')).toBeTruthy();
+    expect(await screen.findByText('Séances qui t’ont fait du bien : 1 sur 2')).toBeTruthy();
     expect(screen.getByText('À la maison · Mou → Mieux')).toBeTruthy();
     expect(screen.getByText('Au réveil · Raide → Pareil')).toBeTruthy();
     expect(screen.getByText('Moins d’une minute · écourtée')).toBeTruthy();
@@ -549,9 +593,11 @@ describe('écran Mon journal', () => {
     await renderRouter(ROUTES, { initialUrl: '/journal' });
     await screen.findByText('À la maison · Mou → Mieux');
     const toutes = { includeHiddenElements: true };
-    for (const nom of ['maison', 'mou', 'mieux', 'reveil', 'raide', 'pareil']) {
+    for (const nom of ['maison', 'mou', 'reveil', 'raide', 'pareil']) {
       expect(screen.getAllByTestId(`icone-${nom}`, toutes)).toHaveLength(1);
     }
+    // « Mieux » : la ligne, plus l'icône forte de la carte de résumé.
+    expect(screen.getAllByTestId('icone-mieux', toutes)).toHaveLength(2);
     expect(screen.queryAllByText(EMOJI)).toHaveLength(0);
   });
 });

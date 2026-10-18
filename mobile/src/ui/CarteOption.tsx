@@ -20,7 +20,7 @@ export function CarteOption({ libelle, emoji, selectionne, verrouille = false, o
       onPress={onPress}
       style={({ pressed }) => [styles.carte, selectionne && styles.selectionnee, pressed && styles.pressee, style]}
     >
-      <Text style={[styles.texte, selectionne && styles.texteSelectionne, verrouille && styles.texteVerrouille]}>
+      <Text style={[styles.texte, selectionne && styles.texteSelectionne, verrouille && !selectionne && styles.texteVerrouille]}>
         {emoji ? `${emoji}  ` : ''}
         {libelle}
         {verrouille ? '  🔒' : ''}

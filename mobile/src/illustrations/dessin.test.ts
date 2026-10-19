@@ -3,14 +3,27 @@ import { cadrer, capsule, contourTronc, dessinerFigurine, MUR, RAYONS } from './
 import { POSES_PAR_EXERCICE, posesPour } from './poses';
 import { calculerPoints, LONGUEURS, poseALinstant, SOL_Y, type Pose } from './squelette';
 
-const ANIMATIONS = [...EXERCICES.map((e) => e.id), 'inconnu'];
+const ANIMATIONS = [...new Set([...EXERCICES.map((e) => e.id), ...Object.keys(POSES_PAR_EXERCICE), 'inconnu'])];
 const instants = (n: number) => Array.from({ length: n }, (_, i) => i / n);
 const largeur = (points: { x: number }[]) => Math.max(...points.map((p) => p.x)) - Math.min(...points.map((p) => p.x));
 const hauteurMin = (points: { y: number }[]) => Math.min(...points.map((p) => p.y));
 
+test.each(['face', 'profil'] as const)('épaules intégrées au buste en %s, sans capsule ni liseré autour de la racine', vue => {
+  for (const angle of [0, 45, 90, 135, 180, 225, 270]) {
+    const pose = { ...posesPour('inconnu').cles[0], vue,
+      brasDroit: { epaule: angle, coude: 30 }, brasGauche: { epaule: -angle, coude: -30 } };
+    const p = calculerPoints(pose);
+    const dessin = dessinerFigurine(pose);
+    for (const [epaule, coude] of [[p.epauleDroite, p.coudeDroit], [p.epauleGauche, p.coudeGauche]]) {
+      expect(dessin.formes.map(f => f.d)).not.toContain(capsule(epaule, RAYONS.epaule, coude, RAYONS.coude));
+    }
+    expect(dessin.formes.filter(f => f.teinte === 'separation').every(f => !f.d.includes('C'))).toBe(true);
+  }
+});
+
 test.each(ANIMATIONS)('%s : tout le dessin reste dans le cadre et rien ne passe sous le sol', (id) => {
   const animation = posesPour(id);
-  const cadre = cadrer(animation.cles, animation.continu, animation.accessoire === 'mur');
+  const cadre = cadrer(animation.cles, animation.continu, animation.accessoire === 'mur', animation.accessoire === 'chaise', animation.murX);
   expect(Math.min(cadre.largeur, cadre.hauteur)).toBeGreaterThanOrEqual(110);
   expect(Math.max(cadre.largeur, cadre.hauteur)).toBeLessThanOrEqual(210);
   for (const t of instants(48)) {

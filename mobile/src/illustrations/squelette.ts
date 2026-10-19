@@ -15,6 +15,11 @@ export type Pose = {
   dos?: number;
   /** Ouverture de la poitrine, de 0 (repos) à 1 (inspiration pleine) : seul le dessin du tronc change. */
   poitrine?: number;
+  /** Élévation de la ceinture scapulaire pour les haussements (unités du cadre). */
+  haussement?: number;
+  /** Cibles de chevilles pour les mouvements au sol : évite que l'interpolation
+   * angulaire fasse traverser le sol aux pieds pendant un repli de jambe. */
+  chevilles?: { gauche: Point; droite: Point };
   /** Recale verticalement le pied porteur lors de l'échantillonnage du cycle. */
   appuiPieds?: boolean;
 };
@@ -34,8 +39,8 @@ function avancer(p: Point, longueur: number, angle: number): Point {
 export function calculerPoints(pose: Pose) {
   const l = LONGUEURS;
   const bassin = { ...pose.racine };
-  const epaules = avancer(bassin, l.tronc, 180 - pose.tronc);
-  const cou = avancer(epaules, l.cou, 180 - pose.tronc);
+  const epaules = avancer(bassin, l.tronc + (pose.haussement ?? 0), 180 - pose.tronc);
+  const cou = avancer(bassin, l.tronc + l.cou, 180 - pose.tronc);
   const tete = avancer(cou, l.tete, 180 - pose.tronc - pose.tete);
   const largeur = pose.vue === 'face' ? l.demiEpaules : 3;
   // En profil, le petit décalage horizontal révèle le membre éloigné sans
@@ -52,8 +57,18 @@ export function calculerPoints(pose: Pose) {
     return { coude, main: avancer(coude, l.avantBras, angle + b.coude) };
   };
   const jambe = (origine: Point, j: Jambe, gauche: boolean) => {
-    const genou = avancer(origine, l.cuisse, j.hanche);
-    const cheville = avancer(genou, l.tibia, j.hanche + j.genou);
+    const cible = gauche ? pose.chevilles?.gauche : pose.chevilles?.droite;
+    let hanche = j.hanche, flexion = j.genou;
+    if (cible) {
+      const dx = cible.x - origine.x, dy = cible.y - origine.y;
+      const distance = Math.min(l.cuisse + l.tibia, Math.hypot(dx, dy));
+      const coude = (Math.sin(j.genou * Math.PI / 180) > .000001 ? 1 : -1) * Math.acos(Math.max(-1, Math.min(1,
+        (distance * distance - l.cuisse ** 2 - l.tibia ** 2) / (2 * l.cuisse * l.tibia))));
+      hanche = (Math.atan2(dx, dy) - Math.atan2(l.tibia * Math.sin(coude), l.cuisse + l.tibia * Math.cos(coude))) * 180 / Math.PI;
+      flexion = coude * 180 / Math.PI;
+    }
+    const genou = avancer(origine, l.cuisse, hanche);
+    const cheville = avancer(genou, l.tibia, hanche + flexion);
     const sensPied = pose.vue === 'face' && gauche ? -90 : 90;
     return { genou, cheville, orteils: avancer(cheville, l.pied, j.hanche + j.genou + sensPied + j.cheville) };
   };
@@ -82,6 +97,12 @@ export function interpolerPose(a: Pose, b: Pose, t: number): Pose {
     ...(a.dos !== undefined || b.dos !== undefined ? { dos: melanger(a.dos ?? 0, b.dos ?? 0, t) } : {}),
     ...(a.poitrine !== undefined || b.poitrine !== undefined
       ? { poitrine: melanger(a.poitrine ?? 0, b.poitrine ?? 0, t) } : {}),
+    ...(a.haussement !== undefined || b.haussement !== undefined
+      ? { haussement: melanger(a.haussement ?? 0, b.haussement ?? 0, t) } : {}),
+    ...(a.chevilles && b.chevilles ? { chevilles: {
+      gauche: { x: melanger(a.chevilles.gauche.x, b.chevilles.gauche.x, t), y: melanger(a.chevilles.gauche.y, b.chevilles.gauche.y, t) },
+      droite: { x: melanger(a.chevilles.droite.x, b.chevilles.droite.x, t), y: melanger(a.chevilles.droite.y, b.chevilles.droite.y, t) },
+    } } : {}),
     ...(a.appuiPieds && b.appuiPieds ? { appuiPieds: true } : {}),
   };
 }

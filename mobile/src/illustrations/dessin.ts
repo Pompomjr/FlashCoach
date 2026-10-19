@@ -14,6 +14,7 @@ export type DessinFigurine = { formes: FormeFigurine[]; ombre: Ombre; bornes: Bo
 
 /** Mur des pompes : la face touchée par les mains est en `x`. */
 export const MUR = { x: 168, haut: 26, largeur: 22 } as const;
+export const CHAISE = { x: 65, haut: 103, assise: 151, largeur: 42, pied: 5 } as const;
 
 // Rayons aux articulations (unités du cadre 200 × 200).
 export const RAYONS = {
@@ -137,6 +138,8 @@ function tete(pose: Pose, centre: Point, haut: Point, r: number) {
   // Queue de cheval : attachée en haut de l'arrière du crâne, elle tombe vers le sol.
   const attache = en(-0.82, 0.42);
   const bout = plus(plus(attache, fois(avant, -0.45 * r)), { x: 0, y: 1.05 * r });
+  // Couchée, la queue de cheval repose sur le sol au lieu de le traverser.
+  bout.y = Math.min(bout.y, SOL_Y - .2 * r);
   return {
     arriere: [capsule(attache, 0.42 * r, bout, 0.2 * r)],
     cheveux: [chevelure, cercle(attache, 0.36 * r)],
@@ -182,8 +185,20 @@ export function dessinerFigurine(pose: Pose): DessinFigurine {
     const epaule = gauche ? p.epauleGauche : p.epauleDroite;
     const coude = gauche ? p.coudeGauche : p.coudeDroit;
     const main = gauche ? p.mainGauche : p.mainDroite;
+    // Racine enfouie dans le buste, deltoïde sans embout circulaire.
+    const u = unitaire(moins(coude, epaule));
+    const n = { x: -u.y, y: u.x };
+    const racine = plus(epaule, fois(unitaire(moins(p.epaules, epaule)), profil ? 2 : 7));
+    const a = plus(racine, fois(n, RAYONS.epaule));
+    const b = moins(racine, fois(n, RAYONS.epaule));
+    const c = plus(coude, fois(n, RAYONS.coude));
+    const d = moins(coude, fois(n, RAYONS.coude));
+    cercles.push({ c: racine, r: RAYONS.epaule }, { c: coude, r: RAYONS.coude });
+    const deltoide = `M${pt(a)}C${pt(plus(a, fois(u, 9)))} ${pt(moins(c, fois(u, 10)))} ${pt(c)}`
+      + `A${RAYONS.coude} ${RAYONS.coude} 0 0 0 ${pt(d)}`
+      + `C${pt(moins(d, fois(u, 10)))} ${pt(plus(b, fois(u, 9)))} ${pt(b)}Z`;
     return [
-      capsuleNotee(epaule, RAYONS.epaule, coude, RAYONS.coude),
+      deltoide,
       capsuleNotee(coude, RAYONS.coude, main, RAYONS.poignet),
       cercleNote(main, RAYONS.main),
     ];
@@ -209,14 +224,14 @@ export function dessinerFigurine(pose: Pose): DessinFigurine {
     ...visage.cheveux.map(d => ({ d, teinte: 'cheveux' as const })),
     ...visage.yeux.map(d => ({ d, teinte: 'oeil' as const })),
     ...devant.flatMap(membre => [
-      ...membre.map(d => ({ d, teinte: 'separation' as const })),
+      ...membre.slice(1).map(d => ({ d, teinte: 'separation' as const })),
       ...membre.map(d => ({ d, teinte: 'proche' as const })),
     ]),
   ];
   if (profil) {
     // Le nez indique de quel côté regarde la figurine.
     const avant = { x: -haut.y, y: haut.x };
-    formes.splice(formes.length - 6 * devant.length, 0, { d: cercleNote(plus(p.tete, plus(fois(avant, r - 0.5), fois(haut, -1.5))), 2.6), teinte: 'proche' });
+    formes.splice(formes.length - 5 * devant.length, 0, { d: cercleNote(plus(p.tete, plus(fois(avant, r - 0.5), fois(haut, -1.5))), 2.6), teinte: 'proche' });
   }
 
   const xs = [...cercles.map(c => c.c.x - c.r), ...cercles.map(c => c.c.x + c.r), ...contour.map(c => c.x)];
@@ -235,7 +250,7 @@ export type Cadre = { x: number; y: number; largeur: number; hauteur: number };
 // Dimension minimale : une pose compacte n'est jamais agrandie au point de remplir toute la carte.
 const COTE_MIN = 110, MARGE_CADRE = 10;
 
-export function cadrer(cles: Pose[], continu = false, mur = false): Cadre {
+export function cadrer(cles: Pose[], continu = false, mur = false, chaise = false, murX: number = MUR.x): Cadre {
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   for (let i = 0; i < 24; i++) {
     const d = dessinerFigurine(poseALinstant(cles, i / 24, continu));
@@ -244,7 +259,8 @@ export function cadrer(cles: Pose[], continu = false, mur = false): Cadre {
     minY = Math.min(minY, d.bornes.minY);
     maxY = Math.max(maxY, d.bornes.maxY, d.ombre.cy + d.ombre.ry);
   }
-  if (mur) { maxX = Math.max(maxX, MUR.x + MUR.largeur); minY = Math.min(minY, MUR.haut); }
+  if (mur) { minX = Math.min(minX, murX); maxX = Math.max(maxX, murX + MUR.largeur); minY = Math.min(minY, MUR.haut); }
+  if (chaise) { minX = Math.min(minX, CHAISE.x); maxX = Math.max(maxX, CHAISE.x + CHAISE.largeur); minY = Math.min(minY, CHAISE.haut); maxY = Math.max(maxY, SOL_Y); }
   const largeur = Math.max(COTE_MIN, maxX - minX + 2 * MARGE_CADRE);
   const hauteur = Math.max(COTE_MIN, maxY - minY + 2 * MARGE_CADRE);
   return { x: f((minX + maxX - largeur) / 2), y: f((minY + maxY - hauteur) / 2), largeur: f(largeur), hauteur: f(hauteur) };

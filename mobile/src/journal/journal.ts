@@ -1,10 +1,12 @@
-import { DUREES, RESSENTIS, type Duree, type Ressenti } from '../catalogue/types';
+import { DUREES, NIVEAUX, RESSENTIS, type Duree, type Niveau, type Ressenti } from '../catalogue/types';
 import { enSerie } from '../preferences/serie';
 import type { Stockage } from '../preferences/stockage';
 import { marquerAEnvoyer } from '../synchro/fileEnvoi';
 import { fusionner } from './fusion';
 
 export type Apres = 'mieux' | 'pareil';
+// Ressenti d'effort sur Bravo : fait monter ou descendre le niveau de la prochaine séance.
+export type Effort = 'facile' | 'juste' | 'dur';
 
 export interface EntreeJournal {
   id: string;
@@ -20,9 +22,11 @@ export interface EntreeJournal {
   // Vrai si la séance est allée au bout ; faux si elle a été écourtée (Terminer, Quitter, app fermée).
   terminee: boolean;
   apres: Apres | null;
+  niveau: Niveau;
+  effort: Effort | null;
 }
 
-export type ChangementEntree = Partial<Pick<EntreeJournal, 'ecouleMs' | 'exercicesFaits' | 'terminee' | 'apres'>>;
+export type ChangementEntree = Partial<Pick<EntreeJournal, 'ecouleMs' | 'exercicesFaits' | 'terminee' | 'apres' | 'effort'>>;
 
 export const CLE_JOURNAL = 'flashcoach.journal.v1';
 export const TAILLE_MAX_JOURNAL = 500;
@@ -48,8 +52,18 @@ export function estEntreeJournal(valeur: unknown): valeur is EntreeJournal {
     Number.isInteger(v.exercicesFaits) &&
     (v.exercicesFaits as number) >= 0 &&
     typeof v.terminee === 'boolean' &&
-    (v.apres === null || v.apres === 'mieux' || v.apres === 'pareil')
+    (v.apres === null || v.apres === 'mieux' || v.apres === 'pareil') &&
+    NIVEAUX.includes(v.niveau as Niveau) &&
+    (v.effort === null || v.effort === 'facile' || v.effort === 'juste' || v.effort === 'dur')
   );
+}
+
+// Les entrées d'avant les niveaux n'ont ni niveau ni effort : elles restent valides (niveau 1, effort nul).
+export function normaliserEntree(valeur: unknown): EntreeJournal | null {
+  if (typeof valeur !== 'object' || valeur === null) return null;
+  const v = valeur as Record<string, unknown>;
+  const complete: unknown = { ...v, niveau: v.niveau ?? 1, effort: v.effort ?? null };
+  return estEntreeJournal(complete) ? complete : null;
 }
 
 // Distingue « lecture en échec » (on ne sait pas ce qu'il y a dans le stockage) de « journal vide ou abîmé ».
@@ -65,7 +79,7 @@ async function lireBrut(stockage: Stockage): Promise<Lecture> {
   }
   try {
     const valeur: unknown = texte === null ? [] : JSON.parse(texte);
-    return { lue: true, entrees: Array.isArray(valeur) ? valeur.filter(estEntreeJournal) : [] };
+    return { lue: true, entrees: Array.isArray(valeur) ? valeur.map(normaliserEntree).filter((e): e is EntreeJournal => e !== null) : [] };
   } catch {
     // JSON abîmé : traité comme un journal vide.
     return { lue: true, entrees: [] };

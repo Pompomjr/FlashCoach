@@ -29,9 +29,14 @@ describe('lancement commun', () => {
   it('produit les paramètres de séance avec la graine fournie et les derniers exercices', () => {
     expect(lancementDisponible(derniers)).toBe(true);
     expect(parametresLancement(derniers, ['a', 'b'], 123)).toEqual({
-      contexte: 'reveil', ressenti: 'raide', duree: '5', graine: '123', exclure: 'a,b',
+      contexte: 'reveil', ressenti: 'raide', duree: '5', graine: '123', exclure: 'a,b', niveau: '1',
     });
     expect(parametresLancement(derniers, [], 0).exclure).toBe('');
+  });
+
+  it('ajoute le niveau aux paramètres (1 par défaut)', () => {
+    expect(parametresLancement(derniers, [], 0).niveau).toBe('1');
+    expect(parametresLancement(derniers, [], 0, 3).niveau).toBe('3');
   });
 
   it.each([3, 5, 10] as const)('conserve la durée %s autorisée par le départ', (duree) => {

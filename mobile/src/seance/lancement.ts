@@ -1,6 +1,6 @@
 import { contexteDisponible } from '../abonnement/acces';
 import { CONTEXTES } from '../catalogue/contextes';
-import { DUREES, RESSENTIS, type Duree, type Ressenti } from '../catalogue/types';
+import { DUREES, RESSENTIS, type Duree, type Niveau, type Ressenti } from '../catalogue/types';
 import { CHOIX_PAR_DEFAUT, type Choix } from '../preferences/preferences';
 import type { ParametresUrl } from './parametres';
 
@@ -25,12 +25,13 @@ export function lancementDisponible(choix: Choix): boolean {
 }
 
 // L'horloge reste chez l'appelant pour garder ce calcul pur et reproductible.
-export function parametresLancement(choix: Choix, derniersExercices: readonly string[], graine: number) {
+export function parametresLancement(choix: Choix, derniersExercices: readonly string[], graine: number, niveau: Niveau = 1) {
   return {
     contexte: choix.contexteId,
     ressenti: choix.ressenti,
     duree: String(choix.duree),
     graine: String(graine),
     exclure: derniersExercices.join(','),
+    niveau: String(niveau),
   };
 }

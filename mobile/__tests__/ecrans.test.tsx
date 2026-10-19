@@ -194,6 +194,60 @@ describe('écran de départ', () => {
   });
 });
 
+describe('niveau au départ', () => {
+  const NOM_PASTILLE = /^Niveau .*, modifier$/;
+
+  it('montre « Niveau Doux » par défaut', async () => {
+    await renderRouter(ROUTES, { initialUrl: '/' });
+    expect(await screen.findByRole('button', { name: 'Niveau Doux, modifier' })).toBeTruthy();
+    expect(screen.getByText('Niveau Doux')).toBeTruthy();
+  });
+
+  it('ouvre la feuille des niveaux, avec le niveau courant marqué', async () => {
+    await renderRouter(ROUTES, { initialUrl: '/' });
+    await fireEvent.press(await screen.findByRole('button', { name: NOM_PASTILLE }));
+    expect(screen.getByRole('button', { name: 'Doux : on bouge sans forcer' })).toBeSelected();
+    expect(screen.getByRole('button', { name: 'Tonique : ça chauffe un peu' })).not.toBeSelected();
+    expect(screen.getByRole('button', { name: 'Costaud : pour celles et ceux qui s’entraînent déjà' })).not.toBeSelected();
+  });
+
+  it('ferme la feuille sans rien changer au tap extérieur', async () => {
+    await renderRouter(ROUTES, { initialUrl: '/' });
+    await fireEvent.press(await screen.findByRole('button', { name: NOM_PASTILLE }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Fermer' }));
+    expect(screen.queryByRole('button', { name: 'Tonique : ça chauffe un peu' })).toBeNull();
+    expect(memoire.contenu['flashcoach.niveau']).toBeUndefined();
+  });
+
+  it('choisit « Costaud », l’enregistre et le passe au lancement', async () => {
+    await renderRouter(ROUTES, { initialUrl: '/' });
+    await fireEvent.press(await screen.findByRole('button', { name: NOM_PASTILLE }));
+    await fireEvent.press(screen.getByRole('button', { name: /^Costaud/ }));
+    expect(await screen.findByRole('button', { name: 'Niveau Costaud, modifier' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /^Tonique/ })).toBeNull();
+    await waitFor(() => expect(memoire.contenu['flashcoach.niveau']).toBe('3'));
+    await fireEvent.press(screen.getByRole('button', { name: 'Lancer ma séance' }));
+    await waitFor(() => expect(screen).toHavePathname('/seance'));
+    expect(screen).toHaveSearchParams(expect.objectContaining({ niveau: '3' }));
+  });
+
+  it('reprend le niveau enregistré', async () => {
+    memoire.contenu['flashcoach.niveau'] = '2';
+    await renderRouter(ROUTES, { initialUrl: '/' });
+    expect(await screen.findByRole('button', { name: 'Niveau Tonique, modifier' })).toBeTruthy();
+  });
+
+  it('affiche le nouveau niveau au retour d’une séance où Bravo l’a modifié', async () => {
+    await renderRouter(ROUTES, { initialUrl: '/' });
+    await screen.findByRole('button', { name: 'Niveau Doux, modifier' });
+    await act(() => router.push('/bravo?minutes=5&exercices=8'));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Trop facile' }));
+    await screen.findByText('Prochaine séance : niveau Tonique');
+    await fireEvent.press(screen.getByRole('button', { name: 'Et on est repartis' }));
+    expect(await screen.findByRole('button', { name: 'Niveau Tonique, modifier' })).toBeTruthy();
+  });
+});
+
 describe('écran de séance', () => {
   it('démarre la séance avec le compteur et le minuteur', async () => {
     await renderRouter(ROUTES, { initialUrl: '/seance?contexte=maison&ressenti=mou&duree=5&graine=1' });
@@ -336,7 +390,7 @@ describe('effets de la séance', () => {
       jest.advanceTimersByTime(300_000);
     });
     expect(screen).toHavePathname('/bravo');
-    expect(getSearchParams()).toEqual({ minutes: '5', exercices: '8', secondes: '300', seance: journalEnMemoire()[0].id });
+    expect(getSearchParams()).toEqual({ minutes: '5', exercices: '8', secondes: '300', seance: journalEnMemoire()[0].id, niveau: '1' });
   });
 });
 
@@ -414,6 +468,75 @@ describe('écran Bravo', () => {
     await renderRouter(ROUTES, { initialUrl: '/bravo?minutes=5&exercices=8' });
     await fireEvent.press(await screen.findByRole('button', { name: 'Et on est repartis' }));
     await waitFor(() => expect(screen).toHavePathname('/'));
+  });
+});
+
+describe('Bravo : l’effort', () => {
+  const niveauEnMemoire = () => memoire.contenu['flashcoach.niveau'];
+
+  it('propose « L’effort ? » avec trois réponses sous « Tu te sens mieux ? »', async () => {
+    await renderRouter(ROUTES, { initialUrl: '/bravo?minutes=5&exercices=8' });
+    expect(await screen.findByText('L’effort ?')).toBeTruthy();
+    for (const nom of ['Trop facile', 'Juste bien', 'Trop dur']) {
+      expect(screen.getByRole('button', { name: nom })).toBeTruthy();
+    }
+  });
+
+  it('monte le niveau sur « Trop facile » et l’annonce', async () => {
+    await renderRouter(ROUTES, { initialUrl: '/bravo?minutes=5&exercices=8' });
+    await fireEvent.press(await screen.findByRole('button', { name: 'Trop facile' }));
+    expect(await screen.findByText('Prochaine séance : niveau Tonique')).toBeTruthy();
+    expect(niveauEnMemoire()).toBe('2');
+    expect(screen.queryByRole('button', { name: 'Trop facile' })).toBeNull();
+  });
+
+  it('dit « Noté ! » quand « Trop dur » ne peut pas descendre sous le niveau 1', async () => {
+    await renderRouter(ROUTES, { initialUrl: '/bravo?minutes=5&exercices=8' });
+    await fireEvent.press(await screen.findByRole('button', { name: 'Trop dur' }));
+    expect(await screen.findByText('Noté !')).toBeTruthy();
+    expect(niveauEnMemoire()).toBeUndefined();
+  });
+
+  it('descend le niveau sur « Trop dur »', async () => {
+    memoire.contenu['flashcoach.niveau'] = '3';
+    await renderRouter(ROUTES, { initialUrl: '/bravo?minutes=5&exercices=8' });
+    await fireEvent.press(await screen.findByRole('button', { name: 'Trop dur' }));
+    expect(await screen.findByText('Prochaine séance : niveau Tonique')).toBeTruthy();
+    expect(niveauEnMemoire()).toBe('2');
+  });
+
+  it('dit « Noté ! » sur « Juste bien » sans toucher au niveau', async () => {
+    memoire.contenu['flashcoach.niveau'] = '2';
+    await renderRouter(ROUTES, { initialUrl: '/bravo?minutes=5&exercices=8' });
+    await fireEvent.press(await screen.findByRole('button', { name: 'Juste bien' }));
+    expect(await screen.findByText('Noté !')).toBeTruthy();
+    expect(niveauEnMemoire()).toBe('2');
+  });
+
+  it('enregistre l’effort dans le journal et demande une synchro', async () => {
+    memoire.contenu[CLE_JOURNAL] = JSON.stringify([fabriquerEntree({ id: 'e1' })]);
+    await renderRouter(ROUTES, { initialUrl: '/bravo?minutes=5&exercices=8&seance=e1' });
+    const avant = jest.mocked(demanderSynchro).mock.calls.length;
+    await fireEvent.press(await screen.findByRole('button', { name: 'Juste bien' }));
+    await waitFor(() => expect(journalEnMemoire()[0].effort).toBe('juste'));
+    await waitFor(() => expect(demanderSynchro).toHaveBeenCalledTimes(avant + 1));
+  });
+
+  it('garde les deux questions indépendantes', async () => {
+    memoire.contenu[CLE_JOURNAL] = JSON.stringify([fabriquerEntree({ id: 'e1' })]);
+    await renderRouter(ROUTES, { initialUrl: '/bravo?minutes=5&exercices=8&seance=e1' });
+    await fireEvent.press(await screen.findByRole('button', { name: 'Trop facile' }));
+    await screen.findByText('Prochaine séance : niveau Tonique');
+    expect(screen.getByRole('button', { name: 'Mieux' })).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: 'Mieux' }));
+    await waitFor(() => expect(journalEnMemoire()[0]).toMatchObject({ apres: 'mieux', effort: 'facile' }));
+  });
+
+  it('ne pose pas la question d’effort quand rien n’a été fait', async () => {
+    await renderRouter(ROUTES, { initialUrl: '/bravo?minutes=0&exercices=0' });
+    expect(await screen.findByText('À bientôt !')).toBeTruthy();
+    expect(screen.queryByText('L’effort ?')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Trop facile' })).toBeNull();
   });
 });
 
@@ -565,6 +688,20 @@ describe('journal : enregistrement', () => {
     await renderRouter(ROUTES, { initialUrl: '/bravo?minutes=0&exercices=0' });
     expect(await screen.findByText('À bientôt !')).toBeTruthy();
     expect(screen.queryByText('Tu te sens mieux ?')).toBeNull();
+  });
+});
+
+describe('journal : niveau', () => {
+  it('enregistre le niveau de la séance, sans effort au départ', async () => {
+    await renderRouter(ROUTES, { initialUrl: `${SEANCE}&niveau=2` });
+    await screen.findByRole('timer');
+    await waitFor(() => expect(journalEnMemoire()[0]).toMatchObject({ niveau: 2, effort: null }));
+  });
+
+  it('prend le niveau 1 quand l’URL n’en a pas', async () => {
+    await renderRouter(ROUTES, { initialUrl: SEANCE });
+    await screen.findByRole('timer');
+    await waitFor(() => expect(journalEnMemoire()[0].niveau).toBe(1));
   });
 });
 

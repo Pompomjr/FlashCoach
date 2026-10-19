@@ -33,4 +33,9 @@ describe('Marque', () => {
     await screen.rerender(<Marque compacte />);
     expect(largeurLogo()).toBe(48);
   });
+
+  it('place le nom à côté du logo sur un écran très court', async () => {
+    await render(<Marque compacte enLigne />);
+    expect(screen.getByRole('header', { name: 'Flash Coach' })).toHaveStyle({ flexDirection: 'row' });
+  });
 });

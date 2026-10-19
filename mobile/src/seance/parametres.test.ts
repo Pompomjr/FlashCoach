@@ -11,7 +11,16 @@ describe('lireParametresSeance', () => {
       duree: 5,
       graine: 42,
       exclure: ['planche', 'squat-lent'],
+      niveau: 1,
     });
+  });
+
+  it('lit le niveau de l’URL : absent ou invalide → 1, sans invalider la séance', () => {
+    const base = { contexte: 'maison', ressenti: 'mou', duree: '5', graine: '1' };
+    expect(lireParametresSeance(base)?.niveau).toBe(1);
+    expect(lireParametresSeance({ ...base, niveau: '3' })?.niveau).toBe(3);
+    expect(lireParametresSeance({ ...base, niveau: '9' })?.niveau).toBe(1);
+    expect(lireParametresSeance({ ...base, niveau: 'x' })?.niveau).toBe(1);
   });
 
   it('accepte une liste d’exercices à éviter vide ou absente', () => {

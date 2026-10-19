@@ -4,13 +4,14 @@ import { AccessibilityInfo, Platform, Pressable, ScrollView, StyleSheet, Text, V
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CONTEXTES } from '../src/catalogue/contextes';
-import { DUREES, RESSENTIS } from '../src/catalogue/types';
+import { DUREES, RESSENTIS, type Niveau } from '../src/catalogue/types';
 import {
   ecrireChoix,
   lireChoix,
   lireDerniersExercices,
   type Choix,
 } from '../src/preferences/preferences';
+import { ecrireNiveau, lireNiveau } from '../src/preferences/niveau';
 import { stockageTelephone } from '../src/preferences/stockage';
 import { choisirLancement, lancementDisponible, parametresLancement } from '../src/seance/lancement';
 import { Bouton } from '../src/ui/Bouton';
@@ -18,22 +19,30 @@ import { CarteOption } from '../src/ui/CarteOption';
 import { ICONE_CONTEXTE, ICONE_RESSENTI, Icone } from '../src/ui/icones';
 import { LIBELLES_RESSENTI } from '../src/ui/libelles';
 import { Marque } from '../src/ui/Logo';
+import { PastilleNiveau } from '../src/ui/PastilleNiveau';
 import { CIBLE_MIN, COULEURS, ESPACE, TYPO } from '../src/ui/theme';
 import { enfoncement, ondulation } from '../src/ui/toucher';
 
 const MESSAGE_PREMIUM = 'Bientôt avec Premium';
 // En dessous de cette hauteur (dp), l'en-tête rétrécit pour que tout tienne sans défilement.
-const HAUTEUR_COMPACTE = 780;
+const HAUTEUR_COMPACTE = 880;
+// En dessous (téléphones de 740 dp), le logo et le nom se placent côte à côte.
+const HAUTEUR_TRES_COURTE = 780;
 
 // Zéro configuration : tout est présélectionné, un seul tap suffit pour lancer la séance.
 export default function Depart() {
   const [choix, setChoix] = useState<Choix>(() => choisirLancement({}));
   const [derniersExercices, setDerniersExercices] = useState<string[]>([]);
+  const [niveau, setNiveau] = useState<Niveau>(1);
   const [message, setMessage] = useState<string | null>(null);
-  const compacte = useWindowDimensions().height < HAUTEUR_COMPACTE;
+  const hauteur = useWindowDimensions().height;
+  const compacte = hauteur < HAUTEUR_COMPACTE;
+  const enLigne = hauteur < HAUTEUR_TRES_COURTE;
 
   // Nombre de choix faits par l'utilisateur : une lecture démarrée avant ne doit pas écraser sa sélection.
   const choixUtilisateur = useRef(0);
+  // Même garde pour le niveau : un choix fait pendant la lecture ne doit pas être écrasé par elle.
+  const niveauUtilisateur = useRef(0);
   // Premier retour de focus = le montage : seuls les retours suivants ne relisent pas les choix.
   const premierFocus = useRef(true);
   // Garde contre le double appui : une seule séance part, jusqu'au prochain retour sur le départ.
@@ -52,15 +61,19 @@ export default function Depart() {
       ouvertureJournal.current = false;
       let actif = true;
       const dejaChoisi = choixUtilisateur.current;
+      const niveauDejaChoisi = niveauUtilisateur.current;
       const lireLesChoix = premierFocus.current;
       premierFocus.current = false;
       if (!lireLesChoix) setMessage(null);
       Promise.all([
         lireLesChoix ? lireChoix(stockageTelephone) : Promise.resolve(null),
         lireDerniersExercices(stockageTelephone),
-      ]).then(([lus, ids]) => {
+        // Relu à chaque retour : Bravo a pu monter ou descendre le niveau pendant la séance.
+        lireNiveau(stockageTelephone),
+      ]).then(([lus, ids, niveauLu]) => {
         if (!actif) return;
         if (lus !== null && choixUtilisateur.current === dejaChoisi) setChoix(lus);
+        if (niveauUtilisateur.current === niveauDejaChoisi) setNiveau(niveauLu);
         setDerniersExercices(ids);
       });
       return () => {
@@ -86,6 +99,12 @@ export default function Depart() {
     modifier({ contexteId });
   };
 
+  const changerNiveau = (choisi: Niveau) => {
+    niveauUtilisateur.current += 1;
+    setNiveau(choisi);
+    ecrireNiveau(stockageTelephone, choisi);
+  };
+
   const ouvrirJournal = () => {
     if (ouvertureJournal.current) return;
     ouvertureJournal.current = true;
@@ -98,7 +117,7 @@ export default function Depart() {
     ecrireChoix(stockageTelephone, choix).catch(() => undefined);
     router.push({
       pathname: '/seance',
-      params: parametresLancement(choix, derniersExercices, Date.now()),
+      params: parametresLancement(choix, derniersExercices, Date.now(), niveau),
     });
   };
 
@@ -106,7 +125,7 @@ export default function Depart() {
     <SafeAreaView style={styles.ecran}>
       <ScrollView contentContainerStyle={styles.contenu}>
         <View style={[styles.entete, compacte && styles.enteteCompact]}>
-          <Marque compacte={compacte} />
+          <Marque compacte={compacte} enLigne={enLigne} />
           <Text style={[styles.slogan, compacte && styles.sloganCompact]}>
             Où que tu sois, 5 minutes pour te sentir mieux.
           </Text>
@@ -122,7 +141,7 @@ export default function Depart() {
           </Pressable>
         </View>
 
-        <Text style={styles.section} accessibilityRole="header">
+        <Text style={[styles.section, compacte && styles.sectionCompacte]} accessibilityRole="header">
           Où es-tu ?
         </Text>
         <View style={styles.grille}>
@@ -147,7 +166,7 @@ export default function Depart() {
           </View>
         )}
 
-        <Text style={styles.section} accessibilityRole="header">
+        <Text style={[styles.section, compacte && styles.sectionCompacte]} accessibilityRole="header">
           Comment tu te sens ?
         </Text>
         <View style={styles.grille}>
@@ -163,7 +182,7 @@ export default function Depart() {
           ))}
         </View>
 
-        <Text style={styles.section} accessibilityRole="header">
+        <Text style={[styles.section, compacte && styles.sectionCompacte]} accessibilityRole="header">
           Combien de temps ?
         </Text>
         <View style={styles.ligne}>
@@ -179,6 +198,7 @@ export default function Depart() {
         </View>
       </ScrollView>
       <View style={styles.pied}>
+        <PastilleNiveau niveau={niveau} onChange={changerNiveau} />
         <Bouton libelle="Lancer ma séance" onPress={lancer} />
       </View>
     </SafeAreaView>
@@ -204,11 +224,13 @@ const styles = StyleSheet.create({
   slogan: { ...TYPO.bodyLarge, color: COULEURS.texteDiscret, textAlign: 'center' },
   sloganCompact: TYPO.bodyMedium,
   section: { ...TYPO.headlineSmall, color: COULEURS.texte, marginTop: 8 },
+  sectionCompacte: { marginTop: 4 },
   grille: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   ligne: { flexDirection: 'row', gap: 10 },
   demiLargeur: { flexBasis: '47%', flexGrow: 1 },
   tiers: { flex: 1, justifyContent: 'center' },
   message: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   texteMessage: { ...TYPO.bodyLarge, color: COULEURS.texteDiscret, flexShrink: 1 },
-  pied: { padding: ESPACE },
+  // Pastille et bouton serrés : le départ doit tenir sans défilement sur un petit écran (360 × 740).
+  pied: { paddingHorizontal: ESPACE, paddingBottom: ESPACE, paddingTop: 8, gap: 8 },
 });

@@ -9,10 +9,12 @@ interface Props {
   nomAccessible?: string;
   onPress: () => void;
   variante?: 'principal' | 'secondaire';
+  // Lignes de texte autorisées : 1 par défaut, plus pour un bouton étroit dont le libellé passe à la ligne.
+  lignes?: number;
   style?: StyleProp<ViewStyle>;
 }
 
-export function Bouton({ libelle, nomAccessible = libelle, onPress, variante = 'principal', style }: Props) {
+export function Bouton({ libelle, nomAccessible = libelle, onPress, variante = 'principal', lignes = 1, style }: Props) {
   const principal = variante === 'principal';
   return (
     <Pressable
@@ -22,7 +24,7 @@ export function Bouton({ libelle, nomAccessible = libelle, onPress, variante = '
       android_ripple={ondulation(principal ? COULEURS.texteSurOrange : COULEURS.texteSombre)}
       style={({ pressed }) => [styles.base, principal ? styles.principal : styles.secondaire, enfoncement(pressed), style]}
     >
-      <Text style={[styles.texte, principal ? styles.textePrincipal : styles.texteSecondaire]} numberOfLines={1}>
+      <Text style={[styles.texte, principal ? styles.textePrincipal : styles.texteSecondaire]} numberOfLines={lignes}>
         {libelle}
       </Text>
     </Pressable>

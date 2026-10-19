@@ -24,12 +24,14 @@ export function Logo({ taille }: LogoProps) {
 interface MarqueProps {
   // Écran court (≈ 740 dp) : logo et nom plus petits, pour que le départ tienne sans défilement.
   compacte?: boolean;
+  // Écran très court (≈ 740 dp) : le nom passe à côté du logo, pour gagner une ligne.
+  enLigne?: boolean;
 }
 
 // Logo en grand, le nom dessous : le titre de l'écran de départ. Lu une seule fois, comme un titre.
-export function Marque({ compacte = false }: MarqueProps) {
+export function Marque({ compacte = false, enLigne = false }: MarqueProps) {
   return (
-    <View style={[styles.marque, compacte && styles.marqueCompacte]} accessible accessibilityRole="header" accessibilityLabel="Flash Coach">
+    <View style={[styles.marque, compacte && styles.marqueCompacte, enLigne && styles.marqueEnLigne]} accessible accessibilityRole="header" accessibilityLabel="Flash Coach">
       <View aria-hidden>
         <Logo taille={compacte ? 48 : 76} />
       </View>
@@ -41,5 +43,6 @@ export function Marque({ compacte = false }: MarqueProps) {
 const styles = StyleSheet.create({
   marque: { alignItems: 'center', gap: 6 },
   marqueCompacte: { gap: 2 },
+  marqueEnLigne: { flexDirection: 'row', justifyContent: 'center', gap: 10 },
   nom: { color: COULEURS.texte, textAlign: 'center' },
 });

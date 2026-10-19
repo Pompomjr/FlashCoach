@@ -7,6 +7,15 @@ describe('conversion séance ↔ ligne', () => {
   it('fait l’aller-retour sans perte', () => {
     const entree = fabriquerEntree({ apres: 'mieux' });
     expect(depuisLigne(versLigne(entree))).toEqual(entree);
+    const costaud = fabriquerEntree({ niveau: 3, effort: 'dur' });
+    expect(depuisLigne(versLigne(costaud))).toEqual(costaud);
+    expect(versLigne(costaud)).toMatchObject({ niveau: 3, effort: 'dur' });
+  });
+
+  it('lit une ligne sans les colonnes niveau et effort', () => {
+    const { niveau, effort, ...ancienne } = versLigne(fabriquerEntree());
+    expect(depuisLigne(ancienne)).toMatchObject({ niveau: 1, effort: null });
+    expect(depuisLigne({ ...ancienne, niveau: null, effort: null })).toMatchObject({ niveau: 1, effort: null });
   });
 
   it('normalise la date renvoyée par Postgres', () => {
@@ -56,7 +65,7 @@ describe('ServeurSupabase', () => {
     const lue = { ...versLigne(bonne), debut: bonne.debut.replace('Z', '+00:00') };
     const { client, select, order, limit } = clientDeLecture({ data: [lue, { ...versLigne(fabriquerEntree({ id: 'b' })), duree: 7 }, null], error: null });
     expect(await new ServeurSupabase(client).recuperer()).toEqual([bonne]);
-    expect(select).toHaveBeenCalledWith('id,debut,contexte_id,ressenti,duree,graine,exercices,ecoule_ms,exercices_faits,terminee,apres');
+    expect(select).toHaveBeenCalledWith('id,debut,contexte_id,ressenti,duree,graine,exercices,ecoule_ms,exercices_faits,terminee,apres,niveau,effort');
     expect(order).toHaveBeenCalledWith('debut', { ascending: false });
     expect(limit).toHaveBeenCalledWith(500);
   });

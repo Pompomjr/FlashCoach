@@ -27,16 +27,17 @@ const PADDING_CARTE = 16;
 const ZONE_PAR_DEFAUT = { largeur: 240, hauteur: 240 };
 
 export default function EcranSeance() {
-  const { contexte, ressenti, duree, graine, exclure } = useLocalSearchParams<{
+  const { contexte, ressenti, duree, graine, exclure, niveau } = useLocalSearchParams<{
     contexte: string;
     ressenti: string;
     duree: string;
     graine: string;
     exclure: string;
+    niveau?: string;
   }>();
   const parametres = useMemo(
-    () => lireParametresSeance({ contexte, ressenti, duree, graine, exclure }),
-    [contexte, ressenti, duree, graine, exclure],
+    () => lireParametresSeance({ contexte, ressenti, duree, graine, exclure, niveau }),
+    [contexte, ressenti, duree, graine, exclure, niveau],
   );
   if (parametres === null) return <Redirect href="/" />;
   return <LecteurSeance parametres={parametres} />;
@@ -97,6 +98,8 @@ function LecteurSeance({ parametres }: { parametres: ParametresSeance }) {
       exercicesFaits: 0,
       terminee: false,
       apres: null,
+      niveau: seance.niveau,
+      effort: null,
     });
     const etatAuDemontage = dernierEtat;
     return () => {
@@ -135,9 +138,10 @@ function LecteurSeance({ parametres }: { parametres: ParametresSeance }) {
         exercices: String(etat.exercicesFaits),
         secondes: String(Math.round(etat.ecouleMs / 1000)),
         seance: idJournal,
+        niveau: String(seance.niveau),
       },
     });
-  }, [etat.termine, aLeFocus, etat.ecouleMs, etat.exercicesFaits, etat.blocs.length, idJournal]);
+  }, [etat.termine, aLeFocus, etat.ecouleMs, etat.exercicesFaits, etat.blocs.length, idJournal, seance.niveau]);
 
   const terminerAvantLaFin = () => {
     termineeParUtilisateur.current = true;

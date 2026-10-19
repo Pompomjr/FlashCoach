@@ -13,6 +13,8 @@ export function fabriquerEntree(surcharge: Partial<EntreeJournal> = {}): EntreeJ
     exercicesFaits: 8,
     terminee: true,
     apres: null,
+    niveau: 1,
+    effort: null,
     ...surcharge,
   };
 }

@@ -8,6 +8,7 @@ import {
   ajouterEntree,
   creerIdentifiant,
   estEntreeJournal,
+  normaliserEntree,
   fusionnerDansJournal,
   lireJournal,
   lireJournalSiLisible,
@@ -203,6 +204,8 @@ describe('journal', () => {
   it('expose la garde des entrées pour valider les séances venues du serveur', () => {
     expect(estEntreeJournal(fabriquerEntree())).toBe(true);
     expect(estEntreeJournal({ ...fabriquerEntree(), duree: 7 })).toBe(false);
+    expect(estEntreeJournal({ ...fabriquerEntree(), niveau: 4 })).toBe(false);
+    expect(estEntreeJournal({ ...fabriquerEntree(), effort: 'x' })).toBe(false);
   });
 });
 
@@ -215,5 +218,34 @@ describe('resumeJournal', () => {
       fabriquerEntree({ id: 'd', apres: 'mieux' }),
     ];
     expect(resumeJournal(entrees)).toEqual({ seances: 4, repondues: 3, mieux: 2 });
+  });
+});
+
+describe('niveau et effort', () => {
+  const ancienne = () => {
+    const { niveau, effort, ...reste } = fabriquerEntree({ id: 'vieille' });
+    return reste;
+  };
+
+  it('lit une ancienne entrée sans niveau ni effort : niveau 1, effort nul', async () => {
+    const stockage = creerStockageMemoire({ [CLE_JOURNAL]: JSON.stringify([ancienne()]) });
+    expect(await lireJournal(stockage)).toEqual([fabriquerEntree({ id: 'vieille', niveau: 1, effort: null })]);
+  });
+
+  it('normalise une entrée sans les champs, mais rejette un niveau ou un effort invalide', () => {
+    expect(normaliserEntree(ancienne())).toMatchObject({ niveau: 1, effort: null });
+    expect(normaliserEntree({ ...ancienne(), niveau: 2, effort: 'dur' })).toMatchObject({ niveau: 2, effort: 'dur' });
+    expect(normaliserEntree({ ...ancienne(), niveau: 9 })).toBeNull();
+    expect(normaliserEntree({ ...ancienne(), effort: 'x' })).toBeNull();
+    expect(normaliserEntree(null)).toBeNull();
+  });
+
+  it('enregistre l’effort et refuse un effort invalide à la mise à jour', async () => {
+    const stockage = creerStockageMemoire();
+    await ajouterEntree(stockage, fabriquerEntree({ id: 'a' }));
+    await mettreAJourEntree(stockage, 'a', { effort: 'facile' });
+    expect((await lireJournal(stockage))[0].effort).toBe('facile');
+    await mettreAJourEntree(stockage, 'a', { effort: 'x' as never });
+    expect((await lireJournal(stockage))[0].effort).toBe('facile');
   });
 });

@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-import { estEntreeJournal, TAILLE_MAX_JOURNAL, type EntreeJournal } from '../journal/journal';
+import { normaliserEntree, TAILLE_MAX_JOURNAL, type EntreeJournal } from '../journal/journal';
 import type { ServeurJournal } from './serveur';
 
 export interface LigneSeance {
@@ -15,9 +15,11 @@ export interface LigneSeance {
   exercices_faits: number;
   terminee: boolean;
   apres: string | null;
+  niveau: number;
+  effort: string | null;
 }
 
-const COLONNES = 'id,debut,contexte_id,ressenti,duree,graine,exercices,ecoule_ms,exercices_faits,terminee,apres';
+const COLONNES = 'id,debut,contexte_id,ressenti,duree,graine,exercices,ecoule_ms,exercices_faits,terminee,apres,niveau,effort';
 
 export function versLigne(e: EntreeJournal): LigneSeance {
   return {
@@ -32,6 +34,8 @@ export function versLigne(e: EntreeJournal): LigneSeance {
     exercices_faits: e.exercicesFaits,
     terminee: e.terminee,
     apres: e.apres,
+    niveau: e.niveau,
+    effort: e.effort,
   };
 }
 
@@ -52,8 +56,11 @@ export function depuisLigne(ligne: unknown): EntreeJournal | null {
     exercicesFaits: l.exercices_faits,
     terminee: l.terminee,
     apres: l.apres,
+    // Une ligne d'avant les niveaux (colonnes absentes ou nulles) reste lisible.
+    niveau: l.niveau ?? undefined,
+    effort: l.effort ?? undefined,
   };
-  return estEntreeJournal(entree) ? entree : null;
+  return normaliserEntree(entree);
 }
 
 export class ServeurSupabase implements ServeurJournal {

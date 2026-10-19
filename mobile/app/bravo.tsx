@@ -1,9 +1,11 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { mettreAJourEntree, type Apres } from '../src/journal/journal';
+import { NOMS_NIVEAU } from '../src/catalogue/types';
+import { mettreAJourEntree, type Apres, type Effort } from '../src/journal/journal';
+import { ajusterNiveau } from '../src/preferences/niveau';
 import { stockageTelephone } from '../src/preferences/stockage';
 import { demanderSynchro } from '../src/synchro/instance';
 import { Bouton } from '../src/ui/Bouton';
@@ -28,6 +30,9 @@ export default function Bravo() {
   const secondesBrutes = Number(params.secondes);
   const secondes = params.secondes !== undefined && Number.isFinite(secondesBrutes) ? secondesBrutes : minutes * 60;
   const [repondu, setRepondu] = useState(false);
+  // Texte qui remplace la ligne « L’effort ? » une fois la réponse donnée.
+  const effortEnvoye = useRef(false);
+  const [suiteEffort, setSuiteEffort] = useState<string | null>(null);
   const rienFait = exercices === 0 && secondes < SECONDES_MIN_ACTIVITE;
 
   const repondre = (apres: Apres) => {
@@ -35,9 +40,20 @@ export default function Bravo() {
     setRepondu(true);
   };
 
+  // Indépendante de « Tu te sens mieux ? » : l'effort ajuste le niveau de la prochaine séance.
+  const repondreEffort = (effort: Effort) => {
+    // Un double appui ne doit pas ajuster le niveau deux fois.
+    if (effortEnvoye.current) return;
+    effortEnvoye.current = true;
+    if (params.seance) mettreAJourEntree(stockageTelephone, params.seance, { effort }).then(demanderSynchro);
+    ajusterNiveau(stockageTelephone, effort).then(({ avant, apres }) => {
+      setSuiteEffort(apres !== avant ? `Prochaine séance : niveau ${NOMS_NIVEAU[apres]}` : 'Noté !');
+    });
+  };
+
   return (
     <SafeAreaView style={styles.ecran}>
-      <View style={styles.centre}>
+      <ScrollView contentContainerStyle={styles.centre}>
         <Celebration fete={!rienFait} />
         <Text style={styles.titre}>{rienFait ? 'À bientôt !' : 'Bravo !'}</Text>
         <Text style={styles.resume}>{resume(minutes, exercices, rienFait)}</Text>
@@ -53,9 +69,22 @@ export default function Bravo() {
                 <Bouton libelle="Pareil" variante="secondaire" onPress={() => repondre('pareil')} style={styles.moitie} />
               </View>
             )}
+
+            <Text style={styles.question}>L’effort ?</Text>
+            {suiteEffort !== null ? (
+              <Text style={styles.merci} accessibilityLiveRegion="polite">
+                {suiteEffort}
+              </Text>
+            ) : (
+              <View style={styles.ligne}>
+                <Bouton libelle="Trop facile" lignes={2} variante="secondaire" onPress={() => repondreEffort('facile')} style={styles.tiers} />
+                <Bouton libelle="Juste bien" lignes={2} variante="secondaire" onPress={() => repondreEffort('juste')} style={styles.tiers} />
+                <Bouton libelle="Trop dur" lignes={2} variante="secondaire" onPress={() => repondreEffort('dur')} style={styles.tiers} />
+              </View>
+            )}
           </>
         )}
-      </View>
+      </ScrollView>
       <Bouton libelle="Et on est repartis" onPress={() => router.dismissTo('/')} />
     </SafeAreaView>
   );
@@ -63,11 +92,14 @@ export default function Bravo() {
 
 const styles = StyleSheet.create({
   ecran: { flex: 1, backgroundColor: COULEURS.fond, padding: ESPACE },
-  centre: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16 },
+  // Centré tant que tout tient ; défile sur un petit écran sans jamais masquer « Et on est repartis ».
+  centre: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', gap: 16 },
   titre: { ...TYPO.displaySmall, color: COULEURS.texte },
   resume: { ...TYPO.bodyLarge, color: COULEURS.texte, textAlign: 'center' },
-  question: { ...TYPO.titleMedium, color: COULEURS.texte, marginTop: 24 },
+  question: { ...TYPO.titleMedium, color: COULEURS.texte, marginTop: 16 },
   ligne: { flexDirection: 'row', gap: 12, alignSelf: 'stretch' },
   moitie: { flex: 1 },
+  // Trois boutons de front : peu de marge latérale pour que « Trop facile » tienne sur deux lignes au plus.
+  tiers: { flex: 1, paddingHorizontal: 8 },
   merci: { ...TYPO.bodyLarge, color: COULEURS.texteDiscret },
 });

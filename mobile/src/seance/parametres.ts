@@ -1,6 +1,6 @@
 import { contexteDisponible } from '../abonnement/acces';
 import { CONTEXTES } from '../catalogue/contextes';
-import { DUREES, RESSENTIS, type Duree, type Ressenti } from '../catalogue/types';
+import { DUREES, NIVEAUX, RESSENTIS, type Duree, type Niveau, type Ressenti } from '../catalogue/types';
 import type { ParametresSeance } from '../generateur/types';
 
 type Brut = string | string[] | undefined;
@@ -11,9 +11,16 @@ export interface ParametresUrl {
   duree?: Brut;
   graine?: Brut;
   exclure?: Brut;
+  niveau?: Brut;
 }
 
 const premier = (valeur: Brut) => (Array.isArray(valeur) ? valeur[0] : valeur);
+
+// Un niveau absent ou invalide vaut « Doux » : il ne rend jamais la séance invalide.
+export function lireNiveauUrl(brut: Brut): Niveau {
+  const niveau = Number(premier(brut)) as Niveau;
+  return NIVEAUX.includes(niveau) ? niveau : 1;
+}
 
 // L'écran Séance régénère la séance à partir de l'URL : même graine, même séance.
 export function lireParametresSeance(brut: ParametresUrl): ParametresSeance | null {
@@ -34,5 +41,5 @@ export function lireParametresSeance(brut: ParametresUrl): ParametresSeance | nu
     return null;
   }
   const exclure = (premier(brut.exclure) ?? '').split(',').filter((id) => id !== '');
-  return { contexteId: contexte.id, contraintes: contexte.contraintes, ressenti, duree, graine, exclure };
+  return { contexteId: contexte.id, contraintes: contexte.contraintes, ressenti, duree, graine, exclure, niveau: lireNiveauUrl(brut.niveau) };
 }

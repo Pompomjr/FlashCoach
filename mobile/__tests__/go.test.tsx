@@ -46,6 +46,26 @@ describe('lien direct go', () => {
     expect(router.canGoBack()).toBe(false);
   });
 
+  it('lance au niveau enregistré, 1 par défaut', async () => {
+    const { getSearchParams } = await renderRouter(ROUTES, { initialUrl: '/go' });
+    await waitFor(() => expect(screen).toHavePathname('/seance'));
+    expect(getSearchParams()).toMatchObject({ niveau: '1' });
+  });
+
+  it('prend le niveau enregistré quand le lien n’en a pas ou qu’il est invalide', async () => {
+    memoire.contenu['flashcoach.niveau'] = '2';
+    const { getSearchParams } = await renderRouter(ROUTES, { initialUrl: '/go?niveau=9' });
+    await waitFor(() => expect(screen).toHavePathname('/seance'));
+    expect(getSearchParams()).toMatchObject({ niveau: '2' });
+  });
+
+  it('lance au niveau du lien sans l’enregistrer', async () => {
+    const { getSearchParams } = await renderRouter(ROUTES, { initialUrl: '/go?niveau=2' });
+    await waitFor(() => expect(screen).toHavePathname('/seance'));
+    expect(getSearchParams()).toMatchObject({ niveau: '2' });
+    expect(memoire.contenu['flashcoach.niveau']).toBeUndefined();
+  });
+
   it('reprend les derniers choix sans les modifier', async () => {
     const sauvegarde = JSON.stringify({ contexteId: 'reveil', ressenti: 'raide', duree: 5 });
     memoire.contenu['flashcoach.choix'] = sauvegarde;

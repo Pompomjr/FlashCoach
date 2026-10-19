@@ -1,0 +1,395 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-19T00:11:04.012Z",
+  "title": "Design System: Flash Coach",
+  "extensions": {
+    "colorMeta": {
+      "fond-nuit": {
+        "role": "neutral",
+        "displayName": "Fond Nuit",
+        "canonical": "#22344A",
+        "oklch": "oklch(32.0% 0.046 253)",
+        "tonalRamp": [
+          "#000b1e",
+          "#112237",
+          "#293c52",
+          "#44576f",
+          "#5f738c",
+          "#859ab5",
+          "#b0c6e2",
+          "#e4f0ff"
+        ]
+      },
+      "carte-bleue": {
+        "role": "neutral",
+        "displayName": "Carte Bleue",
+        "canonical": "#3A506B",
+        "oklch": "oklch(42.5% 0.053 253)",
+        "tonalRamp": [
+          "#000b20",
+          "#0e223a",
+          "#273c56",
+          "#415772",
+          "#5c7490",
+          "#829bb9",
+          "#adc7e6",
+          "#e4f0fe"
+        ]
+      },
+      "carte-claire": {
+        "role": "neutral",
+        "displayName": "Carte Claire",
+        "canonical": "#EDF2F7",
+        "oklch": "oklch(95.9% 0.009 247)",
+        "tonalRamp": [
+          "#080c0f",
+          "#1e2226",
+          "#373b3f",
+          "#52565a",
+          "#6e7276",
+          "#94999d",
+          "#c0c5c9",
+          "#eaeff4"
+        ]
+      },
+      "orange-action": {
+        "role": "primary",
+        "displayName": "Orange Action",
+        "canonical": "#F97316",
+        "oklch": "oklch(70.5% 0.187 47)",
+        "tonalRamp": [
+          "#1b0400",
+          "#3b1500",
+          "#612700",
+          "#893a00",
+          "#b3510d",
+          "#f06b00",
+          "#fcaf89",
+          "#ffe9df"
+        ]
+      },
+      "orange-profond": {
+        "role": "primary",
+        "displayName": "Orange Profond",
+        "canonical": "#C2410C",
+        "oklch": "oklch(55.3% 0.174 38)",
+        "tonalRamp": [
+          "#1e0100",
+          "#400e00",
+          "#691c00",
+          "#952c00",
+          "#c1400a",
+          "#ef6a3f",
+          "#fbaf96",
+          "#ffe9e2"
+        ]
+      },
+      "texte-clair": {
+        "role": "neutral",
+        "displayName": "Texte Clair",
+        "canonical": "#EDF2F7",
+        "oklch": "oklch(95.9% 0.009 247)",
+        "tonalRamp": [
+          "#080c0f",
+          "#1e2226",
+          "#373b3f",
+          "#52565a",
+          "#6e7276",
+          "#94999d",
+          "#c0c5c9",
+          "#eaeff4"
+        ]
+      },
+      "texte-discret": {
+        "role": "neutral",
+        "displayName": "Texte Discret",
+        "canonical": "#CBD5E0",
+        "oklch": "oklch(86.9% 0.019 250)",
+        "tonalRamp": [
+          "#060c13",
+          "#1b222a",
+          "#333b44",
+          "#4e5660",
+          "#6a737c",
+          "#9099a4",
+          "#bbc5d0",
+          "#e6f0fb"
+        ]
+      },
+      "texte-sombre": {
+        "role": "neutral",
+        "displayName": "Texte Sombre",
+        "canonical": "#2D3748",
+        "oklch": "oklch(33.5% 0.033 260)",
+        "tonalRamp": [
+          "#040b19",
+          "#192232",
+          "#313b4c",
+          "#4b5668",
+          "#677285",
+          "#8d99ad",
+          "#b8c5da",
+          "#e6efff"
+        ]
+      },
+      "texte-sur-orange": {
+        "role": "neutral",
+        "displayName": "Texte sur Orange",
+        "canonical": "#000000",
+        "oklch": "oklch(0% 0 0)"
+      },
+      "cheveux": {
+        "role": "illustration",
+        "displayName": "Cheveux",
+        "canonical": "#9A3412",
+        "oklch": "oklch(47.0% 0.143 37)",
+        "tonalRamp": [
+          "#1f0000",
+          "#420b00",
+          "#681e04",
+          "#932e09",
+          "#b54d2d",
+          "#e17555",
+          "#fead94",
+          "#fee9e3"
+        ]
+      },
+      "mur": {
+        "role": "illustration",
+        "displayName": "Mur",
+        "canonical": "#CBD5E1",
+        "oklch": "oklch(86.9% 0.020 252)",
+        "tonalRamp": [
+          "#060c13",
+          "#1b222b",
+          "#333b45",
+          "#4e5660",
+          "#6a737d",
+          "#9099a5",
+          "#bbc5d1",
+          "#e5f0fc"
+        ]
+      },
+      "arete-mur": {
+        "role": "illustration",
+        "displayName": "Arête de mur",
+        "canonical": "#94A3B8"
+      }
+    },
+    "typographyMeta": {
+      "display-large": {
+        "displayName": "Display Large",
+        "purpose": "Minuteur de séance, chiffres tabulaires. Barlow Condensed ExtraBold."
+      },
+      "display-small": {
+        "displayName": "Display Small",
+        "purpose": "Nom « Flash Coach » et titre « Bravo ! ». Barlow Condensed ExtraBold."
+      },
+      "headline-medium": {
+        "displayName": "Headline Medium",
+        "purpose": "Nom d'exercice, « Mon journal ». Barlow Condensed Bold."
+      },
+      "headline-small": {
+        "displayName": "Headline Small",
+        "purpose": "Titres de section de l'écran de départ. Barlow Condensed Bold."
+      },
+      "title-large": {
+        "displayName": "Title Large",
+        "purpose": "Défini dans le thème, non utilisé par les écrans actuels."
+      },
+      "title-medium": {
+        "displayName": "Title Medium",
+        "purpose": "Libellés de boutons, compteur, résumé du journal, question de Bravo."
+      },
+      "body-large": {
+        "displayName": "Body Large",
+        "purpose": "Consigne, slogan, phase, messages."
+      },
+      "body-medium": {
+        "displayName": "Body Medium",
+        "purpose": "Dates et détails du journal."
+      },
+      "label-large": {
+        "displayName": "Label Large",
+        "purpose": "Libellés des cartes d'option, ligne principale du journal."
+      }
+    },
+    "shadows": [
+      {
+        "name": "niveau1",
+        "value": "web/iOS : 0px 1px 3px rgba(0,0,0,0.40), 0px 2px 6px 1px rgba(0,0,0,0.22) ; Android : elevation 2",
+        "purpose": "Cartes au repos, carte de séance, lignes et résumé du journal, médaillon."
+      },
+      {
+        "name": "niveau2",
+        "value": "web/iOS : 0px 2px 4px rgba(0,0,0,0.40), 0px 6px 14px 3px rgba(0,0,0,0.28) ; Android : elevation 5",
+        "purpose": "Carte d'option sélectionnée."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ondulation-android",
+        "value": "android_ripple rgba(couleur du texte, 0.16), non débordante",
+        "purpose": "Retour tactile de tout bouton ou carte sur Android."
+      },
+      {
+        "name": "enfoncement",
+        "value": "scale(0.98) pendant l’appui (web, iOS uniquement)",
+        "purpose": "Retour tactile hors Android."
+      },
+      {
+        "name": "coche-eclot",
+        "value": "spring friction 4.5, tension 120, échelle 0.6 vers 1 ; fondu 180 ms",
+        "purpose": "Coche de Bravo pour une vraie séance."
+      },
+      {
+        "name": "confettis",
+        "value": "15 pièces, 1600 ms, linéaire, trajectoires fixes, une seule fois",
+        "purpose": "Célébration discrète de Bravo ; absents avec « réduire les animations »."
+      },
+      {
+        "name": "apparition-sobre",
+        "value": "fondu 300 ms, ease-out cubic",
+        "purpose": "Bravo sans vraie séance."
+      },
+      {
+        "name": "figurine-cycle",
+        "value": "poses clés interpolées, cycle de 5000 à 16000 ms selon l’exercice",
+        "purpose": "Geste animé ; immobile en pause, hors animation ou en mouvement réduit."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "hauteur-compacte",
+        "value": "780dp de hauteur de fenêtre : en-tête de l’écran de départ compact"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Bouton principal",
+      "kind": "button",
+      "refersTo": "bouton-principal",
+      "description": "L'action dominante de l'écran : orange, texte noir.",
+      "html": "<button class=\"ds-btn-principal\">Lancer ma séance</button>",
+      "css": ".ds-btn-principal{background:#F97316;color:#000;border:none;border-radius:16px;min-height:48px;padding:14px 20px;width:260px;font:700 18px/24px Roboto,system-ui,sans-serif;cursor:pointer;transition:transform .1s}.ds-btn-principal:hover{background:#fb8a3c}.ds-btn-principal:active{transform:scale(.98)}.ds-btn-principal:focus-visible{outline:2px solid #EDF2F7;outline-offset:2px}"
+    },
+    {
+      "name": "Bouton secondaire",
+      "kind": "button",
+      "refersTo": "bouton-secondaire",
+      "description": "Action secondaire : carte claire, texte sombre.",
+      "html": "<button class=\"ds-btn-secondaire\">Pause</button>",
+      "css": ".ds-btn-secondaire{background:#EDF2F7;color:#2D3748;border:none;border-radius:16px;min-height:48px;padding:14px 20px;width:260px;font:700 18px/24px Roboto,system-ui,sans-serif;cursor:pointer;transition:transform .1s}.ds-btn-secondaire:hover{background:#fff}.ds-btn-secondaire:active{transform:scale(.98)}.ds-btn-secondaire:focus-visible{outline:2px solid #F97316;outline-offset:2px}"
+    },
+    {
+      "name": "Carte d'option",
+      "kind": "card",
+      "refersTo": "carte-option",
+      "description": "Choix du départ : bleue au repos, orange avec texte et icône noirs quand elle est sélectionnée.",
+      "html": "<div class=\"ds-opt-grille\"><button class=\"ds-opt\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#EDF2F7\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3.5 11.5 12 4l8.5 7.5\"/><path d=\"M5.5 10v10h13V10\"/><path d=\"M10 20v-5h4v5\"/></svg><span>À la maison</span></button><button class=\"ds-opt ds-opt-sel\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#000\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 17h18\"/><path d=\"M7 17a5 5 0 0 1 10 0\"/><path d=\"M12 6.5V9\"/><path d=\"M6.3 11.3 4.8 9.8\"/><path d=\"M17.7 11.3l1.5-1.5\"/><path d=\"M8 21h8\"/></svg><span>Au réveil</span></button></div>",
+      "css": ".ds-opt-grille{display:flex;gap:10px;width:320px}.ds-opt{flex:1;display:flex;align-items:center;gap:10px;min-height:48px;padding:12px 16px;background:#3A506B;color:#EDF2F7;border:none;border-radius:16px;font:600 16px/24px Roboto,system-ui,sans-serif;text-align:left;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.40), 0 2px 6px 1px rgba(0,0,0,.22)}.ds-opt-sel{background:#F97316;color:#000;box-shadow:0 2px 4px rgba(0,0,0,.40), 0 6px 14px 3px rgba(0,0,0,.28)}.ds-opt:hover{filter:brightness(1.08)}.ds-opt:active{transform:scale(.98)}.ds-opt:focus-visible{outline:2px solid #EDF2F7;outline-offset:2px}"
+    },
+    {
+      "name": "Carte de séance",
+      "kind": "custom",
+      "refersTo": "carte-seance",
+      "description": "Carte claire portant la figurine, le nom de l'exercice et la consigne.",
+      "html": "<div class=\"ds-seance\"><div class=\"ds-seance-zone\"><svg width=\"120\" height=\"120\" viewBox=\"0 0 200 200\" aria-hidden=\"true\"><ellipse cx=\"100\" cy=\"182\" rx=\"40\" ry=\"5\" fill=\"rgba(45,55,72,.15)\"/><circle cx=\"100\" cy=\"46\" r=\"14\" fill=\"#F97316\"/><path d=\"M92 62h16l6 62h-28z\" fill=\"#F97316\"/><path d=\"M96 124 86 178M104 124l10 54\" stroke=\"#C2410C\" stroke-width=\"10\" stroke-linecap=\"round\"/></svg></div><h3 class=\"ds-seance-nom\">Chat-vache</h3><p class=\"ds-seance-consigne\">Arrondis le dos, puis creuse-le, doucement.</p></div>",
+      "css": ".ds-seance{width:300px;background:#EDF2F7;border-radius:16px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.40), 0 2px 6px 1px rgba(0,0,0,.22)}.ds-seance-zone{display:flex;justify-content:center;padding:8px 0}.ds-seance-nom{margin:4px 0 0;color:#2D3748;font:700 28px/36px \"Barlow Condensed\",system-ui,sans-serif}.ds-seance-consigne{margin:6px 0 0;color:#2D3748;font:400 16px/24px Roboto,system-ui,sans-serif}"
+    },
+    {
+      "name": "Ligne de journal",
+      "kind": "card",
+      "refersTo": "ligne-journal",
+      "description": "Carte bleue : pastille de contexte, date, résumé, pastille de réponse orange.",
+      "html": "<div class=\"ds-ligne\"><span class=\"ds-ligne-ctx\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#EDF2F7\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3.5 11.5 12 4l8.5 7.5\"/><path d=\"M5.5 10v10h13V10\"/><path d=\"M10 20v-5h4v5\"/></svg></span><div class=\"ds-ligne-corps\"><div class=\"ds-ligne-date\">18 oct. · 08:12</div><div class=\"ds-ligne-princ\">À la maison · Mou → Mieux</div><div class=\"ds-ligne-det\">5 min · 8 exercices</div></div><span class=\"ds-ligne-rep\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#000\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0z\"/><path d=\"M9 9.5h.01\"/><path d=\"M15 9.5h.01\"/><path d=\"M8 14.5a5 5 0 0 0 8 0\"/></svg></span></div>",
+      "css": ".ds-ligne{display:flex;align-items:center;gap:12px;width:320px;padding:16px;background:#3A506B;border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,.40), 0 2px 6px 1px rgba(0,0,0,.22)}.ds-ligne-ctx{width:40px;height:40px;border-radius:50%;background:#22344A;display:flex;align-items:center;justify-content:center}.ds-ligne-corps{flex:1}.ds-ligne-date,.ds-ligne-det{color:#CBD5E0;font:400 14px/20px Roboto,system-ui,sans-serif}.ds-ligne-princ{color:#EDF2F7;font:600 16px/24px Roboto,system-ui,sans-serif}.ds-ligne-rep{width:32px;height:32px;border-radius:50%;background:#F97316;display:flex;align-items:center;justify-content:center}"
+    },
+    {
+      "name": "Marque",
+      "kind": "custom",
+      "refersTo": "coche-bravo",
+      "description": "Logo (disque orange, éclair noir) au-dessus du nom en Barlow Condensed ExtraBold.",
+      "html": "<div class=\"ds-marque\"><svg width=\"76\" height=\"76\" viewBox=\"0 0 64 64\" aria-hidden=\"true\"><circle cx=\"32\" cy=\"32\" r=\"32\" fill=\"#F97316\"/><path d=\"M38 8 18 36h12l-4 20 20-30H34z\" fill=\"#000\"/></svg><div class=\"ds-marque-nom\">Flash Coach</div></div>",
+      "css": ".ds-marque{display:flex;flex-direction:column;align-items:center;gap:6px}.ds-marque-nom{color:#EDF2F7;font:800 36px/44px \"Barlow Condensed\",system-ui,sans-serif}"
+    },
+    {
+      "name": "Coche de Bravo",
+      "kind": "custom",
+      "refersTo": "coche-bravo",
+      "description": "Coche noire sur disque orange de 96 px ; éclot en ressort pour une vraie séance.",
+      "html": "<div class=\"ds-coche\"><svg width=\"56\" height=\"56\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#000\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12.5l4.5 4.5L19 7.5\"/></svg></div>",
+      "css": ".ds-coche{width:96px;height:96px;border-radius:50%;background:#F97316;display:flex;align-items:center;justify-content:center}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Le Coach de Poche",
+    "overview": "Une interface calme au service d'un personnage. Le fond bleu nuit profond (#22344A) s'efface ; les surfaces bleues (#3A506B) sont plus claires que lui, comme l'élévation Material en thème sombre ; l'orange (#F97316) est rare et sert deux choses seulement : l'action et la figurine. La figurine orange articulée, dessinée en code et animée par poses clés, montre le geste au lieu de le décrire : c'est la signature du produit. Autour d'elle, tout est sobre, arrondi et lisible d'une main, debout, écran posé.\n\nLa personnalité est complice et encourageante, jamais sportive-agressive : pas de liste de cartes grises, pas de photos de salle. Les titres et chiffres (marque, titres d'écran, minuteur) sont en Barlow Condensed, étroit et franc, qui donne l'énergie ; tout le reste, libellés, boutons, consignes, reste en police système aux rôles Material 3, pour la lisibilité et le respect du réglage de taille de texte du téléphone. Les icônes sont dessinées d'un trait de 2 px, sans emoji. Le texte sur orange est toujours noir, jamais blanc (contraste insuffisant, environ 2,8:1).",
+    "keyCharacteristics": [
+      "Fond bleu nuit, cartes bleues plus claires que le fond, une seule carte claire (#EDF2F7) : celle de la séance, qui porte la figurine.",
+      "Orange réservé à l'action (bouton principal, option choisie, coche Bravo, pastilles) et à la figurine.",
+      "Texte noir sur orange, texte clair sur bleu, texte sombre sur carte claire ; aucun texte blanc pur.",
+      "Un seul rayon pour tout ce qui se touche (16 px) ; disques complets pour les pastilles et les médaillons.",
+      "Cible tactile minimale de 48 dp partout.",
+      "Profondeur par élévation Material douce, jamais de contour dur ni de halo centré.",
+      "Mouvement discret et respectueux de « réduire les animations »."
+    ],
+    "rules": [
+      {
+        "name": "The Black-On-Orange Rule",
+        "body": "Sur l'orange, le texte et les icônes sont noirs (#000000), sans exception. Le blanc sur l'orange (environ 2,8:1) est illisible et interdit.",
+        "section": "colors"
+      },
+      {
+        "name": "The Orange-Needs-A-Disc Rule",
+        "body": "L'orange sur la carte bleue ne fait que 2,95:1 : il ne porte jamais seul une information. Une icône orange se pose sur une pastille orange avec glyphe noir, jamais l'inverse.",
+        "section": "colors"
+      },
+      {
+        "name": "The Rare Orange Rule",
+        "body": "L'orange appartient à l'action et à la figurine. Un écran n'a qu'un ou deux foyers orange ; un résumé, un titre ou un décor ne le prennent pas.",
+        "section": "colors"
+      },
+      {
+        "name": "The Display-Only-For-Moments Rule",
+        "body": "Barlow Condensed ne sert qu'à la marque, aux titres d'écran et de section, au nom d'exercice, au minuteur et aux grands chiffres. Libellés, boutons et texte courant restent en police système.",
+        "section": "typography"
+      },
+      {
+        "name": "The Sentence-Case Rule",
+        "body": "Les textes sont en casse de phrase, sans capitales forcées ni sur-titres au-dessus d'un titre.",
+        "section": "typography"
+      },
+      {
+        "name": "The Soft-Down Rule",
+        "body": "L'ombre est décalée vers le bas et floutée, jamais un halo centré, jamais un décalage dur sans flou.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Tone-First Rule",
+        "body": "On sépare d'abord par la clarté de la surface ; l'ombre ne remplace pas ce contraste.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** mettre le texte et les icônes en noir (#000000) sur tout fond orange.",
+      "**Do** réserver l'orange à l'action et à la figurine ; une icône orange sur une carte bleue se pose sur une pastille orange avec glyphe noir.",
+      "**Do** séparer les surfaces par la clarté d'abord (fond #22344A < carte #3A506B < carte claire #EDF2F7), puis par une des deux élévations du thème.",
+      "**Do** garder le rayon 16 px pour toute surface touchable et 48 dp comme cible minimale ; disques complets pour les éléments circulaires.",
+      "**Do** utiliser Barlow Condensed pour marque, titres, nom d'exercice et minuteur, la police système aux rôles Material 3 pour le reste, avec tailles en sp.",
+      "**Do** dessiner toute nouvelle icône sur la grille 24, trait 2 px, extrémités arrondies, sans remplissage, depuis `traces.ts`.",
+      "**Do** donner à chaque animation un équivalent immobile quand « réduire les animations » est actif, et une seule exécution (pas de boucle de célébration).",
+      "**Do** écrire dans le ton de la marque : complice, positif, jamais culpabilisant (« écourtée », « Pas grave, on remet ça quand tu veux »)."
+    ],
+    "donts": [
+      "**Don't** mettre du blanc sur l'orange (contraste d'environ 2,8:1).",
+      "**Don't** utiliser l'orange ou les couleurs d'illustration (cheveux, mur) pour du texte, ni l'orange seul pour porter une information sur la carte bleue.",
+      "**Don't** utiliser d'emoji ni d'icône-glyphe de police ; les icônes sont des tracés SVG.",
+      "**Don't** empiler les ombres natives et `boxShadow` sur Android (double ombre) : passer par `ELEVATION`.",
+      "**Don't** forcer une graisse sur les rôles d'affichage (faux gras) ; elle vient du fichier de police.",
+      "**Don't** écrire les noms de couleurs, tailles ou rayons en dur dans un écran : `COULEURS`, `TYPO`, `RAYON`, `ESPACE`, `CIBLE_MIN`, `ELEVATION` (`mobile/src/ui/theme.ts`).",
+      "**Don't** remplacer la figurine par une photo ou une illustration de banque d'images, ni transformer l'écran de départ en liste de cartes grises."
+    ]
+  }
+}

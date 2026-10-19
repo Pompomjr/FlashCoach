@@ -213,7 +213,7 @@ const NIVEAUX = [
   'pompe-spiderman', 'planche-penchee', 'gainage-commando', 'fentes-sautees', 'burpee-complet',
 ];
 const LENTS = ['pompe-tempo', 'planche-penchee', 'hollow-hold', 'squat-pause'];
-const DE_FACE = ['planche-epaules', 'pompe-archer'];
+const DE_FACE = ['pompe-archer'];
 const ACCESSOIRES: Record<string, string> = {
   'dips-chaise': 'chaise', 'squat-bulgare': 'chaise', 'pompe-pieds-sureleves': 'chaise', 'tractions-australiennes': 'table',
 };
@@ -423,17 +423,17 @@ test('gainage commando : des coudes aux mains, une main après l’autre', () =>
   }
 });
 
-test('planche, toucher d’épaules : vue de face, une main touche l’épaule opposée, l’autre reste au sol', () => {
-  const cles = posesPour('planche-epaules').cles;
-  for (const pose of cles) expect(pose.raccourci).toBeLessThan(.5);
-  const points = cles.map(calculerPoints);
+test('planche, toucher d’épaules : corps gainé, une main quitte le sol pour l’épaule opposée, l’autre reste au sol', () => {
+  const points = posesPour('planche-epaules').cles.map(calculerPoints);
   expect(points.some(p => distance(p.mainGauche, p.epauleDroite) < 10 && Math.abs(p.mainDroite.y - SOL_Y) < .01)).toBe(true);
   expect(points.some(p => distance(p.mainDroite, p.epauleGauche) < 10 && Math.abs(p.mainGauche.y - SOL_Y) < .01)).toBe(true);
   for (const pose of toutLeCycle('planche-epaules')) {
     const p = calculerPoints(pose);
     expect(Math.max(p.mainDroite.y, p.mainGauche.y)).toBeCloseTo(SOL_Y, 5);
-    // Le bassin ne bouge pas : léger transfert de poids seulement.
-    expect(Math.abs(p.bassin.x - 100)).toBeLessThan(5);
+    // Le bassin ne bouge pas, le corps reste droit.
+    expect(Math.abs(p.bassin.x - points[0].bassin.x)).toBeLessThan(1);
+    expect(ecartAlignement(p)).toBeLessThan(1.5);
+    expect(p.chevilleDroite.y).toBeLessThan(SOL_Y);
   }
 });
 

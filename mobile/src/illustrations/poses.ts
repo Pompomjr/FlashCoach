@@ -290,19 +290,37 @@ const bulgare = (racine: Point, tronc: number): Pose => ({ ...debout(), racine, 
   chevilles: { gauche: { x: CHAISE_BULGARE + 36, y: 146 }, droite: { x: 150, y: SOL_Y } },
   brasGauche: bras(tronc + 10, 25), brasDroit: bras(tronc - 5, 25) });
 
-// Planche vue de face (depuis la tête) : buste raccourci, jambes cachées derrière.
-const RACCOURCI = .3;
+// Planche vue de face (depuis la tête) : buste raccourci, jambes qui fuient vers les pieds posés derrière.
+const RACCOURCI = .4;
+// Pieds joints loin derrière : en perspective, un peu au-dessus de la ligne des mains.
+const PIEDS_FACE = { gauche: { x: 98, y: SOL_Y - 7 }, droite: { x: 102, y: SOL_Y - 7 } };
 const plancheFace = (x: number, hauteurEpaules: number, mainGauche: Point, mainDroite: Point): Pose => ({ ...debout('face'),
-  racine: { x, y: hauteurEpaules + LONGUEURS.tronc * RACCOURCI }, raccourci: RACCOURCI,
-  jambeGauche: jambe(180), jambeDroite: jambe(180),
+  racine: { x, y: hauteurEpaules + LONGUEURS.tronc * RACCOURCI }, raccourci: RACCOURCI, chevilles: PIEDS_FACE,
+  // Squelette des jambes non dessiné (fuyantes) : genoux pliés vers le haut, pour rester dans le cadre.
+  jambeGauche: jambe(0, 30), jambeDroite: jambe(0, 30),
   mains: { gauche: mainGauche, droite: mainDroite }, brasGauche: bras(0, 20), brasDroit: bras(0, -20) });
-const plancheEpaules = plancheFace(100, SOL_Y - 49.8, { x: 85, y: SOL_Y }, { x: 115, y: SOL_Y });
-const toucheEpaule = (droite: boolean): Pose => {
-  const pose = plancheFace(droite ? 97 : 103, SOL_Y - 49.4, { x: 85, y: SOL_Y }, { x: 115, y: SOL_Y });
-  const p = calculerPoints(pose);
-  const cible = droite ? { x: p.epauleGauche.x + 2, y: p.epauleGauche.y + 3 } : { x: p.epauleDroite.x - 2, y: p.epauleDroite.y + 3 };
-  return { ...pose, mains: { gauche: droite ? pose.mains!.gauche : cible, droite: droite ? cible : pose.mains!.droite } };
+
+// Planche, toucher d'épaules (profil) : corps gainé, une main quitte le sol pour l'épaule opposée.
+const CHEVILLE_TOUCHER = { x: 36, y: 171 };
+const plancheTendue = (() => {
+  const epaules = epaulesA(CHEVILLE_TOUCHER, SOL_Y - 49.8);
+  return appuiMains(gaine(CHEVILLE_TOUCHER, epaules, piedSol(CHEVILLE_TOUCHER.y)), epaules.x + 3);
+})();
+// La main proche vient devant l'épaule éloignée, et inversement ; le pli choisi met le coude vers le sol.
+const toucher = (droite: boolean, coude: number): Pose => {
+  const p = calculerPoints(plancheTendue);
+  const cible = droite ? { x: p.epauleGauche.x + 2, y: p.epauleGauche.y + 4 } : { x: p.epauleDroite.x - 2, y: p.epauleDroite.y + 4 };
+  return { ...plancheTendue, [droite ? 'brasDroit' : 'brasGauche']: bras(0, coude),
+    mains: { gauche: droite ? plancheTendue.mains!.gauche : cible, droite: droite ? cible : plancheTendue.mains!.droite } };
 };
+const pliVersLeSol = (droite: boolean) => {
+  const coude = (pose: Pose) => { const q = calculerPoints(pose); return droite ? q.coudeDroit.y : q.coudeGauche.y; };
+  return coude(toucher(droite, 30)) > coude(toucher(droite, -30)) ? 30 : -30;
+};
+// Le bras d'appui garde le même sens de pli que pendant le toucher : pas de saut du coude entre les clés.
+const plancheToucher: Pose = { ...plancheTendue, brasDroit: bras(0, pliVersLeSol(true)), brasGauche: bras(0, pliVersLeSol(false)) };
+const toucheEpaule = (droite: boolean): Pose => ({ ...toucher(droite, pliVersLeSol(droite)),
+  [droite ? 'brasGauche' : 'brasDroit']: droite ? plancheToucher.brasGauche : plancheToucher.brasDroit });
 const archerG = { x: 58, y: SOL_Y }, archerD = { x: 142, y: SOL_Y };
 
 // Gainage commando : avant-bras au sol, puis une main, puis l'autre ; pointes de pieds fixes.
@@ -349,7 +367,7 @@ const NIVEAUX_SUPERIEURS: Record<string, AnimationFigurine> = {
   'squat-pause': { cles: [squatPauseHaut, squatPauseBas, squatPauseBas], dureeCycleMs: 7500 },
   'squat-bulgare': { cles: [bulgare({ x: 120, y: 120 }, 8), bulgare({ x: 112.8, y: 146 }, 18)], dureeCycleMs: 2000,
     accessoire: 'chaise', chaiseX: CHAISE_BULGARE },
-  'planche-epaules': { cles: [plancheEpaules, toucheEpaule(false), plancheEpaules, toucheEpaule(true)], dureeCycleMs: 2000 },
+  'planche-epaules': { cles: [plancheToucher, toucheEpaule(true), plancheToucher, toucheEpaule(false)], dureeCycleMs: 2000 },
   'hollow-hold': { cles: [
     { ...debout(), racine: { x: 110, y: 172 }, tronc: -70, tete: 10, dos: 4, brasGauche: bras(-175), brasDroit: bras(-175),
       jambeGauche: jambePied(112, 0, 122), jambeDroite: jambePied(112, 0, 122) },

@@ -1,5 +1,5 @@
 import { EXERCICES } from '../catalogue/exercices';
-import { cadrer, capsule, cercle, CHAISE, contourTronc, dessinerFigurine, MUR, RAYONS, TABLE } from './dessin';
+import { cadrer, capsule, cercle, CHAISE, contourTronc, dessinerFigurine, MUR, piedsFuyants, RAYONS, TABLE } from './dessin';
 import { POSES_PAR_EXERCICE, posesPour } from './poses';
 import { calculerPoints, LONGUEURS, poseALinstant, SOL_Y, type Pose } from './squelette';
 
@@ -212,17 +212,29 @@ test.each(['respiration-ventre', 'gainage-debout', 'rotation-poignets'])('%s : c
   expect(dessinerFigurine(posesPour(id).cles[0]).formes.some(f => f.teinte === 'separation' && f.d.includes('C'))).toBe(true);
 });
 
-test('planche vue de face : buste raccourci, bassin et jambes cachés derrière', () => {
-  const pose: Pose = { ...posesPour('inconnu').cles[0], racine: { x: 100, y: 150 }, raccourci: .3,
-    mains: { gauche: { x: 86, y: SOL_Y }, droite: { x: 114, y: SOL_Y } } };
-  const complet = dessinerFigurine({ ...pose, raccourci: undefined });
-  const dessin = dessinerFigurine(pose);
-  expect(dessin.formes).toHaveLength(complet.formes.length - 6);
-  const p = calculerPoints(pose);
-  // Les appuis sont les mains : rien ne dépasse sous le sol hormis leur rayon.
-  expect(dessin.bornes.maxY).toBeLessThanOrEqual(SOL_Y + RAYONS.main + .01);
-  expect(dessin.bornes.maxY).toBeGreaterThan(p.mainDroite.y);
-  expect(dessin.ombre.cx).toBeCloseTo(100, 0);
+test('planche vue de face : jambes fuyantes vers des pieds posés au sol, derrière et entre les mains', () => {
+  const animation = posesPour('pompe-archer');
+  const depart = piedsFuyants(animation.cles[0]);
+  for (const t of instants(24)) {
+    const pose = poseALinstant(animation.cles, t);
+    expect(pose.vue).toBe('face');
+    expect(pose.raccourci).toBeLessThan(1);
+    const p = calculerPoints(pose);
+    const pieds = piedsFuyants(pose);
+    // Les pieds restent posés pendant que le buste se déplace vers une main.
+    expect(pieds).toEqual(depart);
+    for (const pied of [pieds.gauche, pieds.droite]) {
+      expect(pied.y).toBeGreaterThan(SOL_Y - 10);
+      expect(pied.x).toBeGreaterThan(Math.min(p.mainGauche.x, p.mainDroite.x));
+      expect(pied.x).toBeLessThan(Math.max(p.mainGauche.x, p.mainDroite.x));
+    }
+    const dessin = dessinerFigurine(pose);
+    // Deux jambes et deux pieds, en teinte éloignée, dessinés avant (derrière) le buste.
+    const loin = dessin.formes.map((f, i) => f.teinte === 'loin' ? i : -1).filter(i => i >= 0);
+    expect(loin).toEqual([0, 1, 2, 3]);
+    expect(dessin.bornes.maxY).toBeGreaterThan(SOL_Y);
+    expect(dessin.ombre.opacite).toBeGreaterThan(.1);
+  }
 });
 
 test('cadre : la chaise déplacée et la table y entrent', () => {

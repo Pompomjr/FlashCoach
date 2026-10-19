@@ -48,7 +48,7 @@ export default function Bravo() {
     if (params.seance) mettreAJourEntree(stockageTelephone, params.seance, { effort }).then(demanderSynchro);
     ajusterNiveau(stockageTelephone, effort).then(({ avant, apres }) => {
       setSuiteEffort(apres !== avant ? `Prochaine séance : niveau ${NOMS_NIVEAU[apres]}` : 'Noté !');
-    });
+    }).catch(() => undefined);
   };
 
   return (

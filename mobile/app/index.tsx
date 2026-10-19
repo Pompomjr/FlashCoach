@@ -26,8 +26,6 @@ import { enfoncement, ondulation } from '../src/ui/toucher';
 const MESSAGE_PREMIUM = 'Bientôt avec Premium';
 // En dessous de cette hauteur (dp), l'en-tête rétrécit pour que tout tienne sans défilement.
 const HAUTEUR_COMPACTE = 880;
-// En dessous (téléphones de 740 dp), le logo et le nom se placent côte à côte.
-const HAUTEUR_TRES_COURTE = 780;
 
 // Zéro configuration : tout est présélectionné, un seul tap suffit pour lancer la séance.
 export default function Depart() {
@@ -35,9 +33,7 @@ export default function Depart() {
   const [derniersExercices, setDerniersExercices] = useState<string[]>([]);
   const [niveau, setNiveau] = useState<Niveau>(1);
   const [message, setMessage] = useState<string | null>(null);
-  const hauteur = useWindowDimensions().height;
-  const compacte = hauteur < HAUTEUR_COMPACTE;
-  const enLigne = hauteur < HAUTEUR_TRES_COURTE;
+  const compacte = useWindowDimensions().height < HAUTEUR_COMPACTE;
 
   // Nombre de choix faits par l'utilisateur : une lecture démarrée avant ne doit pas écraser sa sélection.
   const choixUtilisateur = useRef(0);
@@ -123,9 +119,9 @@ export default function Depart() {
 
   return (
     <SafeAreaView style={styles.ecran}>
-      <ScrollView contentContainerStyle={styles.contenu}>
+      <ScrollView contentContainerStyle={[styles.contenu, compacte && styles.contenuCompact]}>
         <View style={[styles.entete, compacte && styles.enteteCompact]}>
-          <Marque compacte={compacte} enLigne={enLigne} />
+          <Marque compacte={compacte} />
           <Text style={[styles.slogan, compacte && styles.sloganCompact]}>
             Où que tu sois, 5 minutes pour te sentir mieux.
           </Text>
@@ -208,6 +204,7 @@ export default function Depart() {
 const styles = StyleSheet.create({
   ecran: { flex: 1, backgroundColor: COULEURS.fond },
   contenu: { padding: ESPACE, gap: 12 },
+  contenuCompact: { gap: 8 },
   entete: { alignItems: 'center', gap: 4, marginBottom: 4 },
   enteteCompact: { gap: 2, marginBottom: 0 },
   boutonJournal: {

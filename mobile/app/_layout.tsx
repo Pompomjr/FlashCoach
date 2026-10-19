@@ -8,6 +8,9 @@ import { useEffect } from 'react';
 
 import { COULEURS, POLICE_AFFICHAGE_EXTRA, POLICE_AFFICHAGE_GRAS } from '../src/ui/theme';
 
+// Un lancement à froid par lien direct garde le départ sous la séance.
+export const unstable_settings = { anchor: 'index' };
+
 // L'écran de démarrage reste affiché tant que la police d'affichage n'est pas prête (appel au chargement
 // du module, pas dans un composant, pour ne pas arriver trop tard).
 SplashScreen.preventAutoHideAsync().catch(() => undefined);

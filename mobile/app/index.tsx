@@ -3,17 +3,16 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { contexteDisponible } from '../src/abonnement/acces';
 import { CONTEXTES } from '../src/catalogue/contextes';
 import { DUREES, RESSENTIS } from '../src/catalogue/types';
 import {
-  CHOIX_PAR_DEFAUT,
   ecrireChoix,
   lireChoix,
   lireDerniersExercices,
   type Choix,
 } from '../src/preferences/preferences';
 import { stockageTelephone } from '../src/preferences/stockage';
+import { choisirLancement, lancementDisponible, parametresLancement } from '../src/seance/lancement';
 import { Bouton } from '../src/ui/Bouton';
 import { CarteOption } from '../src/ui/CarteOption';
 import { ICONE_CONTEXTE, ICONE_RESSENTI, Icone } from '../src/ui/icones';
@@ -28,7 +27,7 @@ const HAUTEUR_COMPACTE = 780;
 
 // Zéro configuration : tout est présélectionné, un seul tap suffit pour lancer la séance.
 export default function Depart() {
-  const [choix, setChoix] = useState<Choix>(CHOIX_PAR_DEFAUT);
+  const [choix, setChoix] = useState<Choix>(() => choisirLancement({}));
   const [derniersExercices, setDerniersExercices] = useState<string[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const compacte = useWindowDimensions().height < HAUTEUR_COMPACTE;
@@ -77,7 +76,7 @@ export default function Depart() {
   };
 
   const choisirContexte = (contexteId: string) => {
-    if (!contexteDisponible(contexteId)) {
+    if (!lancementDisponible({ ...choix, contexteId })) {
       const texte = MESSAGE_PREMIUM;
       setMessage(texte);
       // accessibilityLiveRegion ne couvre qu'Android : sur iOS, on annonce explicitement.
@@ -99,13 +98,7 @@ export default function Depart() {
     ecrireChoix(stockageTelephone, choix).catch(() => undefined);
     router.push({
       pathname: '/seance',
-      params: {
-        contexte: choix.contexteId,
-        ressenti: choix.ressenti,
-        duree: String(choix.duree),
-        graine: String(Date.now()),
-        exclure: derniersExercices.join(','),
-      },
+      params: parametresLancement(choix, derniersExercices, Date.now()),
     });
   };
 
@@ -139,7 +132,7 @@ export default function Depart() {
               libelle={contexte.nom}
               icone={ICONE_CONTEXTE[contexte.id]}
               selectionne={choix.contexteId === contexte.id}
-              verrouille={!contexteDisponible(contexte.id)}
+              verrouille={!lancementDisponible({ ...choix, contexteId: contexte.id })}
               onPress={() => choisirContexte(contexte.id)}
               style={styles.demiLargeur}
             />

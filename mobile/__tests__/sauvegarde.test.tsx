@@ -9,6 +9,7 @@ import { ErreurCompte } from '../src/compte/auth';
 
 const mockAuth = new AuthMemoire();
 const mockRestaurer = jest.fn(async () => true);
+const mockProgrammer = jest.fn(async () => undefined);
 
 jest.mock('../src/preferences/stockage', () => {
   const { creerStockageMemoire } = jest.requireActual('../src/test-utils/stockageMemoire');
@@ -18,7 +19,7 @@ jest.mock('../src/synchro/instance', () => ({
   get authApp() {
     return mockAuth;
   },
-  moteurApp: { demanderSynchro: jest.fn(async () => undefined), restaurerApresConnexion: () => mockRestaurer() },
+  moteurApp: { demanderSynchro: jest.fn(async () => undefined), programmerRestauration: () => mockProgrammer(), restaurerApresConnexion: () => mockRestaurer() },
   demanderSynchro: jest.fn(),
 }));
 
@@ -29,6 +30,7 @@ beforeEach(() => {
   mockAuth.comptes.clear();
   mockAuth.enPanne = false;
   mockRestaurer.mockClear();
+  mockProgrammer.mockClear();
 });
 
 async function saisirEmail(email: string) {
@@ -62,6 +64,34 @@ describe('Sauvegarder mon journal', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Valider' }));
     expect(await screen.findByText('Ton journal est de retour.')).toBeTruthy();
     expect(mockRestaurer).toHaveBeenCalledTimes(1);
+  });
+
+  it('programme la restauration avant de vérifier le code d’un compte existant', async () => {
+    mockAuth.comptes.set('mattia@exemple.fr', 'compte-1');
+    const ordre: string[] = [];
+    mockProgrammer.mockImplementationOnce(async () => {
+      ordre.push('programmer');
+    });
+    const confirmer = jest.spyOn(mockAuth, 'confirmerCode');
+    confirmer.mockImplementationOnce(async () => {
+      ordre.push('confirmer');
+      throw new ErreurCompte('code-invalide');
+    });
+    await saisirEmail('mattia@exemple.fr');
+    await fireEvent.changeText(await screen.findByLabelText('Code à 6 chiffres'), '123456');
+    await fireEvent.press(screen.getByRole('button', { name: 'Valider' }));
+    await screen.findByText('Ce code ne marche pas. Vérifie-le ou demande-en un autre.');
+    expect(ordre).toEqual(['programmer', 'confirmer']);
+    expect(mockRestaurer).not.toHaveBeenCalled();
+    confirmer.mockRestore();
+  });
+
+  it('ne programme pas de restauration pour une simple liaison', async () => {
+    await saisirEmail('mattia@exemple.fr');
+    await fireEvent.changeText(await screen.findByLabelText('Code à 6 chiffres'), '123456');
+    await fireEvent.press(screen.getByRole('button', { name: 'Valider' }));
+    await screen.findByText("C'est sauvegardé.");
+    expect(mockProgrammer).not.toHaveBeenCalled();
   });
 
   it('dit « C’est sauvegardé. » quand la restauration échoue après une connexion réussie', async () => {
@@ -102,14 +132,14 @@ describe('Sauvegarder mon journal', () => {
     demanderCode.mockRestore();
   });
 
-  it('bloque « Renvoyer le code » pendant 30 secondes', async () => {
+  it('bloque « Renvoyer le code » pendant 60 secondes', async () => {
     jest.useFakeTimers();
     try {
       await saisirEmail('mattia@exemple.fr');
       const renvoyer = await screen.findByRole('button', { name: 'Renvoyer le code' });
       expect(renvoyer).toBeDisabled();
       await act(async () => {
-        jest.advanceTimersByTime(30000);
+        jest.advanceTimersByTime(60000);
       });
       expect(screen.getByRole('button', { name: 'Renvoyer le code' })).toBeEnabled();
     } finally {
@@ -141,5 +171,33 @@ describe('Sauvegarder mon journal', () => {
     await renderRouter(ROUTES, { initialUrl: '/journal' });
     expect(await screen.findByText('Journal sauvegardé · mattia@exemple.fr')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Sauvegarder mon journal' })).toBeNull();
+  });
+
+  it('n’affiche rien dans le pied du journal tant que la session n’est pas lue', async () => {
+    mockAuth.etat = { utilisateurId: 'u1', email: 'mattia@exemple.fr', anonyme: false };
+    let lire!: () => void;
+    const attente = new Promise<void>((resolve) => {
+      lire = resolve;
+    });
+    const session = jest.spyOn(mockAuth, 'sessionCourante').mockImplementationOnce(async () => {
+      await attente;
+      return mockAuth.etat;
+    });
+    await renderRouter(ROUTES, { initialUrl: '/journal' });
+    expect(await screen.findByText('Ta première séance apparaîtra ici.')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Sauvegarder mon journal' })).toBeNull();
+    await act(async () => {
+      lire();
+    });
+    expect(await screen.findByText('Journal sauvegardé · mattia@exemple.fr')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Sauvegarder mon journal' })).toBeNull();
+    session.mockRestore();
+  });
+
+  it('propose la sauvegarde quand la session ne se lit pas', async () => {
+    const session = jest.spyOn(mockAuth, 'sessionCourante').mockRejectedValueOnce(new ErreurCompte('reseau'));
+    await renderRouter(ROUTES, { initialUrl: '/journal' });
+    expect(await screen.findByRole('button', { name: 'Sauvegarder mon journal' })).toBeTruthy();
+    session.mockRestore();
   });
 });

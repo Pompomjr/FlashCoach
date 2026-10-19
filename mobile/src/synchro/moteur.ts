@@ -8,6 +8,8 @@ import { restaurer, synchroniser } from './synchro';
 export const CLE_RESTAURATION = 'flashcoach.restauration.v1';
 
 export interface Moteur {
+  // À appeler avant de confirmer le code d'un compte existant : si l'app est fermée entre-temps, la restauration reprendra au démarrage suivant.
+  programmerRestauration(): Promise<void>;
   // Ne rejette jamais ; les demandes reçues pendant un tour en déclenchent un seul de plus.
   demanderSynchro(): Promise<void>;
   // Après connexion à un compte existant : vrai si ses séances sont de retour dans le journal.
@@ -61,6 +63,10 @@ export function creerMoteur({ stockage, serveur, auth }: { stockage: Stockage; s
     return enCours;
   }
 
+  function programmerRestauration(): Promise<void> {
+    return ecrireDrapeau(stockage, true);
+  }
+
   async function restaurerApresConnexion(): Promise<boolean> {
     await ecrireDrapeau(stockage, true);
     await demanderSynchro();
@@ -69,5 +75,5 @@ export function creerMoteur({ stockage, serveur, auth }: { stockage: Stockage; s
     return !(await lireDrapeau(stockage));
   }
 
-  return { demanderSynchro, restaurerApresConnexion };
+  return { demanderSynchro, programmerRestauration, restaurerApresConnexion };
 }

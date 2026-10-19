@@ -73,4 +73,30 @@ describe('moteur de synchro', () => {
     await creerMoteur({ stockage, serveur, auth }).demanderSynchro();
     expect((await lireJournal(stockage)).map((e) => e.id)).toEqual(['ancienne']);
   });
+
+  it('programmerRestauration pose le drapeau avant toute connexion', async () => {
+    const { stockage, moteur } = preparer();
+    await moteur.programmerRestauration();
+    expect(stockage.contenu[CLE_RESTAURATION]).toBe('1');
+  });
+
+  it('passe d’un compte anonyme à un compte existant sans rien perdre', async () => {
+    const stockage = creerStockageMemoire();
+    const auth = new AuthMemoire();
+    const serveur = new ServeurMemoire(() => auth.etat!.utilisateurId);
+    const moteur = creerMoteur({ stockage, serveur, auth });
+    auth.comptes.set('a@b.fr', 'compte-1');
+    serveur.lignesDe('compte-1').set('ancienne', fabriquerEntree({ id: 'ancienne', debut: new Date(2026, 9, 1).toISOString() }));
+
+    await ajouterEntree(stockage, fabriquerEntree({ id: 'a' }));
+    await moteur.demanderSynchro();
+    expect([...serveur.lignesDe('anonyme-1').keys()]).toEqual(['a']);
+
+    await moteur.programmerRestauration();
+    await auth.confirmerCode('a@b.fr', '123456', 'connexion');
+    expect(await moteur.restaurerApresConnexion()).toBe(true);
+
+    expect((await lireJournal(stockage)).map((e) => e.id).sort()).toEqual(['a', 'ancienne']);
+    expect([...serveur.lignesDe('compte-1').keys()].sort()).toEqual(['a', 'ancienne']);
+  });
 });

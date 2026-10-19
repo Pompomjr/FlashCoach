@@ -20,4 +20,22 @@ describe('assurerSession', () => {
     auth.enPanne = true;
     await expect(assurerSession(auth)).resolves.toBeNull();
   });
+
+  it('ne crée qu’une session quand deux appels se croisent', async () => {
+    const auth = new AuthMemoire();
+    const [a, b] = await Promise.all([assurerSession(auth), assurerSession(auth)]);
+    expect(auth.creations).toBe(1);
+    expect(a).toEqual(b);
+    expect(await assurerSession(auth)).toEqual(a);
+    expect(auth.creations).toBe(1);
+  });
+
+  it('retente normalement après un essai terminé en échec', async () => {
+    const auth = new AuthMemoire();
+    auth.enPanne = true;
+    expect(await assurerSession(auth)).toBeNull();
+    auth.enPanne = false;
+    expect(await assurerSession(auth)).toMatchObject({ anonyme: true });
+    expect(auth.creations).toBe(1);
+  });
 });

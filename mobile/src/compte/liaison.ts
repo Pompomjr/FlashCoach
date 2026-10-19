@@ -1,6 +1,6 @@
 import { ErreurCompte, type GenreErreur } from './auth';
 
-export const DELAI_RENVOI_MS = 30000;
+export const DELAI_RENVOI_MS = 60000;
 
 export const MESSAGES_ERREUR: Record<GenreErreur, string> = {
   'code-invalide': 'Ce code ne marche pas. Vérifie-le ou demande-en un autre.',

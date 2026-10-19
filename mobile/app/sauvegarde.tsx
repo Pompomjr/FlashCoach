@@ -23,7 +23,7 @@ export default function Sauvegarde() {
   const [renvoiPossible, setRenvoiPossible] = useState(false);
   const enVol = useRef(false);
 
-  // « Renvoyer le code » reste inactif 30 s après chaque envoi.
+  // « Renvoyer le code » reste inactif 60 s après chaque envoi.
   useEffect(() => {
     if (etape.nom !== 'code' || renvoiPossible) return;
     const minuteur = setTimeout(() => setRenvoiPossible(true), DELAI_RENVOI_MS);
@@ -69,6 +69,8 @@ export default function Sauvegarde() {
   const valider = () => {
     if (etape.nom !== 'code' || !codeValide(code)) return;
     executer(async () => {
+      // Drapeau posé avant la vérification : une fermeture entre le code et la restauration ne perd rien.
+      if (etape.mode === 'connexion') await moteurApp?.programmerRestauration();
       await authApp!.confirmerCode(email, code, etape.mode);
       const restaure = etape.mode === 'connexion' && moteurApp !== null && (await moteurApp.restaurerApresConnexion());
       if (etape.mode === 'liaison') moteurApp?.demanderSynchro().catch(() => undefined);

@@ -23,6 +23,8 @@ const LIBELLES_APRES = {
 export default function Journal() {
   const [entrees, setEntrees] = useState<EntreeJournal[] | null>(null);
   const [compte, setCompte] = useState<EtatCompte | null>(null);
+  // Faux tant que la session n'a pas été lue : le pied du journal reste vide plutôt que de clignoter.
+  const [sessionLue, setSessionLue] = useState(false);
 
   // Relu à chaque affichage : une séance vient peut-être de se terminer.
   useFocusEffect(
@@ -36,7 +38,10 @@ export default function Journal() {
         .then((etat) => {
           if (actif) setCompte(etat);
         })
-        .catch(() => undefined);
+        .catch(() => undefined)
+        .finally(() => {
+          if (actif) setSessionLue(true);
+        });
       return () => {
         actif = false;
       };
@@ -70,7 +75,7 @@ export default function Journal() {
             <Figurine exerciceId="respiration-carree" libelle="Figurine au repos" anime={false} taille={150} />
           </View>
           <Text style={styles.texteVide}>Ta première séance apparaîtra ici.</Text>
-          <PiedSauvegarde compte={compte} />
+          <PiedSauvegarde compte={compte} lue={sessionLue} />
         </View>
       )}
 
@@ -87,7 +92,7 @@ export default function Journal() {
               <Text style={styles.texteResume}>{resume}</Text>
             </View>
           }
-          ListFooterComponent={<PiedSauvegarde compte={compte} />}
+          ListFooterComponent={<PiedSauvegarde compte={compte} lue={sessionLue} />}
           renderItem={({ item }) => <LigneJournal entree={item} />}
         />
       )}
@@ -95,8 +100,8 @@ export default function Journal() {
   );
 }
 
-function PiedSauvegarde({ compte }: { compte: EtatCompte | null }) {
-  if (authApp === null) return null;
+function PiedSauvegarde({ compte, lue }: { compte: EtatCompte | null; lue: boolean }) {
+  if (authApp === null || !lue) return null;
   if (compte !== null && !compte.anonyme && compte.email !== null) {
     return <Text style={styles.sauvegarde}>{`Journal sauvegardé · ${compte.email}`}</Text>;
   }

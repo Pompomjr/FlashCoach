@@ -12,7 +12,7 @@ Guide pas à pas pour créer le projet Supabase qui sauvegarde le journal des s�
 
 1. **Authentication → Sign In / Providers**.
 2. Active **Allow anonymous sign-ins**.
-3. Active aussi **Allow manual linking** : c'est nécessaire pour rattacher un e-mail à une session anonyme.
+3. Rien d'autre à activer pour rattacher un e-mail à une session anonyme : l'app le fait avec `updateUser({ email })`. **Allow manual linking** ne concerne que `linkIdentity` (OAuth) et n'est pas nécessaire : laisse-le désactivé.
 
 ## 3. Code par e-mail
 
@@ -25,6 +25,7 @@ Guide pas à pas pour créer le projet Supabase qui sauvegarde le journal des s�
 1. **SQL Editor** → New query.
 2. Colle le contenu de `supabase/migrations/20261019000000_seances.sql`.
 3. **Run**.
+4. La migration ne contient pas de `grant` : c'est le réglage par défaut de Supabase sur le schéma `public` qui permet au rôle `authenticated` (les utilisateurs anonymes en font partie) d'utiliser la table. La sécurité par ligne (RLS) limite ensuite chacun à ses propres lignes. Si ton projet n'expose pas automatiquement les nouvelles tables, ajoute `grant select, insert, update on public.seances to authenticated;`.
 
 ## 5. Brancher l'app
 
@@ -44,6 +45,8 @@ Guide pas à pas pour créer le projet Supabase qui sauvegarde le journal des s�
 - Fais une séance sur le téléphone : **Table Editor → `seances`** contient une ligne.
 - **Authentication → Users** montre un utilisateur anonyme.
 - Teste « Sauvegarder mon journal » avec ton e-mail.
+- Supabase impose au moins 60 secondes entre deux e-mails (réglage par défaut) : « Renvoyer le code » reste donc inactif 60 s, et un nouvel envoi plus tôt serait refusé.
+- Après une connexion à un compte existant, l'utilisateur anonyme remplacé et ses lignes restent sur le serveur (personne ne peut plus y accéder). Leur nettoyage est prévu au jalon 6.
 
 ## 7. Avant la publication (jalons 6 et 7)
 

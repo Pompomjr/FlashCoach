@@ -226,8 +226,17 @@ describe('analyserRabattements', () => {
     expect(rabattements.every((r) => r.auNiveau === 0)).toBe(true);
   });
 
-  it('sur le catalogue embarqué, le niveau 3 compte désormais des places à son niveau', () => {
-    expect(analyserRabattements(EXERCICES, CONTEXTES, 3).some((r) => r.auNiveau > 0)).toBe(true);
+  it('sur le catalogue embarqué, le niveau 3 n’a de places que pour « en forme » (9 exercices)', () => {
+    const avecPlaces = analyserRabattements(EXERCICES, CONTEXTES, 3)
+      .filter((r) => r.auNiveau > 0)
+      .map((r) => `${r.contexteId}/${r.ressenti}/${r.duree}: ${r.auNiveau}/${r.places}`);
+    expect(avecPlaces).toEqual([
+      'reveil/en_forme/10: 5/8',
+      'voyage/en_forme/10: 5/8',
+      'dehors/en_forme/3: 1/2',
+      'dehors/en_forme/5: 1/4',
+      'dehors/en_forme/10: 1/8',
+    ]);
   });
 });
 

@@ -42,26 +42,27 @@ describe('catalogue embarqué', () => {
     expect(EXERCICES).toHaveLength(70);
   });
 
-  it('compte 45 exercices Doux, 16 Tonique (5 existants + 11) et 9 Costaud', () => {
+  it('compte 45 exercices Doux, 16 Tonique et 9 Costaud, ids exacts', () => {
     const ids = (niveau: number) => EXERCICES.filter((e) => e.niveau === niveau).map((e) => e.id).sort();
-    expect(ids(2)).toHaveLength(16);
-    expect(ids(2)).toEqual(
-      expect.arrayContaining(['burpee-sans-saut', 'grimpeur', 'planche', 'planche-laterale', 'squats-sautes']),
-    );
-    expect(ids(3)).toHaveLength(9);
+    expect(ids(2)).toEqual([
+      'burpee-sans-saut', 'dips-chaise', 'grimpeur', 'hollow-hold', 'pike-pushup', 'planche', 'planche-epaules',
+      'planche-laterale', 'pompe-large', 'pompe-tempo', 'releves-jambes', 'squat-bulgare', 'squat-pause',
+      'squats-sautes', 'superman-tirage', 'tractions-australiennes',
+    ]);
+    expect(ids(3)).toEqual([
+      'burpee-complet', 'fentes-sautees', 'gainage-commando', 'planche-penchee', 'pompe-archer', 'pompe-diamant',
+      'pompe-hindoue', 'pompe-pieds-sureleves', 'pompe-spiderman',
+    ]);
     expect(EXERCICES.filter((e) => e.niveau === 1)).toHaveLength(45);
   });
 
-  it('ne rend compatible avec le bureau aucun exercice de niveau 2 ou 3 qui ne soit pas doux et sur place', () => {
+  it('n’a aucun exercice de niveau 2 ou 3 compatible avec le bureau', () => {
     const bureau = CONTEXTES.find((c) => c.id === 'bureau');
     if (!bureau) throw new Error('contexte bureau introuvable');
-    for (const e of EXERCICES.filter((x) => x.niveau >= 2)) {
-      if (respecteContraintes(e, bureau.contraintes)) {
-        expect(e.transpiration).toBe('faible');
-        expect(e.sol).toBe(false);
-        expect(e.sauts).toBe(false);
-        expect(e.espace).toBe('sur_place');
-      }
+    const compatibles = EXERCICES.filter((e) => e.niveau >= 2 && respecteContraintes(e, bureau.contraintes));
+    expect(compatibles.map((e) => e.id)).toEqual([]);
+    for (const e of compatibles) {
+      expect(e).toMatchObject({ transpiration: 'faible', sol: false, sauts: false, espace: 'sur_place' });
     }
   });
 

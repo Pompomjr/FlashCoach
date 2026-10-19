@@ -1,5 +1,8 @@
 import { DUREES, RESSENTIS, type Duree, type Ressenti } from '../catalogue/types';
+import { enSerie } from '../preferences/serie';
 import type { Stockage } from '../preferences/stockage';
+import { marquerAEnvoyer } from '../synchro/fileEnvoi';
+import { fusionner } from './fusion';
 
 export type Apres = 'mieux' | 'pareil';
 
@@ -28,7 +31,7 @@ export function creerIdentifiant(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-function estEntree(valeur: unknown): valeur is EntreeJournal {
+export function estEntreeJournal(valeur: unknown): valeur is EntreeJournal {
   if (typeof valeur !== 'object' || valeur === null) return false;
   const v = valeur as Record<string, unknown>;
   return (
@@ -62,29 +65,21 @@ async function lireBrut(stockage: Stockage): Promise<Lecture> {
   }
   try {
     const valeur: unknown = texte === null ? [] : JSON.parse(texte);
-    return { lue: true, entrees: Array.isArray(valeur) ? valeur.filter(estEntree) : [] };
+    return { lue: true, entrees: Array.isArray(valeur) ? valeur.filter(estEntreeJournal) : [] };
   } catch {
     // JSON abîmé : traité comme un journal vide.
     return { lue: true, entrees: [] };
   }
 }
 
-async function ecrireSansErreur(stockage: Stockage, entrees: EntreeJournal[]): Promise<void> {
+async function ecrireSansErreur(stockage: Stockage, entrees: EntreeJournal[]): Promise<boolean> {
   try {
     await stockage.ecrire(CLE_JOURNAL, JSON.stringify(entrees));
+    return true;
   } catch {
     // Une séance non enregistrée vaut mieux qu'une séance bloquée.
+    return false;
   }
-}
-
-// Lire-modifier-écrire n'est pas atomique : on met les opérations d'un même stockage en file.
-const files = new WeakMap<Stockage, Promise<unknown>>();
-
-function enSerie<T>(stockage: Stockage, operation: () => Promise<T>): Promise<T> {
-  const precedente = files.get(stockage) ?? Promise.resolve();
-  const suivante = precedente.then(operation, operation);
-  files.set(stockage, suivante.catch(() => undefined));
-  return suivante;
 }
 
 export function lireJournal(stockage: Stockage): Promise<EntreeJournal[]> {
@@ -94,29 +89,49 @@ export function lireJournal(stockage: Stockage): Promise<EntreeJournal[]> {
   });
 }
 
-export function ajouterEntree(stockage: Stockage, entree: EntreeJournal): Promise<void> {
+export function lireJournalSiLisible(stockage: Stockage): Promise<EntreeJournal[] | null> {
   return enSerie(stockage, async () => {
     const lecture = await lireBrut(stockage);
-    // Lecture en échec : on n'écrit pas, pour ne pas effacer l'historique existant.
-    if (!lecture.lue) return;
-    const sansDoublon = lecture.entrees.filter((e) => e.id !== entree.id);
-    await ecrireSansErreur(stockage, [entree, ...sansDoublon].slice(0, TAILLE_MAX_JOURNAL));
+    return lecture.lue ? lecture.entrees : null;
   });
 }
 
-export function mettreAJourEntree(stockage: Stockage, id: string, changement: ChangementEntree): Promise<void> {
-  return enSerie(stockage, async () => {
+export async function ajouterEntree(stockage: Stockage, entree: EntreeJournal): Promise<void> {
+  const ecrite = await enSerie(stockage, async () => {
     const lecture = await lireBrut(stockage);
-    if (!lecture.lue) return;
+    // Lecture en échec : on n'écrit pas, pour ne pas effacer l'historique existant.
+    if (!lecture.lue) return false;
+    const sansDoublon = lecture.entrees.filter((e) => e.id !== entree.id);
+    return ecrireSansErreur(stockage, [entree, ...sansDoublon].slice(0, TAILLE_MAX_JOURNAL));
+  });
+  // Sauvegarde en ligne : seule une séance réellement écrite part vers le serveur.
+  if (ecrite) await marquerAEnvoyer(stockage, [entree.id]);
+}
+
+export async function mettreAJourEntree(stockage: Stockage, id: string, changement: ChangementEntree): Promise<void> {
+  const ecrite = await enSerie(stockage, async () => {
+    const lecture = await lireBrut(stockage);
+    if (!lecture.lue) return false;
     const cible = lecture.entrees.find((e) => e.id === id);
-    if (!cible) return;
+    if (!cible) return false;
     const modifiee: unknown = { ...cible, ...changement };
     // Une entrée devenue invalide ne doit pas être écrite : elle disparaîtrait à la prochaine lecture.
-    if (!estEntree(modifiee)) return;
-    await ecrireSansErreur(
+    if (!estEntreeJournal(modifiee)) return false;
+    return ecrireSansErreur(
       stockage,
       lecture.entrees.map((e) => (e.id === id ? modifiee : e)),
     );
+  });
+  if (ecrite) await marquerAEnvoyer(stockage, [id]);
+}
+
+// Restauration : renvoie les identifiants du journal fusionné, ou null si rien n'a pu être écrit.
+export function fusionnerDansJournal(stockage: Stockage, distantes: EntreeJournal[]): Promise<string[] | null> {
+  return enSerie(stockage, async () => {
+    const lecture = await lireBrut(stockage);
+    if (!lecture.lue) return null;
+    const fusion = fusionner(lecture.entrees, distantes);
+    return (await ecrireSansErreur(stockage, fusion)) ? fusion.map((e) => e.id) : null;
   });
 }
 

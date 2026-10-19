@@ -1,12 +1,16 @@
 import type { Stockage } from '../preferences/stockage';
 import { fabriquerEntree } from '../test-utils/journal';
 import { creerStockageMemoire } from '../test-utils/stockageMemoire';
+import { lireFileEnvoi } from '../synchro/fileEnvoi';
 import {
   CLE_JOURNAL,
   TAILLE_MAX_JOURNAL,
   ajouterEntree,
   creerIdentifiant,
+  estEntreeJournal,
+  fusionnerDansJournal,
   lireJournal,
+  lireJournalSiLisible,
   mettreAJourEntree,
   resumeJournal,
 } from './journal';
@@ -159,6 +163,46 @@ describe('journal', () => {
 
   it('crée des identifiants différents', () => {
     expect(creerIdentifiant()).not.toBe(creerIdentifiant());
+  });
+
+  it('marque à envoyer chaque séance créée ou complétée', async () => {
+    const stockage = creerStockageMemoire();
+    await ajouterEntree(stockage, fabriquerEntree({ id: 'a' }));
+    expect(await lireFileEnvoi(stockage)).toEqual({ a: 1 });
+    await mettreAJourEntree(stockage, 'a', { apres: 'mieux' });
+    expect(await lireFileEnvoi(stockage)).toEqual({ a: 2 });
+  });
+
+  it('ne marque rien quand l’écriture du journal échoue', async () => {
+    const memoire = creerStockageMemoire();
+    const stockage = {
+      lire: memoire.lire,
+      ecrire: async (cle: string, valeur: string) => {
+        if (cle === CLE_JOURNAL) throw new Error('panne');
+        await memoire.ecrire(cle, valeur);
+      },
+    };
+    await ajouterEntree(stockage, fabriquerEntree({ id: 'a' }));
+    expect(await lireFileEnvoi(stockage)).toEqual({});
+  });
+
+  it('distingue un journal illisible d’un journal vide', async () => {
+    expect(await lireJournalSiLisible(creerStockageMemoire())).toEqual([]);
+    const enPanne = { lire: async () => { throw new Error('panne'); }, ecrire: async () => undefined };
+    expect(await lireJournalSiLisible(enPanne)).toBeNull();
+  });
+
+  it('fusionne des séances retrouvées et renvoie les identifiants du journal obtenu', async () => {
+    const stockage = creerStockageMemoire();
+    await ajouterEntree(stockage, fabriquerEntree({ id: 'local', debut: new Date(2026, 9, 12).toISOString() }));
+    const ids = await fusionnerDansJournal(stockage, [fabriquerEntree({ id: 'distante', debut: new Date(2026, 9, 10).toISOString() })]);
+    expect(ids).toEqual(['local', 'distante']);
+    expect((await lireJournal(stockage)).map((e) => e.id)).toEqual(['local', 'distante']);
+  });
+
+  it('expose la garde des entrées pour valider les séances venues du serveur', () => {
+    expect(estEntreeJournal(fabriquerEntree())).toBe(true);
+    expect(estEntreeJournal({ ...fabriquerEntree(), duree: 7 })).toBe(false);
   });
 });
 

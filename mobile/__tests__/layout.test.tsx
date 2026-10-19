@@ -5,6 +5,7 @@ import { Text } from 'react-native';
 
 import Layout from '../app/_layout';
 
+jest.mock('../src/synchro/instance', () => ({ authApp: null, moteurApp: null, demanderSynchro: jest.fn() }));
 jest.mock('expo-font', () => ({ useFonts: jest.fn() }));
 jest.mock('expo-splash-screen', () => ({
   preventAutoHideAsync: jest.fn(() => Promise.resolve(true)),

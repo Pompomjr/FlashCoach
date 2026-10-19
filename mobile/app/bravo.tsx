@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { mettreAJourEntree, type Apres } from '../src/journal/journal';
 import { stockageTelephone } from '../src/preferences/stockage';
+import { demanderSynchro } from '../src/synchro/instance';
 import { Bouton } from '../src/ui/Bouton';
 import { Celebration } from '../src/ui/Celebration';
 import { COULEURS, ESPACE, TYPO } from '../src/ui/theme';
@@ -30,7 +31,7 @@ export default function Bravo() {
   const rienFait = exercices === 0 && secondes < SECONDES_MIN_ACTIVITE;
 
   const repondre = (apres: Apres) => {
-    if (params.seance) mettreAJourEntree(stockageTelephone, params.seance, { apres });
+    if (params.seance) mettreAJourEntree(stockageTelephone, params.seance, { apres }).then(demanderSynchro);
     setRepondu(true);
   };
 

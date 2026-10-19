@@ -9,6 +9,7 @@ import EcranSeance from '../app/seance';
 import { stockageTelephone } from '../src/preferences/stockage';
 import { CLE_JOURNAL } from '../src/journal/journal';
 
+jest.mock('../src/synchro/instance', () => ({ authApp: null, moteurApp: null, demanderSynchro: jest.fn() }));
 jest.mock('../src/preferences/stockage', () => {
   const { creerStockageMemoire } = jest.requireActual('../src/test-utils/stockageMemoire');
   return { stockageTelephone: creerStockageMemoire() };

@@ -15,6 +15,7 @@ import { coteCourant, formaterTemps, minutesEffectuees } from '../src/seance/aff
 import { lireParametresSeance } from '../src/seance/parametres';
 import { useEcranAllume } from '../src/seance/useEcranAllume';
 import { useLecteurSeance } from '../src/seance/useLecteurSeance';
+import { demanderSynchro } from '../src/synchro/instance';
 import { Bouton } from '../src/ui/Bouton';
 import { Icone } from '../src/ui/icones';
 import { LIBELLES_PHASE } from '../src/ui/libelles';
@@ -126,7 +127,7 @@ function LecteurSeance({ parametres }: { parametres: ParametresSeance }) {
       ecouleMs: etat.ecouleMs,
       exercicesFaits: etat.exercicesFaits,
       terminee: !termineeParUtilisateur.current && etat.exercicesFaits === etat.blocs.length,
-    });
+    }).then(demanderSynchro);
     router.replace({
       pathname: '/bravo',
       params: {

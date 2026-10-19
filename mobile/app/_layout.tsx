@@ -6,6 +6,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 
+import { useSynchro } from '../src/synchro/useSynchro';
 import { COULEURS, POLICE_AFFICHAGE_EXTRA, POLICE_AFFICHAGE_GRAS } from '../src/ui/theme';
 
 // Un lancement à froid par lien direct garde le départ sous la séance.
@@ -16,6 +17,7 @@ export const unstable_settings = { anchor: 'index' };
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 export default function RootLayout() {
+  useSynchro();
   // Le nom de chaque police est la clé de la table : le même sur Android, iOS et web.
   const [chargee, erreur] = useFonts({
     [POLICE_AFFICHAGE_GRAS]: BarlowCondensed_700Bold,

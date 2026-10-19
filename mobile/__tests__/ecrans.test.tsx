@@ -12,12 +12,14 @@ import Journal from '../app/journal';
 import EcranSeance from '../app/seance';
 import { CLE_JOURNAL } from '../src/journal/journal';
 import { stockageTelephone } from '../src/preferences/stockage';
+import { demanderSynchro } from '../src/synchro/instance';
 import { fabriquerEntree } from '../src/test-utils/journal';
 
 jest.mock('../src/preferences/stockage', () => {
   const { creerStockageMemoire } = jest.requireActual('../src/test-utils/stockageMemoire');
   return { stockageTelephone: creerStockageMemoire() };
 });
+jest.mock('../src/synchro/instance', () => ({ authApp: null, moteurApp: null, demanderSynchro: jest.fn() }));
 jest.mock('expo-keep-awake', () => ({
   activateKeepAwakeAsync: jest.fn(() => Promise.resolve()),
   deactivateKeepAwake: jest.fn(() => Promise.resolve()),
@@ -48,6 +50,7 @@ beforeEach(() => {
   for (const cle of Object.keys(memoire.contenu)) delete memoire.contenu[cle];
   jest.mocked(Haptics.impactAsync).mockClear();
   jest.mocked(Haptics.notificationAsync).mockClear();
+  jest.mocked(demanderSynchro).mockClear();
 });
 
 afterEach(() => {
@@ -206,6 +209,11 @@ describe('écran de séance', () => {
     expect(screen.getByText('Mise en route · ')).toBeTruthy();
   });
 
+  it('demande une synchro au démarrage', async () => {
+    await renderRouter(ROUTES, { initialUrl: '/' });
+    await waitFor(() => expect(demanderSynchro).toHaveBeenCalled());
+  });
+
   it('renvoie au départ si les paramètres sont invalides', async () => {
     await renderRouter(ROUTES, { initialUrl: '/seance?contexte=bureau&ressenti=mou&duree=5&graine=1' });
     await waitFor(() => expect(screen).toHavePathname('/'));
@@ -216,6 +224,15 @@ describe('écran de séance', () => {
     await fireEvent.press(await screen.findByRole('button', { name: 'Terminer la séance' }));
     await waitFor(() => expect(screen).toHavePathname('/bravo'));
     expect(screen.getByText('Pas grave, on remet ça quand tu veux.')).toBeTruthy();
+  });
+
+  it('demande une synchro à la fin de la séance', async () => {
+    await renderRouter(ROUTES, { initialUrl: SEANCE });
+    await waitFor(() => expect(demanderSynchro).toHaveBeenCalled());
+    const avant = jest.mocked(demanderSynchro).mock.calls.length;
+    await fireEvent.press(await screen.findByRole('button', { name: 'Terminer la séance' }));
+    await waitFor(() => expect(screen).toHavePathname('/bravo'));
+    await waitFor(() => expect(demanderSynchro).toHaveBeenCalledTimes(avant + 1));
   });
 
   it('annonce la pause aux lecteurs d’écran (iOS)', async () => {
@@ -521,8 +538,10 @@ describe('journal : enregistrement', () => {
   it('enregistre la réponse à « Tu te sens mieux ? »', async () => {
     memoire.contenu[CLE_JOURNAL] = JSON.stringify([fabriquerEntree({ id: 'e1' })]);
     await renderRouter(ROUTES, { initialUrl: '/bravo?minutes=5&exercices=8&seance=e1' });
+    const avant = jest.mocked(demanderSynchro).mock.calls.length;
     await fireEvent.press(await screen.findByRole('button', { name: 'Mieux' }));
     await waitFor(() => expect(journalEnMemoire()[0].apres).toBe('mieux'));
+    await waitFor(() => expect(demanderSynchro).toHaveBeenCalledTimes(avant + 1));
     expect(screen.getByText('Merci !')).toBeTruthy();
   });
 

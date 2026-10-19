@@ -3,7 +3,7 @@ import { AccessibilityInfo, View } from 'react-native';
 import Svg, { Ellipse, Path, Rect } from 'react-native-svg';
 
 import { COULEURS } from '../ui/theme';
-import { cadrer, dessinerFigurine, MUR, type Cadre, type Teinte } from './dessin';
+import { cadrer, CHAISE, dessinerFigurine, MUR, type Cadre, type Teinte } from './dessin';
 import { posesPour, type AnimationFigurine } from './poses';
 import { poseALinstant, SOL_Y } from './squelette';
 
@@ -20,7 +20,7 @@ const CADRES = new WeakMap<AnimationFigurine, Cadre>();
 function cadreDe(animation: AnimationFigurine): Cadre {
   let cadre = CADRES.get(animation);
   if (cadre === undefined) {
-    cadre = cadrer(animation.cles, animation.continu, animation.accessoire === 'mur');
+    cadre = cadrer(animation.cles, animation.continu, animation.accessoire === 'mur', animation.accessoire === 'chaise', animation.murX);
     CADRES.set(animation, cadre);
   }
   return cadre;
@@ -70,6 +70,7 @@ export function Figurine({ exerciceId, anime = true, enPause = false, taille = 2
   const pose = poseALinstant(animation.cles, actif && frame.animation === animation ? frame.t : 0, animation.continu);
   const dessin = dessinerFigurine(pose);
   const mur = animation.accessoire === 'mur';
+  const murX = animation.murX ?? MUR.x;
   const cadre = cadreDe(animation);
 
   // Rôle et libellé sur une vue : portés par le Svg, ils deviennent des attributs invalides sur le web.
@@ -81,8 +82,13 @@ export function Figurine({ exerciceId, anime = true, enPause = false, taille = 2
         <Ellipse cx={dessin.ombre.cx} cy={dessin.ombre.cy} rx={dessin.ombre.rx} ry={dessin.ombre.ry}
           fill={COULEURS.fond} opacity={dessin.ombre.opacite} />
         {mur && <>
-          <Rect x={MUR.x} y={MUR.haut} width={MUR.largeur} height={SOL_Y + 6 - MUR.haut} rx={5} fill={COULEURS.mur} />
-          <Rect x={MUR.x} y={MUR.haut} width={3} height={SOL_Y + 6 - MUR.haut} rx={1.5} fill={COULEURS.areteMur} />
+          <Rect x={murX} y={MUR.haut} width={MUR.largeur} height={SOL_Y + 6 - MUR.haut} rx={5} fill={COULEURS.mur} />
+          <Rect x={murX} y={MUR.haut} width={3} height={SOL_Y + 6 - MUR.haut} rx={1.5} fill={COULEURS.areteMur} />
+        </>}
+        {animation.accessoire === 'chaise' && <>
+          <Rect testID="accessoire-chaise" x={CHAISE.x} y={CHAISE.haut} width={6} height={SOL_Y - CHAISE.haut} rx={3} fill={COULEURS.areteMur} />
+          <Rect x={CHAISE.x + CHAISE.largeur - CHAISE.pied} y={CHAISE.assise} width={CHAISE.pied} height={SOL_Y - CHAISE.assise} rx={2} fill={COULEURS.areteMur} />
+          <Rect x={CHAISE.x} y={CHAISE.assise} width={CHAISE.largeur} height={6} rx={3} fill={COULEURS.mur} />
         </>}
         {dessin.formes.map((forme, i) => forme.teinte === 'separation'
           ? <Path key={i} d={forme.d} fill={TEINTES.separation} stroke={TEINTES.separation} strokeWidth={LISERE}

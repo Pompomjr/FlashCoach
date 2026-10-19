@@ -2,7 +2,7 @@ import { MUR, RAYONS } from './dessin';
 import { calculerPoints, LONGUEURS, SOL_Y, type Bras, type Jambe, type Point, type Pose } from './squelette';
 
 /** `continu` : vitesse constante d'une clé à l'autre, pour un geste circulaire sans à-coups. */
-export type AnimationFigurine = { cles: Pose[]; dureeCycleMs: number; accessoire?: 'mur'; continu?: boolean };
+export type AnimationFigurine = { cles: Pose[]; dureeCycleMs: number; accessoire?: 'mur' | 'chaise'; murX?: number; continu?: boolean };
 const bras = (epaule = 0, coude = 0): Bras => ({ epaule, coude });
 const jambe = (hanche = 0, genou = 0, cheville = -hanche - genou): Jambe => ({ hanche, genou, cheville });
 const debout = (vue: Pose['vue'] = 'profil'): Pose => ({
@@ -15,15 +15,15 @@ const rad = (degres: number) => degres * Math.PI / 180;
  * Il ne s'exécute qu'à la création des clés, jamais dans la boucle d'animation. */
 function brasVers(pose: Pose, gauche: Point, droite: Point): Pose {
   const p = calculerPoints(pose);
-  const atteindre = (depart: Point, cible: Point): Bras => {
+  const atteindre = (depart: Point, cible: Point, sens = 1): Bras => {
     const dx = cible.x - depart.x, dy = cible.y - depart.y;
     const a = LONGUEURS.bras, b = LONGUEURS.avantBras;
     const d = Math.max(Math.abs(a - b) + .001, Math.min(a + b, Math.hypot(dx, dy)));
-    const coude = Math.acos(Math.max(-1, Math.min(1, (d * d - a * a - b * b) / (2 * a * b))));
+    const coude = sens * Math.acos(Math.max(-1, Math.min(1, (d * d - a * a - b * b) / (2 * a * b))));
     const epaule = Math.atan2(dx, dy) - Math.atan2(b * Math.sin(coude), a + b * Math.cos(coude));
     return bras(epaule * 180 / Math.PI + pose.tronc, coude * 180 / Math.PI);
   };
-  return { ...pose, brasGauche: atteindre(p.epauleGauche, gauche), brasDroit: atteindre(p.epauleDroite, droite) };
+  return { ...pose, brasGauche: atteindre(p.epauleGauche, gauche), brasDroit: atteindre(p.epauleDroite, droite, pose.vue === 'face' ? -1 : 1) };
 }
 
 const calme = debout('face');
@@ -68,6 +68,72 @@ const planche: Pose = { ...debout(), racine: { x: 90, y: 180 - 26 + 42 * Math.co
   tronc: anglePlanche, tete: 0, brasDroit: bras(anglePlanche, 90), brasGauche: bras(anglePlanche, 90),
   jambeDroite: jambe(-anglePlanche, 0, 48), jambeGauche: jambe(-anglePlanche, 0, 48) };
 
+// Les appuis sont recalés pendant tout le cycle, pas seulement aux clés.
+const face: Pose = { ...calme, appuiPieds: true };
+const profil: Pose = { ...debout(), appuiPieds: true };
+const mains = (pose: Pose, x: number, y: number, ecart = 0) =>
+  brasVers(pose, { x: x - ecart, y }, { x: x + ecart, y });
+const hanches = (pose: Pose) => mains(pose, pose.racine.x, pose.racine.y - 4, 12);
+const ciel = mains(face, 100, 22, 2);
+const ventre = mains(face, 100, 101, 3);
+const nuque = mains(face, 100, 65, 7);
+const poignets = (x: number, y: number) => mains(face, x, y, 2);
+const tourne = (sens: number): Pose => mains({ ...face, tronc: sens * 3 }, 100 + sens * 23, 90, 6);
+const surMur = (pose: Pose): Pose => {
+  const p = calculerPoints(pose);
+  return { ...brasVers(pose, p.mainGauche, { x: MUR.x - RAYONS.main - .5, y: 85 }), brasGauche: bras(-8) };
+};
+const appuiMur = surMur({ ...profil, racine: { x: 120, y: 112 } });
+const assis: Pose = { ...profil, racine: { x: 85, y: 146 },
+  brasGauche: bras(65, 20), brasDroit: bras(65, 20),
+  jambeGauche: jambe(90, -90), jambeDroite: jambe(90, -90) };
+const chaiseMur: Pose = { ...assis, racine: { x: 92, y: 146 },
+  brasGauche: bras(15, 65), brasDroit: bras(15, 65) };
+const marcheFace = (gauche: boolean): Pose => ({ ...face,
+  jambeGauche: jambe(gauche ? -35 : 0, gauche ? 55 : 0),
+  jambeDroite: jambe(gauche ? 0 : 35, gauche ? 0 : -55),
+  brasGauche: bras(-15, gauche ? -20 : -70), brasDroit: bras(15, gauche ? 70 : 20) });
+const coudeGenou = (gauche: boolean): Pose => ({ ...face, tronc: gauche ? 50 : -50,
+  jambeGauche: jambe(gauche ? 70 : 0, gauche ? -95 : 0),
+  jambeDroite: jambe(gauche ? 0 : -70, gauche ? 0 : 95),
+  brasGauche: gauche ? bras(-100, -135) : bras(-10, -170),
+  brasDroit: gauche ? bras(10, 170) : bras(100, 135) });
+// Planche haute : colonne et jambes alignées, mains sous les épaules.
+const hauteurBassinPlanche = 145.5;
+const inclinaisonPlanche = Math.acos((hauteurBassinPlanche - 130) / 42) * 180 / Math.PI;
+const pointePlanche = Math.acos((SOL_Y - hauteurBassinPlanche - 68 * Math.cos(rad(inclinaisonPlanche))) / 13) * 180 / Math.PI;
+const plancheHaute: Pose = { ...debout(), racine: { x: 90, y: hauteurBassinPlanche }, tronc: inclinaisonPlanche,
+  brasGauche: bras(inclinaisonPlanche), brasDroit: bras(inclinaisonPlanche),
+  jambeGauche: jambe(-inclinaisonPlanche, 0, pointePlanche - 90 + inclinaisonPlanche),
+  jambeDroite: jambe(-inclinaisonPlanche, 0, pointePlanche - 90 + inclinaisonPlanche) };
+const fixerChevilles = (pose: Pose): Pose => {
+  const p = calculerPoints(pose);
+  return { ...pose, appuiPieds: false, chevilles: { gauche: p.chevilleGauche, droite: p.chevilleDroite } };
+};
+const grimpe = (gauche: boolean): Pose => {
+  const pose = fixerChevilles(plancheHaute);
+  return { ...pose, chevilles: { gauche: gauche ? { x: 104, y: 154 } : pose.chevilles!.gauche,
+    droite: gauche ? pose.chevilles!.droite : { x: 110, y: 154 } } };
+};
+const pontBas: Pose = { ...debout(), racine: { x: 95, y: 164 }, tronc: -90,
+  brasGauche: bras(-5), brasDroit: bras(-5),
+  jambeGauche: jambe(125, -160), jambeDroite: jambe(125, -160),
+  chevilles: { gauche: { x: 127, y: 180 }, droite: { x: 133, y: 180 } } };
+const pontHaut: Pose = { ...pontBas, racine: { x: 93, y: 146 }, tronc: -115, tete: 25,
+  brasGauche: bras(-30), brasDroit: bras(-30),
+  jambeGauche: jambe(100, -125), jambeDroite: jambe(100, -125) };
+const ventreSol: Pose = { ...debout(), racine: { x: 95, y: 163 }, tronc: 90,
+  brasGauche: bras(155, 15), brasDroit: bras(155, 15),
+  jambeGauche: jambe(-90), jambeDroite: jambe(-90) };
+const lateral: Pose = { ...face, appuiPieds: false, racine: { x: 92, y: 147.5 }, tronc: 80,
+  brasGauche: bras(260), brasDroit: bras(80, 90),
+  jambeGauche: jambe(-65), jambeDroite: jambe(-65),
+  chevilles: { gauche: { x: 28, y: 176 }, droite: { x: 40, y: 180 } } };
+const velo = (gauche: boolean): Pose => ({ ...pontBas, chevilles: undefined, racine: { x: 94, y: 166 }, tronc: -65, tete: 15,
+  brasGauche: bras(65, 140), brasDroit: bras(65, 140),
+  jambeGauche: gauche ? jambe(165, -110) : jambe(85, -10),
+  jambeDroite: gauche ? jambe(85, -10) : jambe(165, -110) });
+
 export const POSES_PAR_EXERCICE: Record<string, AnimationFigurine> = {
   // De profil, bouts des doigts sur les épaules : le coude dessine un grand cercle (avant, haut, arrière, bas).
   // En haut, le coude passe un peu en arrière de la tête pour ne pas masquer le visage.
@@ -89,6 +155,70 @@ export const POSES_PAR_EXERCICE: Record<string, AnimationFigurine> = {
   'chat-vache': { cles: [chat, vache], dureeCycleMs: 6000 },
   // On tient : seul le souffle soulève à peine le dos.
   'planche': { cles: [planche, { ...planche, dos: 1.2 }], dureeCycleMs: 5000 },
+  'rotation-cou': { cles: [{ ...face, tete: -24 }, { ...face, tete: 0, dos: 1.5 }, { ...face, tete: 24 }], dureeCycleMs: 6000 },
+  'haussement-epaules': { cles: [face, { ...face, haussement: 5, brasGauche: bras(-12, -12), brasDroit: bras(12, 12) }], dureeCycleMs: 4000 },
+  'rotation-poignets': { cles: [poignets(96, 91), poignets(104, 91), poignets(100, 85)], dureeCycleMs: 4000, continu: true },
+  'ouverture-poitrine': { cles: [mains(profil, 80, 105), mains({ ...profil, poitrine: 1 }, 72, 100)], dureeCycleMs: 5000 },
+  'cercles-bras': { cles: [
+    { ...face, brasGauche: bras(-80), brasDroit: bras(80) },
+    { ...face, brasGauche: bras(-110, -8), brasDroit: bras(110, 8) },
+    { ...face, brasGauche: bras(-90, 15), brasDroit: bras(90, -15) },
+  ], dureeCycleMs: 5000, continu: true },
+  'etirement-cou': { cles: [{ ...face, tete: -22 }, { ...face, tete: -28, poitrine: .5 }], dureeCycleMs: 6000 },
+  'rotation-buste': { cles: [tourne(-1), tourne(1)], dureeCycleMs: 5000 },
+  'cercles-hanches': { cles: [-1, 0, 1].map(s => hanches({ ...face, racine: { x: 100 + s * 7, y: 112 }, tronc: -s * 8,
+    jambeGauche: s === 0 ? jambe(-20, 40) : jambe(-s * 6),
+    jambeDroite: s === 0 ? jambe(20, -40) : jambe(-s * 6) })), dureeCycleMs: 5000, continu: true },
+  'enroule-deroule': { cles: [profil, { ...profil, tronc: 45, tete: 25, dos: 8, brasGauche: bras(45), brasDroit: bras(45) },
+    { ...profil, tronc: 95, tete: 20, dos: 12, brasGauche: bras(95), brasDroit: bras(95), jambeGauche: jambe(15, -30), jambeDroite: jambe(15, -30) }], dureeCycleMs: 6000 },
+  'balancier-jambe': { cles: [{ ...appuiMur, jambeGauche: jambe(-28) }, { ...appuiMur, jambeGauche: jambe(35) }], dureeCycleMs: 5000, accessoire: 'mur' },
+  'cercles-chevilles': { cles: [-25, 10, 35].map(a => ({ ...appuiMur, jambeGauche: jambe(20, -45, a) })), dureeCycleMs: 4000, accessoire: 'mur', continu: true },
+  'etirement-mollet': { cles: [0, 1].map(s => mains({ ...profil, racine: { x: 117, y: 112 }, tronc: 10 + s,
+    jambeGauche: jambe(-25), jambeDroite: jambe(35, -65), poitrine: s * .5 }, 163, 84, 0)), dureeCycleMs: 6000, accessoire: 'mur' },
+  'respiration-ventre': { cles: [ventre, { ...ventre, poitrine: 1 }], dureeCycleMs: 6000 },
+  'grand-soupir': { cles: [face, { ...inspiration, appuiPieds: true, poitrine: .5 }, { ...inspiration, appuiPieds: true, haussement: 2 }], dureeCycleMs: 6000 },
+  'respiration-allongee': { cles: [face, { ...inspiration, appuiPieds: true }, face], dureeCycleMs: 6000 },
+  'bras-respiration': { cles: [face, ciel], dureeCycleMs: 6000 },
+  'epaules-lourdes': { cles: [{ ...face, haussement: 5, brasGauche: bras(-20, -110), brasDroit: bras(20, 110) }, face], dureeCycleMs: 6000 },
+  'massage-nuque': { cles: [nuque, mains({ ...face, tete: 5 }, 100, 62, 9), mains(face, 100, 66, 9)], dureeCycleMs: 5000, continu: true },
+  'secouer-bras': { cles: [{ ...face, brasGauche: bras(-20, 20), brasDroit: bras(20, -20) },
+    { ...face, brasGauche: bras(-12, -25), brasDroit: bras(12, 25) }], dureeCycleMs: 4000 },
+  'balancement-bras': { cles: [tourne(-1), face, tourne(1)], dureeCycleMs: 5000 },
+  'etirement-ciel': { cles: [ciel, { ...ciel, poitrine: 1, haussement: 2 }], dureeCycleMs: 6000 },
+  'ancrage-pieds': { cles: [{ ...profil, tronc: -3, jambeGauche: jambe(3), jambeDroite: jambe(3) },
+    { ...profil, tronc: 3, jambeGauche: jambe(-3), jambeDroite: jambe(-3), poitrine: .5 }], dureeCycleMs: 6000 },
+  'montees-pointes': { cles: [profil, { ...profil, jambeGauche: jambe(0, 0, -35), jambeDroite: jambe(0, 0, -35) }], dureeCycleMs: 2000 },
+  'assis-debout': { cles: [assis, { ...squatHaut, racine: { x: 119, y: 112 } }], dureeCycleMs: 2000, accessoire: 'chaise' },
+  'chaise-murale': { cles: [chaiseMur, { ...chaiseMur, poitrine: .6 }], dureeCycleMs: 2000, accessoire: 'mur', murX: 60 },
+  'marche-sur-place': { cles: [marcheFace(true), face, marcheFace(false)], dureeCycleMs: 2000 },
+  'genou-coude': { cles: [coudeGenou(true), face, coudeGenou(false)], dureeCycleMs: 2000 },
+  'gainage-debout': { cles: [mains(face, 100, 85, 1), mains({ ...face, poitrine: .8 }, 100, 82, 1)], dureeCycleMs: 2000 },
+  // Le profil rend l'extension du poing lisible sans raccourci frontal.
+  'boxe-air': { cles: [
+    { ...profil, brasGauche: bras(25, 125), brasDroit: bras(30, 125) },
+    { ...profil, brasGauche: bras(80, 10), brasDroit: bras(30, 125) },
+    { ...profil, brasGauche: bras(25, 125), brasDroit: bras(80, 10) },
+  ], dureeCycleMs: 1200 },
+  'jambe-arriere': { cles: [appuiMur, { ...appuiMur, jambeGauche: jambe(-25) }], dureeCycleMs: 2000, accessoire: 'mur' },
+  'squats-sautes': { cles: [squatBas, { ...squatHaut, appuiPieds: false, racine: { x: 100, y: 92 } }, squatHaut], dureeCycleMs: 1600 },
+  'talons-fesses': { cles: [
+    { ...profil, jambeGauche: jambe(-10, -115), brasDroit: bras(20, 65) },
+    { ...profil, jambeDroite: jambe(-10, -115), brasGauche: bras(20, 65) },
+  ], dureeCycleMs: 1200 },
+  'patineur': { cles: [-1, 1].map(s => ({ ...face, racine: { x: 100 + s * 16, y: 112 }, tronc: s * 12,
+    jambeGauche: jambe(s < 0 ? -12 : 30, s < 0 ? 20 : -60),
+    jambeDroite: jambe(s > 0 ? 12 : -30, s > 0 ? -20 : 60),
+    brasGauche: bras(-35 + s * 35, -30), brasDroit: bras(35 + s * 35, 30) })), dureeCycleMs: 1600 },
+  'pas-chasses': { cles: [-1, 0, 1].map(s => ({ ...face, racine: { x: 100 + s * 18, y: 112 },
+    jambeGauche: jambe(s === 0 ? 0 : -15), jambeDroite: jambe(s === 0 ? 0 : 15),
+    brasGauche: bras(-25, -60), brasDroit: bras(25, 60) })), dureeCycleMs: 1800 },
+  'burpee-sans-saut': { cles: [fixerChevilles(profil), fixerChevilles({ ...squatBas, tronc: 70, brasGauche: bras(70), brasDroit: bras(70) }), fixerChevilles(plancheHaute)], dureeCycleMs: 2000 },
+  'grimpeur': { cles: [grimpe(true), grimpe(false)], dureeCycleMs: 1400 },
+  'pont-fessier': { cles: [pontBas, pontHaut], dureeCycleMs: 2000 },
+  'superman': { cles: [ventreSol, { ...ventreSol, tronc: 80, tete: 5, brasGauche: bras(170), brasDroit: bras(170),
+    jambeGauche: jambe(-100), jambeDroite: jambe(-100) }], dureeCycleMs: 2000 },
+  'planche-laterale': { cles: [lateral, { ...lateral, poitrine: .6 }], dureeCycleMs: 2000 },
+  'crunch-velo': { cles: [velo(true), velo(false)], dureeCycleMs: 2000 },
 };
 
 export function posesPour(exerciceId: string): AnimationFigurine {

@@ -72,3 +72,8 @@ test('réagit à reduceMotionChanged et retire son abonnement', async () => {
   await screen.unmount();
   expect(remove).toHaveBeenCalledTimes(1);
 });
+
+test('assis-debout dessine une chaise derrière la figurine', async () => {
+  await render(<Figurine exerciceId="assis-debout" libelle="Assis-debout" anime={false} />);
+  expect(screen.getByTestId('accessoire-chaise')).toBeTruthy();
+});

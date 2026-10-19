@@ -77,16 +77,11 @@ describe('analyserCouverture', () => {
     expect(analyserCouverture([...EXERCICES].reverse(), CONTEXTES)).toEqual(analyserCouverture(EXERCICES, CONTEXTES));
   });
 
-  it('trouve le manque du bureau pour « mou » dans le catalogue embarqué', () => {
-    const rapport = formaterRapport(analyserCouverture(EXERCICES, CONTEXTES));
-    expect(rapport).toContain(
-      '- bureau + mou, cœur (énergie, intensité 1-2) : 1 disponible(s), il en faut 2 en 3 min, 4 en 5 min, 8 en 10 min',
+  it('ne signale plus aucun manque dans le catalogue embarqué (50 exercices), même en 10 min', () => {
+    expect(analyserCouverture(EXERCICES, CONTEXTES)).toEqual([]);
+    expect(formaterRapport(analyserCouverture(EXERCICES, CONTEXTES))).toBe(
+      'Catalogue complet : toutes les combinaisons sont idéales.',
     );
-  });
-
-  it('signale reveil + raide en 3 min, où chaque phase prise seule semble suffire', () => {
-    const manques = analyserCouverture(EXERCICES, CONTEXTES);
-    expect(manques.some((m) => m.contexteId === 'reveil' && m.ressenti === 'raide' && m.duree === 3)).toBe(true);
   });
 });
 

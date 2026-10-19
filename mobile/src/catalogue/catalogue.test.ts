@@ -1,4 +1,5 @@
 import { fabriquerExercice } from '../test-utils/fabrique';
+import { respecteContraintes } from '../generateur/filtres';
 import { CONTEXTES } from './contextes';
 import { EXERCICES } from './exercices';
 import { validerCatalogue } from './validation';
@@ -32,9 +33,23 @@ describe('validerCatalogue', () => {
 });
 
 describe('catalogue embarqué', () => {
-  it('contient 10 exercices de test', () => {
-    expect(EXERCICES).toHaveLength(10);
+  it('contient 50 exercices', () => {
+    expect(EXERCICES).toHaveLength(50);
   });
+
+  it.each(EXERCICES.map((e) => [e.id, e] as const))(
+    '%s : cohérent avec les filtres du bureau',
+    (_id, exercice) => {
+      const bureau = CONTEXTES.find((c) => c.id === 'bureau');
+      if (!bureau) throw new Error('contexte bureau introuvable');
+      const compatible = respecteContraintes(exercice, bureau.contraintes);
+      if (exercice.sol || exercice.transpiration !== 'faible') {
+        expect(compatible).toBe(false);
+      }
+      if (exercice.sauts) expect(compatible).toBe(false);
+      if (exercice.espace !== 'sur_place') expect(compatible).toBe(false);
+    },
+  );
 
   it('propose 5 contextes, dans l’ordre d’affichage', () => {
     expect(CONTEXTES.map((c) => c.id)).toEqual(['reveil', 'maison', 'bureau', 'voyage', 'dehors']);

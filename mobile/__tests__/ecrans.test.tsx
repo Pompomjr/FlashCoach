@@ -592,6 +592,19 @@ describe('écran Mon journal', () => {
     expect(await screen.findByLabelText('dim. 18 oct. à 7h05, À la maison, Mou, puis Mieux, 5 min, 8 exercices')).toBeTruthy();
   });
 
+  it('ne propose pas la sauvegarde sans Supabase', async () => {
+    await renderRouter(ROUTES, { initialUrl: '/journal' });
+    expect(await screen.findByText('Ta première séance apparaîtra ici.')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Sauvegarder mon journal' })).toBeNull();
+  });
+
+  it('ne propose pas la sauvegarde sans Supabase, journal rempli', async () => {
+    memoire.contenu[CLE_JOURNAL] = JSON.stringify([fabriquerEntree({ id: 'a' })]);
+    await renderRouter(ROUTES, { initialUrl: '/journal' });
+    expect(await screen.findByText(/séance/)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Sauvegarder mon journal' })).toBeNull();
+  });
+
   it('invite à faire une première séance quand il est vide', async () => {
     await renderRouter(ROUTES, { initialUrl: '/journal' });
     expect(await screen.findByText('Ta première séance apparaîtra ici.')).toBeTruthy();

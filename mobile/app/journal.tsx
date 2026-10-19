@@ -3,11 +3,13 @@ import { useCallback, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import type { EtatCompte } from '../src/compte/auth';
 import { CONTEXTES } from '../src/catalogue/contextes';
 import { Figurine } from '../src/illustrations/Figurine';
 import { formaterBilan, formaterDate, texteResume } from '../src/journal/affichage';
 import { lireJournal, resumeJournal, type EntreeJournal } from '../src/journal/journal';
 import { stockageTelephone } from '../src/preferences/stockage';
+import { authApp } from '../src/synchro/instance';
 import { ICONE_APRES, ICONE_CONTEXTE, Icone } from '../src/ui/icones';
 import { LIBELLES_RESSENTI } from '../src/ui/libelles';
 import { CIBLE_MIN, COULEURS, ELEVATION, ESPACE, RAYON, TYPO } from '../src/ui/theme';
@@ -20,6 +22,7 @@ const LIBELLES_APRES = {
 
 export default function Journal() {
   const [entrees, setEntrees] = useState<EntreeJournal[] | null>(null);
+  const [compte, setCompte] = useState<EtatCompte | null>(null);
 
   // Relu à chaque affichage : une séance vient peut-être de se terminer.
   useFocusEffect(
@@ -28,6 +31,12 @@ export default function Journal() {
       lireJournal(stockageTelephone).then((lues) => {
         if (actif) setEntrees(lues);
       });
+      authApp
+        ?.sessionCourante()
+        .then((etat) => {
+          if (actif) setCompte(etat);
+        })
+        .catch(() => undefined);
       return () => {
         actif = false;
       };
@@ -61,6 +70,7 @@ export default function Journal() {
             <Figurine exerciceId="respiration-carree" libelle="Figurine au repos" anime={false} taille={150} />
           </View>
           <Text style={styles.texteVide}>Ta première séance apparaîtra ici.</Text>
+          <PiedSauvegarde compte={compte} />
         </View>
       )}
 
@@ -77,10 +87,30 @@ export default function Journal() {
               <Text style={styles.texteResume}>{resume}</Text>
             </View>
           }
+          ListFooterComponent={<PiedSauvegarde compte={compte} />}
           renderItem={({ item }) => <LigneJournal entree={item} />}
         />
       )}
     </SafeAreaView>
+  );
+}
+
+function PiedSauvegarde({ compte }: { compte: EtatCompte | null }) {
+  if (authApp === null) return null;
+  if (compte !== null && !compte.anonyme && compte.email !== null) {
+    return <Text style={styles.sauvegarde}>{`Journal sauvegardé · ${compte.email}`}</Text>;
+  }
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Sauvegarder mon journal"
+      onPress={() => router.push('/sauvegarde')}
+      android_ripple={ondulation(COULEURS.texte)}
+      style={styles.lienSauvegarde}
+    >
+      <Icone nom="journal" taille={22} />
+      <Text style={styles.texteLienSauvegarde}>Sauvegarder mon journal</Text>
+    </Pressable>
   );
 }
 
@@ -171,5 +201,8 @@ const styles = StyleSheet.create({
   corps: { flex: 1, gap: 2 },
   date: { ...TYPO.bodyMedium, color: COULEURS.texteDiscret },
   principal: { ...TYPO.labelLarge, color: COULEURS.texte },
+  sauvegarde: { ...TYPO.bodyMedium, color: COULEURS.texteDiscret, textAlign: 'center', marginTop: 8 },
+  lienSauvegarde: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: CIBLE_MIN, borderRadius: RAYON, marginTop: 8 },
+  texteLienSauvegarde: { ...TYPO.labelLarge, color: COULEURS.texte, textDecorationLine: 'underline' },
   detail: { ...TYPO.bodyMedium, color: COULEURS.texteDiscret },
 });

@@ -95,11 +95,14 @@ test.each(NOUVEAUX)('%s possède ses propres clés et le tempo prévu', id => {
   const a = POSES_PAR_EXERCICE[id];
   expect(a).toBeDefined();
   expect(a.cles.length).toBeGreaterThanOrEqual(2);
-  expect(a.cles.length).toBeLessThanOrEqual(3);
-  expect(a.dureeCycleMs).toBeGreaterThanOrEqual(NOUVEAUX.indexOf(id) < 22 ? 4000 : 1200);
-  expect(a.dureeCycleMs).toBeLessThanOrEqual(NOUVEAUX.indexOf(id) < 22 ? 6000 : 2000);
+  // Clés supplémentaires : planche entre deux genoux, retour debout, un seul pied levé à la fois.
+  expect(a.cles.length).toBeLessThanOrEqual(({ grimpeur: 4, 'genou-coude': 4, patineur: 8 } as Record<string, number>)[id] ?? 3);
+  const exercice = EXERCICES.find(e => e.id === id)!;
+  const lent = !exercice.effets.includes('energie') || /lentement|en douceur|doucement/i.test(exercice.consigne);
+  expect(a.dureeCycleMs).toBeGreaterThanOrEqual(lent ? 4000 : 1200);
+  expect(a.dureeCycleMs).toBeLessThanOrEqual(lent ? 6000 : 2000);
 });
-const SANS_APPUI_DEBOUT = ['squats-sautes', 'talons-fesses', 'patineur',
+const SANS_APPUI_DEBOUT = ['squats-sautes', 'talons-fesses',
   'burpee-sans-saut', 'grimpeur', 'pont-fessier', 'superman', 'planche-laterale', 'crunch-velo'];
 test.each(NOUVEAUX.filter(id => !SANS_APPUI_DEBOUT.includes(id)))('%s garde un pied porteur sur tout le cycle', id => {
   const a = posesPour(id);
@@ -145,5 +148,58 @@ test('grimpeur : les mains restent au sol et la colonne ne se plie pas', () => {
     expect(p.mainDroite.y).toBeCloseTo(SOL_Y, 5);
     expect(p.mainGauche.y).toBeCloseTo(SOL_Y, 5);
     expect(pose.dos ?? 0).toBe(0);
+  }
+});
+
+
+test('grimpeur : une jambe reste quasi tendue à chacun des 100 instants', () => {
+  const a = posesPour('grimpeur');
+  for (let i = 0; i < 100; i++) {
+    const p = calculerPoints(poseALinstant(a.cles, i / 100));
+    const distances = [[p.hancheGauche, p.chevilleGauche], [p.hancheDroite, p.chevilleDroite]]
+      .map(([h, c]) => Math.hypot(c.x - h.x, c.y - h.y));
+    expect(Math.max(...distances)).toBeGreaterThan(67.5);
+  }
+});
+
+test('genou-coude : buste penché de 20 degrés au plus, sur tout le cycle', () => {
+  for (let i = 0; i < 100; i++) {
+    const pose = poseALinstant(posesPour('genou-coude').cles, i / 100);
+    expect(Math.abs((pose.tronc + 180) % 360 - 180)).toBeLessThanOrEqual(20);
+  }
+});
+
+test('massage-nuque : mains derrière le cou et coudes ouverts, sans croiser le visage', () => {
+  const a = posesPour('massage-nuque');
+  for (let i = 0; i < 100; i++) {
+    const pose = poseALinstant(a.cles, i / 100, a.continu);
+    const p = calculerPoints(pose);
+    expect(pose.vue).toBe('face');
+    expect(p.coudeGauche.x).toBeLessThan(p.epauleGauche.x - 15);
+    expect(p.coudeDroit.x).toBeGreaterThan(p.epauleDroite.x + 15);
+    expect(p.mainGauche.x).toBeLessThan(p.cou.x);
+    expect(p.mainDroite.x).toBeGreaterThan(p.cou.x);
+    for (const main of [p.mainGauche, p.mainDroite]) expect(Math.abs(main.y - p.cou.y)).toBeLessThan(5);
+  }
+});
+
+test('enroule-deroule : les genoux restent souples dans la descente', () => {
+  const bas = posesPour('enroule-deroule').cles[2];
+  expect(Math.abs(bas.jambeGauche.genou)).toBeGreaterThanOrEqual(45);
+  expect(Math.abs(bas.jambeDroite.genou)).toBeGreaterThanOrEqual(45);
+});
+
+test('patineur : pas croisé sans saut, les deux pieds posés quand la jambe croise', () => {
+  expect(EXERCICES.find(e => e.id === 'patineur')).toMatchObject({
+    sauts: false, transpiration: 'moyenne', intensite: 2, effets: ['energie'], espace: 'un_peu', zone: 'bas',
+    consigne: 'Grand pas de côté, l’autre jambe passe derrière en croisant. Et de l’autre côté, sans sauter.',
+  });
+  const cles = posesPour('patineur').cles.map(calculerPoints);
+  const croises = cles.filter(p => p.chevilleGauche.x > p.chevilleDroite.x);
+  // Croisement des deux côtés : à droite, puis à gauche.
+  expect(croises.some(p => p.bassin.x > 100) && croises.some(p => p.bassin.x < 100)).toBe(true);
+  for (const p of croises) {
+    expect(p.orteilsGauches.y).toBeCloseTo(SOL_Y, 1);
+    expect(p.orteilsDroits.y).toBeCloseTo(SOL_Y, 1);
   }
 });

@@ -53,6 +53,18 @@ export function capsule(a: Point, ra: number, b: Point, rb: number): string {
   return `M${pt(a1)}L${pt(b1)}A${f(rb)} ${f(rb)} 0 ${grandB} 0 ${pt(b2)}L${pt(a2)}A${f(ra)} ${f(ra)} 0 ${grandA} 0 ${pt(a1)}Z`;
 }
 
+/** Portion [t0, t1] d'une Bézier cubique (de Casteljau), sous forme de quatre points de contrôle. */
+function couper(p0: Point, p1: Point, p2: Point, p3: Point, t0: number, t1: number): Point[] {
+  const scinder = (q: Point[], t: number) => {
+    const m = (a: Point, b: Point) => plus(a, fois(moins(b, a), t));
+    const ab = m(q[0], q[1]), bc = m(q[1], q[2]), cd = m(q[2], q[3]);
+    const abc = m(ab, bc), bcd = m(bc, cd), x = m(abc, bcd);
+    return { avant: [q[0], ab, abc, x], apres: [x, bcd, cd, q[3]] };
+  };
+  const fin = scinder([p0, p1, p2, p3], t1).avant;
+  return t0 > 0 ? scinder(fin, t0 / t1).apres : fin;
+}
+
 export function cercle(c: Point, r: number): string {
   return `M${f(c.x - r)} ${f(c.y)}a${f(r)} ${f(r)} 0 1 0 ${f(2 * r)} 0a${f(r)} ${f(r)} 0 1 0 ${f(-2 * r)} 0Z`;
 }
@@ -181,14 +193,19 @@ export function dessinerFigurine(pose: Pose): DessinFigurine {
       capsuleNotee(talon, RAYONS.talon, pointe, RAYONS.orteils),
     ];
   };
-  const bras = (gauche: boolean): string[] => {
+  const bras = (gauche: boolean) => {
     const epaule = gauche ? p.epauleGauche : p.epauleDroite;
     const coude = gauche ? p.coudeGauche : p.coudeDroit;
     const main = gauche ? p.mainGauche : p.mainDroite;
-    // Racine enfouie dans le buste, deltoïde sans embout circulaire.
+    // Racine enfouie dans le buste, deltoïde sans embout circulaire. De face, elle suit l'élévation du
+    // bras : rentrée vers le centre bras baissé, elle glisse vers le bas du buste quand le bras monte,
+    // pour ne jamais mordre sur le cou ni le menton.
     const u = unitaire(moins(coude, epaule));
     const n = { x: -u.y, y: u.x };
-    const racine = plus(epaule, fois(unitaire(moins(p.epaules, epaule)), profil ? 2 : 7));
+    const bas = unitaire(moins(p.bassin, p.epaules));
+    const elevation = profil ? 0 : (1 - (u.x * bas.x + u.y * bas.y)) / 2;
+    const racine = plus(plus(epaule, fois(unitaire(moins(p.epaules, epaule)), (profil ? 2 : 7) * (1 - elevation * elevation))),
+      fois(u, -6 * elevation * elevation));
     const a = plus(racine, fois(n, RAYONS.epaule));
     const b = moins(racine, fois(n, RAYONS.epaule));
     const c = plus(coude, fois(n, RAYONS.coude));
@@ -197,11 +214,21 @@ export function dessinerFigurine(pose: Pose): DessinFigurine {
     const deltoide = `M${pt(a)}C${pt(plus(a, fois(u, 9)))} ${pt(moins(c, fois(u, 10)))} ${pt(c)}`
       + `A${RAYONS.coude} ${RAYONS.coude} 0 0 0 ${pt(d)}`
       + `C${pt(moins(d, fois(u, 10)))} ${pt(plus(b, fois(u, 9)))} ${pt(b)}Z`;
-    return [
-      deltoide,
-      capsuleNotee(coude, RAYONS.coude, main, RAYONS.poignet),
-      cercleNote(main, RAYONS.main),
-    ];
+    // De face, liseré du haut du bras, de mi-bras au coude seulement : lisible devant le buste, sans cerner l'épaule.
+    const t0 = 0.45;
+    const distal = couper(a, plus(a, fois(u, 9)), moins(c, fois(u, 10)), c, t0, 1);
+    const retour = couper(d, moins(d, fois(u, 10)), plus(b, fois(u, 9)), b, 0, 1 - t0);
+    const lisere = `M${pt(distal[0])}C${pt(distal[1])} ${pt(distal[2])} ${pt(c)}`
+      + `A${RAYONS.coude} ${RAYONS.coude} 0 0 0 ${pt(d)}`
+      + `C${pt(retour[1])} ${pt(retour[2])} ${pt(retour[3])}Z`;
+    return {
+      separation: [...(profil ? [] : [lisere]), capsule(coude, RAYONS.coude, main, RAYONS.poignet), cercle(main, RAYONS.main)],
+      membre: [
+        deltoide,
+        capsuleNotee(coude, RAYONS.coude, main, RAYONS.poignet),
+        cercleNote(main, RAYONS.main),
+      ],
+    };
   };
 
   const contour = contourTronc(pose, p.bassin, p.epaules);
@@ -215,7 +242,7 @@ export function dessinerFigurine(pose: Pose): DessinFigurine {
   const devant = profil ? [bras(false)] : [bras(true), bras(false)];
   const formes: FormeFigurine[] = [
     ...jambe(true).map(d => ({ d, teinte: loin })),
-    ...(profil ? bras(true).map(d => ({ d, teinte: loin })) : []),
+    ...(profil ? bras(true).membre.map(d => ({ d, teinte: loin })) : []),
     { d: capsuleNotee(p.epaules, RAYONS.cou, plus(p.tete, fois(haut, -r * 0.6)), RAYONS.cou), teinte: 'proche' },
     { d: contourLisse(contour), teinte: 'proche' },
     ...jambe(false).map(d => ({ d, teinte: 'proche' as const })),
@@ -223,15 +250,16 @@ export function dessinerFigurine(pose: Pose): DessinFigurine {
     { d: cercleNote(p.tete, r), teinte: 'proche' },
     ...visage.cheveux.map(d => ({ d, teinte: 'cheveux' as const })),
     ...visage.yeux.map(d => ({ d, teinte: 'oeil' as const })),
-    ...devant.flatMap(membre => [
-      ...membre.slice(1).map(d => ({ d, teinte: 'separation' as const })),
+    ...devant.flatMap(({ separation, membre }) => [
+      ...separation.map(d => ({ d, teinte: 'separation' as const })),
       ...membre.map(d => ({ d, teinte: 'proche' as const })),
     ]),
   ];
   if (profil) {
     // Le nez indique de quel côté regarde la figurine.
     const avant = { x: -haut.y, y: haut.x };
-    formes.splice(formes.length - 5 * devant.length, 0, { d: cercleNote(plus(p.tete, plus(fois(avant, r - 0.5), fois(haut, -1.5))), 2.6), teinte: 'proche' });
+    const brasDevant = devant.reduce((n, b) => n + b.separation.length + b.membre.length, 0);
+    formes.splice(formes.length - brasDevant, 0, { d: cercleNote(plus(p.tete, plus(fois(avant, r - 0.5), fois(haut, -1.5))), 2.6), teinte: 'proche' });
   }
 
   const xs = [...cercles.map(c => c.c.x - c.r), ...cercles.map(c => c.c.x + c.r), ...contour.map(c => c.x)];

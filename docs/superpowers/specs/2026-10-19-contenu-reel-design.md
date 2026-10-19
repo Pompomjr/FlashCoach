@@ -82,7 +82,7 @@ Tous : sol non, sauts non, faible, sur place, effet énergie.
 |---|---|---|---|---|---|---|---|---|---|---|
 | `squats-sautes` | Squats sautés | Tu descends en squat, tu pousses vers le haut et tu atterris tout en souplesse. | non | oui | élevée | sur place | 3 | bas | non | profil |
 | `talons-fesses` | Talons-fesses | Course légère sur place, les talons viennent vers les fesses. | non | oui | moyenne | sur place | 2 | global | non | profil |
-| `patineur` | Le patineur | Petit bond de côté sur un pied, l'autre jambe passe derrière. Et de l'autre côté. | non | oui | élevée | un peu | 3 | bas | non | face |
+| `patineur` | Le patineur | Grand pas de côté, l'autre jambe passe derrière en croisant. Et de l'autre côté, sans sauter. | non | non | moyenne | un peu | 2 | bas | non | face |
 | `pas-chasses` | Pas chassés | Pas chassés de côté, trois pas à droite, trois pas à gauche, bras actifs. | non | non | moyenne | un peu | 2 | bas | non | face |
 | `burpee-sans-saut` | Burpee sans saut | Mains au sol, tu recules les pieds en planche, tu les ramènes, tu te relèves. À ton rythme. | oui | non | élevée | un peu | 3 | global | non | profil |
 | `grimpeur` | Le grimpeur | En planche, tu ramènes un genou vers la poitrine, puis l'autre. Le dos reste droit. | oui | non | élevée | sur place | 3 | global | non | profil |

@@ -1,5 +1,5 @@
 import { EXERCICES } from '../catalogue/exercices';
-import { cadrer, capsule, contourTronc, dessinerFigurine, MUR, RAYONS } from './dessin';
+import { cadrer, capsule, cercle, contourTronc, dessinerFigurine, MUR, RAYONS } from './dessin';
 import { POSES_PAR_EXERCICE, posesPour } from './poses';
 import { calculerPoints, LONGUEURS, poseALinstant, SOL_Y, type Pose } from './squelette';
 
@@ -17,7 +17,12 @@ test.each(['face', 'profil'] as const)('épaules intégrées au buste en %s, san
     for (const [epaule, coude] of [[p.epauleDroite, p.coudeDroit], [p.epauleGauche, p.coudeGauche]]) {
       expect(dessin.formes.map(f => f.d)).not.toContain(capsule(epaule, RAYONS.epaule, coude, RAYONS.coude));
     }
-    expect(dessin.formes.filter(f => f.teinte === 'separation').every(f => !f.d.includes('C'))).toBe(true);
+    for (const forme of dessin.formes) {
+      const centre = centreDisque(forme.d);
+      if (centre) for (const epaule of [p.epauleGauche, p.epauleDroite]) {
+        expect(Math.hypot(centre.x - epaule.x, centre.y - epaule.y)).toBeGreaterThan(6);
+      }
+    }
   }
 });
 
@@ -133,4 +138,76 @@ test('un visage : cheveux avec queue de cheval et un œil de profil, frange et d
   const face = teintes(posesPour('inconnu').cles[0]);
   expect(face.filter((t) => t === 'cheveux')).toHaveLength(1);
   expect(face.filter((t) => t === 'oeil')).toHaveLength(2);
+});
+
+
+// Deux arcs fermés, relatifs ou absolus : détecte aussi un disque sans commande C.
+function centreDisque(d: string) {
+  if (!/^M[^a-z]+[aA][^a-z]+[aA][^a-z]+Z$/i.test(d)) return undefined;
+  const v = d.match(/-?\d+(?:\.\d+)?/g)!.map(Number);
+  if (v.length !== 16 || v[2] !== v[3] || v[9] !== v[10]) return undefined;
+  if (d.includes('a')) return { x: v[0] + v[7] / 2, y: v[1] + v[8] / 2 };
+  return { x: (v[0] + v[7]) / 2, y: (v[1] + v[8]) / 2 };
+}
+
+test('la détection des disques reconnaît les arcs SVG relatifs et absolus', () => {
+  expect(centreDisque(cercle({ x: 86, y: 70 }, 5.6))).toEqual({ x: 86, y: 70 });
+  expect(centreDisque('M80 70A6 6 0 1 0 92 70A6 6 0 1 0 80 70Z')).toEqual({ x: 86, y: 70 });
+});
+
+// Échantillonne les deux Bézier et le demi-cercle du coude du contour réellement dessiné.
+function contourBras(d: string) {
+  const v = d.match(/-?\d+(?:\.\d+)?/g)!.map(Number);
+  const point = (i: number) => ({ x: v[i], y: v[i + 1] });
+  const a = point(0), c = point(6), b = point(19), e = point(13);
+  const points = [];
+  for (let i = 0; i <= 100; i++) {
+    const t = i / 100, u = 1 - t;
+    for (const [p, q, r, s] of [[a, point(2), point(4), c], [e, point(15), point(17), b]]) {
+      points.push({ x: u ** 3 * p.x + 3 * u * u * t * q.x + 3 * u * t * t * r.x + t ** 3 * s.x,
+        y: u ** 3 * p.y + 3 * u * u * t * q.y + 3 * u * t * t * r.y + t ** 3 * s.y });
+    }
+    const angle = Math.atan2(c.y - e.y, c.x - e.x) - Math.PI * t;
+    points.push({ x: (c.x + e.x) / 2 + v[8] * Math.cos(angle), y: (c.y + e.y) / 2 + v[8] * Math.sin(angle) });
+    points.push({ x: a.x * u + b.x * t, y: a.y * u + b.y * t });
+  }
+  return points;
+}
+
+function verifierBras(pose: Pose) {
+  const p = calculerPoints(pose);
+  const haut = { x: (p.cou.x - p.epaules.x) / LONGUEURS.cou, y: (p.cou.y - p.epaules.y) / LONGUEURS.cou };
+  const contours = dessinerFigurine(pose).formes.filter(f => f.teinte === 'proche' && /^M[^C]+C[^A]+A[^C]+C[^C]+Z$/.test(f.d));
+  expect(contours).toHaveLength(2);
+  // Zone interdite : la colonne du cou jusqu'au centre de la tête, et le bas du visage (mâchoire, menton).
+  // Bras tendu à la verticale, longer l'oreille reste permis.
+  for (const forme of contours) for (const q of contourBras(forme.d)) {
+    const hauteur = (q.x - p.epaules.x) * haut.x + (q.y - p.epaules.y) * haut.y;
+    const lateral = Math.abs((q.x - p.epaules.x) * haut.y - (q.y - p.epaules.y) * haut.x);
+    expect(hauteur > .1 && hauteur < LONGUEURS.cou + LONGUEURS.tete && lateral < RAYONS.cou).toBe(false);
+    const dansTete = Math.hypot(q.x - p.tete.x, q.y - p.tete.y) < LONGUEURS.rayonTete;
+    expect(dansTete && hauteur < LONGUEURS.cou + LONGUEURS.tete && lateral < .75 * LONGUEURS.rayonTete).toBe(false);
+  }
+}
+
+test('tout le contour du haut du bras évite le cou et le menton sur la montée de face', () => {
+  for (let angle = 0; angle <= 180; angle++) verifierBras({ ...posesPour('inconnu').cles[0],
+    brasGauche: { epaule: -angle, coude: 0 }, brasDroit: { epaule: angle, coude: 0 } });
+});
+
+test.each(['jumping-jacks', 'inclinaison-laterale', 'etirement-ciel', 'bras-respiration'])('%s : deltoïdes hors du cou et de la tête entre les clés', id => {
+  const a = posesPour(id);
+  for (let i = 0; i < 100; i++) {
+    const pose = poseALinstant(a.cles, i / 100, a.continu);
+    verifierBras(pose);
+    // Sur ces gestes, le haut du bras ne passe même pas devant la tête.
+    const p = calculerPoints(pose);
+    for (const forme of dessinerFigurine(pose).formes.filter(f => f.teinte === 'proche' && /^M[^C]+C[^A]+A[^C]+C[^C]+Z$/.test(f.d))) {
+      for (const q of contourBras(forme.d)) expect(Math.hypot(q.x - p.tete.x, q.y - p.tete.y)).toBeGreaterThan(LONGUEURS.rayonTete - .05);
+    }
+  }
+});
+
+test.each(['respiration-ventre', 'gainage-debout', 'rotation-poignets'])('%s : contour lisible du haut du bras devant le buste', id => {
+  expect(dessinerFigurine(posesPour(id).cles[0]).formes.some(f => f.teinte === 'separation' && f.d.includes('C'))).toBe(true);
 });

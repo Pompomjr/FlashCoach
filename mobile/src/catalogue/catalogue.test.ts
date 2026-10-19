@@ -38,15 +38,31 @@ describe('validerCatalogue', () => {
 });
 
 describe('catalogue embarqué', () => {
-  it('contient 50 exercices', () => {
-    expect(EXERCICES).toHaveLength(50);
+  it('contient 70 exercices', () => {
+    expect(EXERCICES).toHaveLength(70);
   });
 
-  it('place exactement cinq exercices au niveau 2 et aucun au niveau 3 pour l’instant', () => {
+  it('compte 45 exercices Doux, 16 Tonique (5 existants + 11) et 9 Costaud', () => {
     const ids = (niveau: number) => EXERCICES.filter((e) => e.niveau === niveau).map((e) => e.id).sort();
-    expect(ids(2)).toEqual(['burpee-sans-saut', 'grimpeur', 'planche', 'planche-laterale', 'squats-sautes']);
-    expect(ids(3)).toEqual([]);
+    expect(ids(2)).toHaveLength(16);
+    expect(ids(2)).toEqual(
+      expect.arrayContaining(['burpee-sans-saut', 'grimpeur', 'planche', 'planche-laterale', 'squats-sautes']),
+    );
+    expect(ids(3)).toHaveLength(9);
     expect(EXERCICES.filter((e) => e.niveau === 1)).toHaveLength(45);
+  });
+
+  it('ne rend compatible avec le bureau aucun exercice de niveau 2 ou 3 qui ne soit pas doux et sur place', () => {
+    const bureau = CONTEXTES.find((c) => c.id === 'bureau');
+    if (!bureau) throw new Error('contexte bureau introuvable');
+    for (const e of EXERCICES.filter((x) => x.niveau >= 2)) {
+      if (respecteContraintes(e, bureau.contraintes)) {
+        expect(e.transpiration).toBe('faible');
+        expect(e.sol).toBe(false);
+        expect(e.sauts).toBe(false);
+        expect(e.espace).toBe('sur_place');
+      }
+    }
   });
 
   it.each(EXERCICES.map((e) => [e.id, e] as const))(

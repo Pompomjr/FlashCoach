@@ -226,8 +226,8 @@ describe('analyserRabattements', () => {
     expect(rabattements.every((r) => r.auNiveau === 0)).toBe(true);
   });
 
-  it('sur le catalogue embarqué, signale tout le niveau 3 (aucun exercice pour l’instant)', () => {
-    expect(analyserRabattements(EXERCICES, CONTEXTES, 3).every((r) => r.auNiveau === 0)).toBe(true);
+  it('sur le catalogue embarqué, le niveau 3 compte désormais des places à son niveau', () => {
+    expect(analyserRabattements(EXERCICES, CONTEXTES, 3).some((r) => r.auNiveau > 0)).toBe(true);
   });
 });
 

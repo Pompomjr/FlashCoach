@@ -1,5 +1,5 @@
 import { EXERCICES } from '../catalogue/exercices';
-import { cadrer, capsule, cercle, contourTronc, dessinerFigurine, MUR, RAYONS } from './dessin';
+import { cadrer, capsule, cercle, CHAISE, contourTronc, dessinerFigurine, MUR, RAYONS, TABLE } from './dessin';
 import { POSES_PAR_EXERCICE, posesPour } from './poses';
 import { calculerPoints, LONGUEURS, poseALinstant, SOL_Y, type Pose } from './squelette';
 
@@ -210,4 +210,28 @@ test.each(['jumping-jacks', 'inclinaison-laterale', 'etirement-ciel', 'bras-resp
 
 test.each(['respiration-ventre', 'gainage-debout', 'rotation-poignets'])('%s : contour lisible du haut du bras devant le buste', id => {
   expect(dessinerFigurine(posesPour(id).cles[0]).formes.some(f => f.teinte === 'separation' && f.d.includes('C'))).toBe(true);
+});
+
+test('planche vue de face : buste raccourci, bassin et jambes cachés derrière', () => {
+  const pose: Pose = { ...posesPour('inconnu').cles[0], racine: { x: 100, y: 150 }, raccourci: .3,
+    mains: { gauche: { x: 86, y: SOL_Y }, droite: { x: 114, y: SOL_Y } } };
+  const complet = dessinerFigurine({ ...pose, raccourci: undefined });
+  const dessin = dessinerFigurine(pose);
+  expect(dessin.formes).toHaveLength(complet.formes.length - 6);
+  const p = calculerPoints(pose);
+  // Les appuis sont les mains : rien ne dépasse sous le sol hormis leur rayon.
+  expect(dessin.bornes.maxY).toBeLessThanOrEqual(SOL_Y + RAYONS.main + .01);
+  expect(dessin.bornes.maxY).toBeGreaterThan(p.mainDroite.y);
+  expect(dessin.ombre.cx).toBeCloseTo(100, 0);
+});
+
+test('cadre : la chaise déplacée et la table y entrent', () => {
+  const cles = posesPour('inconnu').cles;
+  const chaise = cadrer(cles, false, false, true, undefined, { chaiseX: 20 });
+  expect(chaise.x).toBeLessThanOrEqual(20);
+  expect(chaise.x + chaise.largeur).toBeGreaterThanOrEqual(20 + CHAISE.largeur);
+  const table = cadrer(cles, false, false, false, undefined, { table: true });
+  expect(table.x).toBeLessThanOrEqual(TABLE.x);
+  expect(table.x + table.largeur).toBeGreaterThanOrEqual(TABLE.x + TABLE.largeur);
+  expect(table.y).toBeLessThanOrEqual(TABLE.plateau);
 });

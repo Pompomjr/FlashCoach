@@ -20,6 +20,12 @@ export type Pose = {
   /** Cibles de chevilles pour les mouvements au sol : évite que l'interpolation
    * angulaire fasse traverser le sol aux pieds pendant un repli de jambe. */
   chevilles?: { gauche: Point; droite: Point };
+  /** Cibles de mains pour les appuis (pompes, planches, dips) : le bras se plie pour atteindre le point,
+   * du côté donné par le signe de `coude` (positif : coude vers l'arrière de profil). */
+  mains?: { gauche: Point; droite: Point };
+  /** Corps couché vu de face (planche vue de la tête) : fraction visible du tronc et du cou, qui fuient
+   * vers l'arrière ; le bassin et les jambes passent alors derrière le buste. */
+  raccourci?: number;
   /** Recale verticalement le pied porteur lors de l'échantillonnage du cycle. */
   appuiPieds?: boolean;
 };
@@ -39,8 +45,9 @@ function avancer(p: Point, longueur: number, angle: number): Point {
 export function calculerPoints(pose: Pose) {
   const l = LONGUEURS;
   const bassin = { ...pose.racine };
-  const epaules = avancer(bassin, l.tronc + (pose.haussement ?? 0), 180 - pose.tronc);
-  const cou = avancer(bassin, l.tronc + l.cou, 180 - pose.tronc);
+  const fuite = pose.raccourci ?? 1;
+  const epaules = avancer(bassin, l.tronc * fuite + (pose.haussement ?? 0), 180 - pose.tronc);
+  const cou = avancer(bassin, (l.tronc + l.cou) * fuite, 180 - pose.tronc);
   const tete = avancer(cou, l.tete, 180 - pose.tronc - pose.tete);
   const largeur = pose.vue === 'face' ? l.demiEpaules : 3;
   // En profil, le petit décalage horizontal révèle le membre éloigné sans
@@ -51,10 +58,19 @@ export function calculerPoints(pose: Pose) {
   const hancheGauche = { x: bassin.x - h, y: bassin.y };
   const hancheDroite = { x: bassin.x + h, y: bassin.y };
   // L'axe bas du tronc tourne à l'opposé de son inclinaison depuis l'axe haut.
-  const bras = (origine: Point, b: Bras) => {
-    const angle = b.epaule - pose.tronc;
+  const bras = (origine: Point, b: Bras, gauche: boolean) => {
+    const cible = gauche ? pose.mains?.gauche : pose.mains?.droite;
+    let angle = b.epaule - pose.tronc, flexion = b.coude;
+    if (cible) {
+      const dx = cible.x - origine.x, dy = cible.y - origine.y;
+      const distance = Math.max(Math.abs(l.bras - l.avantBras) + .001, Math.min(l.bras + l.avantBras, Math.hypot(dx, dy)));
+      const pli = (Math.sin(b.coude * Math.PI / 180) > .000001 ? 1 : -1) * Math.acos(Math.max(-1, Math.min(1,
+        (distance * distance - l.bras ** 2 - l.avantBras ** 2) / (2 * l.bras * l.avantBras))));
+      angle = (Math.atan2(dx, dy) - Math.atan2(l.avantBras * Math.sin(pli), l.bras + l.avantBras * Math.cos(pli))) * 180 / Math.PI;
+      flexion = pli * 180 / Math.PI;
+    }
     const coude = avancer(origine, l.bras, angle);
-    return { coude, main: avancer(coude, l.avantBras, angle + b.coude) };
+    return { coude, main: avancer(coude, l.avantBras, angle + flexion) };
   };
   const jambe = (origine: Point, j: Jambe, gauche: boolean) => {
     const cible = gauche ? pose.chevilles?.gauche : pose.chevilles?.droite;
@@ -72,7 +88,7 @@ export function calculerPoints(pose: Pose) {
     const sensPied = pose.vue === 'face' && gauche ? -90 : 90;
     return { genou, cheville, orteils: avancer(cheville, l.pied, j.hanche + j.genou + sensPied + j.cheville) };
   };
-  const bg = bras(epauleGauche, pose.brasGauche), bd = bras(epauleDroite, pose.brasDroit);
+  const bg = bras(epauleGauche, pose.brasGauche, true), bd = bras(epauleDroite, pose.brasDroit, false);
   const jg = jambe(hancheGauche, pose.jambeGauche, true), jd = jambe(hancheDroite, pose.jambeDroite, false);
   return { bassin, epaules, cou, tete, epauleGauche, epauleDroite, hancheGauche, hancheDroite,
     coudeGauche: bg.coude, coudeDroit: bd.coude, mainGauche: bg.main, mainDroite: bd.main,
@@ -103,6 +119,12 @@ export function interpolerPose(a: Pose, b: Pose, t: number): Pose {
       gauche: { x: melanger(a.chevilles.gauche.x, b.chevilles.gauche.x, t), y: melanger(a.chevilles.gauche.y, b.chevilles.gauche.y, t) },
       droite: { x: melanger(a.chevilles.droite.x, b.chevilles.droite.x, t), y: melanger(a.chevilles.droite.y, b.chevilles.droite.y, t) },
     } } : {}),
+    ...(a.mains && b.mains ? { mains: {
+      gauche: { x: melanger(a.mains.gauche.x, b.mains.gauche.x, t), y: melanger(a.mains.gauche.y, b.mains.gauche.y, t) },
+      droite: { x: melanger(a.mains.droite.x, b.mains.droite.x, t), y: melanger(a.mains.droite.y, b.mains.droite.y, t) },
+    } } : {}),
+    ...(a.raccourci !== undefined || b.raccourci !== undefined
+      ? { raccourci: melanger(a.raccourci ?? 1, b.raccourci ?? 1, t) } : {}),
     ...(a.appuiPieds && b.appuiPieds ? { appuiPieds: true } : {}),
   };
 }

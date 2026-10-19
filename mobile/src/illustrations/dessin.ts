@@ -15,6 +15,8 @@ export type DessinFigurine = { formes: FormeFigurine[]; ombre: Ombre; bornes: Bo
 /** Mur des pompes : la face touchée par les mains est en `x`. */
 export const MUR = { x: 168, haut: 26, largeur: 22 } as const;
 export const CHAISE = { x: 65, haut: 103, assise: 151, largeur: 42, pied: 5 } as const;
+/** Table des tractions australiennes : plateau de `x` à `x + largeur`, dessus en `plateau`, pieds aux bouts. */
+export const TABLE = { x: 34, plateau: 112, epaisseur: 6, largeur: 124, pied: 5 } as const;
 
 // Rayons aux articulations (unités du cadre 200 × 200).
 export const RAYONS = {
@@ -240,12 +242,14 @@ export function dessinerFigurine(pose: Pose): DessinFigurine {
   cercles.push(...visage.etendue);
   // De face, les deux bras sont au premier plan, devant le tronc ; de profil, le bras gauche passe derrière.
   const devant = profil ? [bras(false)] : [bras(true), bras(false)];
+  // Couché vu de face, bassin et jambes fuient derrière le buste : on ne les dessine pas.
+  const cachees = pose.raccourci !== undefined;
   const formes: FormeFigurine[] = [
-    ...jambe(true).map(d => ({ d, teinte: loin })),
+    ...(cachees ? [] : jambe(true).map(d => ({ d, teinte: loin }))),
     ...(profil ? bras(true).membre.map(d => ({ d, teinte: loin })) : []),
     { d: capsuleNotee(p.epaules, RAYONS.cou, plus(p.tete, fois(haut, -r * 0.6)), RAYONS.cou), teinte: 'proche' },
     { d: contourLisse(contour), teinte: 'proche' },
-    ...jambe(false).map(d => ({ d, teinte: 'proche' as const })),
+    ...(cachees ? [] : jambe(false).map(d => ({ d, teinte: 'proche' as const }))),
     ...visage.arriere.map(d => ({ d, teinte: 'cheveux' as const })),
     { d: cercleNote(p.tete, r), teinte: 'proche' },
     ...visage.cheveux.map(d => ({ d, teinte: 'cheveux' as const })),
@@ -266,7 +270,8 @@ export function dessinerFigurine(pose: Pose): DessinFigurine {
   const ys = [...cercles.map(c => c.c.y - c.r - 1), ...cercles.map(c => c.c.y + c.r), ...contour.map(c => c.y)];
   return {
     formes,
-    ombre: ombre(p),
+    ombre: ombre(cachees ? { ...p, genouGauche: p.bassin, genouDroit: p.bassin, chevilleGauche: p.bassin,
+      chevilleDroite: p.bassin, orteilsGauches: p.bassin, orteilsDroits: p.bassin } : p),
     bornes: { minX: Math.min(...xs), minY: Math.min(...ys), maxX: Math.max(...xs), maxY: Math.max(...ys) },
   };
 }
@@ -278,7 +283,10 @@ export type Cadre = { x: number; y: number; largeur: number; hauteur: number };
 // Dimension minimale : une pose compacte n'est jamais agrandie au point de remplir toute la carte.
 const COTE_MIN = 110, MARGE_CADRE = 10;
 
-export function cadrer(cles: Pose[], continu = false, mur = false, chaise = false, murX: number = MUR.x): Cadre {
+export type AutresAccessoires = { chaiseX?: number; table?: boolean };
+
+export function cadrer(cles: Pose[], continu = false, mur = false, chaise = false, murX: number = MUR.x,
+  { chaiseX = CHAISE.x, table = false }: AutresAccessoires = {}): Cadre {
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   for (let i = 0; i < 24; i++) {
     const d = dessinerFigurine(poseALinstant(cles, i / 24, continu));
@@ -288,7 +296,8 @@ export function cadrer(cles: Pose[], continu = false, mur = false, chaise = fals
     maxY = Math.max(maxY, d.bornes.maxY, d.ombre.cy + d.ombre.ry);
   }
   if (mur) { minX = Math.min(minX, murX); maxX = Math.max(maxX, murX + MUR.largeur); minY = Math.min(minY, MUR.haut); }
-  if (chaise) { minX = Math.min(minX, CHAISE.x); maxX = Math.max(maxX, CHAISE.x + CHAISE.largeur); minY = Math.min(minY, CHAISE.haut); maxY = Math.max(maxY, SOL_Y); }
+  if (chaise) { minX = Math.min(minX, chaiseX); maxX = Math.max(maxX, chaiseX + CHAISE.largeur); minY = Math.min(minY, CHAISE.haut); maxY = Math.max(maxY, SOL_Y); }
+  if (table) { minX = Math.min(minX, TABLE.x); maxX = Math.max(maxX, TABLE.x + TABLE.largeur); minY = Math.min(minY, TABLE.plateau); maxY = Math.max(maxY, SOL_Y); }
   const largeur = Math.max(COTE_MIN, maxX - minX + 2 * MARGE_CADRE);
   const hauteur = Math.max(COTE_MIN, maxY - minY + 2 * MARGE_CADRE);
   return { x: f((minX + maxX - largeur) / 2), y: f((minY + maxY - hauteur) / 2), largeur: f(largeur), hauteur: f(hauteur) };

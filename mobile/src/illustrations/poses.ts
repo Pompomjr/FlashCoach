@@ -1,8 +1,10 @@
-import { MUR, RAYONS } from './dessin';
+import { CHAISE, MUR, RAYONS, TABLE } from './dessin';
 import { calculerPoints, LONGUEURS, SOL_Y, type Bras, type Jambe, type Point, type Pose } from './squelette';
 
 /** `continu` : vitesse constante d'une clé à l'autre, pour un geste circulaire sans à-coups. */
-export type AnimationFigurine = { cles: Pose[]; dureeCycleMs: number; accessoire?: 'mur' | 'chaise'; murX?: number; continu?: boolean };
+export type AnimationFigurine = {
+  cles: Pose[]; dureeCycleMs: number; accessoire?: 'mur' | 'chaise' | 'table'; murX?: number; chaiseX?: number; continu?: boolean;
+};
 const bras = (epaule = 0, coude = 0): Bras => ({ epaule, coude });
 const jambe = (hanche = 0, genou = 0, cheville = -hanche - genou): Jambe => ({ hanche, genou, cheville });
 const debout = (vue: Pose['vue'] = 'profil'): Pose => ({
@@ -150,6 +152,236 @@ const velo = (gauche: boolean): Pose => ({ ...pontBas, chevilles: undefined, rac
   jambeGauche: gauche ? jambe(165, -110) : jambe(85, -10),
   jambeDroite: gauche ? jambe(85, -10) : jambe(165, -110) });
 
+// ——— Niveaux Tonique et Costaud ———
+const deg = (r: number) => r * 180 / Math.PI;
+const CORPS = LONGUEURS.cuisse + LONGUEURS.tibia + LONGUEURS.tronc;
+/** Jambe dont le pied pointe dans la direction `pied` (0 vers le bas, 90 vers l'avant), quel que soit le pli. */
+const jambePied = (hanche: number, genou: number, pied: number): Jambe => ({ hanche, genou, cheville: pied - 90 - hanche - genou });
+/** Orientation du pied qui pose les orteils au sol depuis une cheville à la hauteur `y`. */
+const piedSol = (y: number, sol: number = SOL_Y) => deg(Math.acos((sol - y) / LONGUEURS.pied));
+const troncVers = (bassin: Point, epaules: Point) => deg(Math.atan2(epaules.x - bassin.x, bassin.y - epaules.y));
+/** Point à `ra` de `a` et à `rb` de `b`, du côté haut de l'écran (ou bas). */
+function croisement(a: Point, ra: number, b: Point, rb: number, haut = true): Point {
+  const d = Math.hypot(b.x - a.x, b.y - a.y);
+  const l = (ra * ra - rb * rb + d * d) / (2 * d);
+  const h = Math.sqrt(Math.max(0, ra * ra - l * l));
+  const ux = (b.x - a.x) / d, uy = (b.y - a.y) / d;
+  const m = { x: a.x + ux * l, y: a.y + uy * l };
+  const p1 = { x: m.x - uy * h, y: m.y + ux * h }, p2 = { x: m.x + uy * h, y: m.y - ux * h };
+  return (p1.y < p2.y) === haut ? p1 : p2;
+}
+/** Épaules d'un corps gainé de longueur fixe, à la hauteur `y`, devant (`sens` 1) ou derrière la cheville. */
+const epaulesA = (cheville: Point, y: number, sens = 1): Point =>
+  ({ x: cheville.x + sens * Math.sqrt(CORPS ** 2 - (y - cheville.y) ** 2), y });
+
+/** Corps gainé de profil : bassin sur la droite cheville – épaules, jambes tendues, aucun creux. */
+function gaine(cheville: Point, epaules: Point, pied: number): Pose {
+  const k = (LONGUEURS.cuisse + LONGUEURS.tibia) / Math.hypot(epaules.x - cheville.x, epaules.y - cheville.y);
+  const bassin = { x: cheville.x + (epaules.x - cheville.x) * k, y: cheville.y + (epaules.y - cheville.y) * k };
+  const hanche = deg(Math.atan2(cheville.x - bassin.x, cheville.y - bassin.y));
+  return { ...debout(), racine: bassin, tronc: troncVers(bassin, epaules),
+    jambeGauche: jambePied(hanche, 0, pied), jambeDroite: jambePied(hanche, 0, pied) };
+}
+/** Appuis des mains (main droite en `x`, la gauche décalée comme l'épaule éloignée) ; coudes vers l'arrière. */
+const appuiMains = (pose: Pose, x: number, y: number = SOL_Y, ecart = 6, coude = 30): Pose => ({ ...pose,
+  mains: { gauche: { x: x - ecart, y }, droite: { x, y } }, brasGauche: bras(0, coude), brasDroit: bras(0, coude) });
+
+/** Pompe de profil : le corps gainé pivote sur la pointe des pieds, mains fixes. `main` : décalage de la main
+ * droite par rapport à l'épaule droite en haut (négatif : sous la poitrine). */
+function pompes(cheville: Point, haut: number, bas: number, main: number, pied = piedSol(cheville.y)): [Pose, Pose] {
+  const x = epaulesA(cheville, haut).x + 3 + main;
+  return [appuiMains(gaine(cheville, epaulesA(cheville, haut), pied), x),
+    appuiMains(gaine(cheville, epaulesA(cheville, bas), pied), x)];
+}
+const CHEVILLE_POMPE = { x: 36, y: 171 };
+const pompeClassique = pompes(CHEVILLE_POMPE, 132, 150, 10);
+// Mains en losange sous le sternum : les coudes longent les côtes.
+const pompeDiamant = pompes(CHEVILLE_POMPE, 132, 156, -9);
+// Mains larges, un peu devant les épaules : la poitrine descend plus bas entre les mains.
+const pompeLarge = pompes(CHEVILLE_POMPE, 134, 152, 17);
+// Pieds sur l'assise : orteils posés sur le dessus de la chaise.
+const CHAISE_DECLINEE = 26;
+const chevilleDeclinee = { x: CHAISE_DECLINEE + 28, y: 140 };
+const pompeDeclinee = pompes(chevilleDeclinee, 132, 152, 10, piedSol(chevilleDeclinee.y, CHAISE.assise - RAYONS.orteils));
+
+// Spider-man : en bas de la pompe, le genou vient frôler le coude du même côté, pied décollé.
+// Le genou vient frôler le coude, le tibia replié de 140° vers l'arrière.
+const genouAuCoude = (pose: Pose, droite: boolean): Pose => {
+  const p = calculerPoints(pose);
+  const hanche = droite ? p.hancheDroite : p.hancheGauche, coude = droite ? p.coudeDroit : p.coudeGauche;
+  // Cuisse presque horizontale, vers le coude ; le pied reste du côté du plafond.
+  const cuisse = Math.atan2(coude.x - hanche.x, Math.min(coude.y, hanche.y + 4) - hanche.y);
+  const genou = { x: hanche.x + LONGUEURS.cuisse * Math.sin(cuisse), y: hanche.y + LONGUEURS.cuisse * Math.cos(cuisse) };
+  const replis = [cuisse - rad(140), cuisse + rad(140)]
+    .map(t => ({ x: genou.x + LONGUEURS.tibia * Math.sin(t), y: genou.y + LONGUEURS.tibia * Math.cos(t) }));
+  const pied = replis[0].y < replis[1].y ? replis[0] : replis[1];
+  const plie = (j: Jambe, signe: number): Jambe => jambePied(j.hanche, signe * 40, j.hanche + j.genou + 90 + j.cheville);
+  // Le pli du genou (signe du genou) est choisi pour que le genou passe du côté du coude.
+  const essai = (signe: number) => {
+    const q = calculerPoints({ ...pose, chevilles: { gauche: droite ? p.chevilleGauche : pied, droite: droite ? pied : p.chevilleDroite },
+      [droite ? 'jambeDroite' : 'jambeGauche']: plie(droite ? pose.jambeDroite : pose.jambeGauche, signe) });
+    return Math.hypot((droite ? q.genouDroit : q.genouGauche).x - genou.x, (droite ? q.genouDroit : q.genouGauche).y - genou.y);
+  };
+  const signe = essai(1) < essai(-1) ? 1 : -1;
+  return { ...pose, chevilles: { gauche: droite ? p.chevilleGauche : pied, droite: droite ? pied : p.chevilleDroite },
+    [droite ? 'jambeDroite' : 'jambeGauche']: plie(droite ? pose.jambeDroite : pose.jambeGauche, signe) };
+};
+const spiderHaut = fixerChevilles(pompeClassique[0]);
+const spiderBas = fixerChevilles(pompeClassique[1]);
+
+// Pompe en V : bassin au sommet, jambes et bras-tronc tendus ; en bas, le haut du crâne vient vers le sol.
+const CHEVILLE_V = { x: 40, y: 171 };
+const enV = (cheville: Point, main: Point, vers: Point, distance: number, tete = 0): Pose => {
+  const bassin = croisement(cheville, LONGUEURS.cuisse + LONGUEURS.tibia, vers, distance);
+  const hanche = deg(Math.atan2(cheville.x - bassin.x, cheville.y - bassin.y));
+  return appuiMains({ ...debout(), racine: bassin, tronc: troncVers(bassin, vers), tete,
+    jambeGauche: jambePied(hanche, 0, piedSol(cheville.y)), jambeDroite: jambePied(hanche, 0, piedSol(cheville.y)),
+    chevilles: { gauche: { x: cheville.x - 3, y: cheville.y }, droite: { x: cheville.x + 3, y: cheville.y } } }, main.x + 3);
+};
+const mainV = { x: 125, y: SOL_Y };
+const vHaut = enV(CHEVILLE_V, mainV, mainV, LONGUEURS.tronc + 49.8);
+const vBas = enV(CHEVILLE_V, mainV, { x: mainV.x + 5, y: SOL_Y - LONGUEURS.rayonTete - 4 }, LONGUEURS.tronc + LONGUEURS.cou + LONGUEURS.tete);
+
+// Pompe hindoue : V, plongée poitrine au ras du sol, cobra bras tendus ; pointes de pieds fixes.
+const CHEVILLE_HINDOUE = { x: 34, y: 171 };
+const mainHindoue = { x: 143, y: SOL_Y };
+const hindoueV = enV(CHEVILLE_HINDOUE, mainHindoue, mainHindoue, LONGUEURS.tronc + 49.8);
+const hindouePlongee = enV(CHEVILLE_HINDOUE, mainHindoue, { x: mainHindoue.x - 8, y: 156 }, LONGUEURS.tronc, -30);
+const cobra = (() => {
+  const bassin = { x: CHEVILLE_HINDOUE.x + 66.4, y: 158 };
+  const epaules = croisement(bassin, LONGUEURS.tronc, mainHindoue, 49.8);
+  const hanche = deg(Math.atan2(CHEVILLE_HINDOUE.x - bassin.x, CHEVILLE_HINDOUE.y - bassin.y));
+  return { ...hindoueV, racine: bassin, tronc: troncVers(bassin, epaules), tete: -40,
+    jambeGauche: jambePied(hanche, 0, piedSol(CHEVILLE_HINDOUE.y)), jambeDroite: jambePied(hanche, 0, piedSol(CHEVILLE_HINDOUE.y)) };
+})();
+
+// Dips : mains au bord avant de l'assise, dos contre le bord, talons au sol devant.
+const CHAISE_DIPS = 45;
+const dips = (epaules: Point, tronc: number): Pose => {
+  const bassin = { x: epaules.x - LONGUEURS.tronc * Math.sin(rad(tronc)), y: epaules.y + LONGUEURS.tronc * Math.cos(rad(tronc)) };
+  return { ...appuiMains({ ...debout(), racine: bassin, tronc, tete: -tronc,
+    jambeGauche: jambePied(60, -40, 120), jambeDroite: jambePied(60, -40, 120),
+    chevilles: { gauche: { x: 150, y: 178 }, droite: { x: 156, y: 178 } } },
+  CHAISE_DIPS + CHAISE.largeur - 1, CHAISE.assise - RAYONS.main) };
+};
+
+// Tractions australiennes : sur le dos, talons au sol, corps gainé suspendu au bord de la table.
+const MAIN_TABLE = { x: TABLE.x + 7, y: TABLE.plateau + TABLE.epaisseur + RAYONS.main - 1 };
+const tractions = (hauteurEpaules: number, tete: number): Pose => {
+  const cheville = { x: MAIN_TABLE.x - 3 + Math.sqrt(CORPS ** 2 - (SOL_Y - 4 - MAIN_TABLE.y - 49.8) ** 2), y: SOL_Y - 4 };
+  const pose = gaine(cheville, epaulesA(cheville, hauteurEpaules, -1), 165);
+  return { ...appuiMains(pose, MAIN_TABLE.x, MAIN_TABLE.y), tete };
+};
+
+// Superman tirage : à plat ventre, bras tendus devant puis coudes tirés vers les côtes.
+const ventrePlat: Pose = { ...debout(), racine: { x: 98, y: 166 }, tronc: 84, tete: -8,
+  jambeGauche: jambePied(-80, 0, -95), jambeDroite: jambePied(-80, 0, -95) };
+
+// Squat avec pause : pieds fixes, cuisses parallèles au sol en bas, bras devant pour l'équilibre.
+const squatPauseHaut = fixerChevilles({ ...debout(), jambeGauche: jambePied(0, 0, 90), jambeDroite: jambePied(0, 0, 90),
+  brasGauche: bras(75, 10), brasDroit: bras(75, 10) });
+const squatPauseBas: Pose = { ...squatPauseHaut, racine: { x: 78, y: 148 }, tronc: 40, tete: -25,
+  brasGauche: bras(130), brasDroit: bras(130) };
+
+// Squat bulgare : cou-de-pied arrière sur l'assise, pied avant à plat, genou avant au-dessus de la cheville.
+const CHAISE_BULGARE = 30;
+const bulgare = (racine: Point, tronc: number): Pose => ({ ...debout(), racine, tronc, tete: -tronc / 2,
+  jambeGauche: jambePied(-60, -60, -95), jambeDroite: jambePied(30, -60, 90),
+  chevilles: { gauche: { x: CHAISE_BULGARE + 36, y: 146 }, droite: { x: 150, y: SOL_Y } },
+  brasGauche: bras(tronc + 10, 25), brasDroit: bras(tronc - 5, 25) });
+
+// Planche vue de face (depuis la tête) : buste raccourci, jambes cachées derrière.
+const RACCOURCI = .3;
+const plancheFace = (x: number, hauteurEpaules: number, mainGauche: Point, mainDroite: Point): Pose => ({ ...debout('face'),
+  racine: { x, y: hauteurEpaules + LONGUEURS.tronc * RACCOURCI }, raccourci: RACCOURCI,
+  jambeGauche: jambe(180), jambeDroite: jambe(180),
+  mains: { gauche: mainGauche, droite: mainDroite }, brasGauche: bras(0, 20), brasDroit: bras(0, -20) });
+const plancheEpaules = plancheFace(100, SOL_Y - 49.8, { x: 85, y: SOL_Y }, { x: 115, y: SOL_Y });
+const toucheEpaule = (droite: boolean): Pose => {
+  const pose = plancheFace(droite ? 97 : 103, SOL_Y - 49.4, { x: 85, y: SOL_Y }, { x: 115, y: SOL_Y });
+  const p = calculerPoints(pose);
+  const cible = droite ? { x: p.epauleGauche.x + 2, y: p.epauleGauche.y + 3 } : { x: p.epauleDroite.x - 2, y: p.epauleDroite.y + 3 };
+  return { ...pose, mains: { gauche: droite ? pose.mains!.gauche : cible, droite: droite ? cible : pose.mains!.droite } };
+};
+const archerG = { x: 58, y: SOL_Y }, archerD = { x: 142, y: SOL_Y };
+
+// Gainage commando : avant-bras au sol, puis une main, puis l'autre ; pointes de pieds fixes.
+const CHEVILLE_COMMANDO = { x: 36, y: 171 };
+const commando = (hauteurEpaules: number, mainDroite: number, mainGauche: number): Pose =>
+  ({ ...gaine(CHEVILLE_COMMANDO, epaulesA(CHEVILLE_COMMANDO, hauteurEpaules), piedSol(CHEVILLE_COMMANDO.y)),
+    mains: { gauche: { x: mainGauche, y: SOL_Y }, droite: { x: mainDroite, y: SOL_Y } },
+    brasGauche: bras(0, 30), brasDroit: bras(0, 30) });
+const surCoudes = (() => {
+  const x = epaulesA(CHEVILLE_COMMANDO, SOL_Y - LONGUEURS.bras).x;
+  return commando(SOL_Y - LONGUEURS.bras, x + 3 + LONGUEURS.avantBras, x - 3 + LONGUEURS.avantBras);
+})();
+const surMains = commando(SOL_Y - 49.8, 143.5, 137.5);
+const uneMain = commando(146, 143.5, epaulesA(CHEVILLE_COMMANDO, 146).x - 3 + LONGUEURS.avantBras);
+
+// Fentes sautées : envol entre deux fentes, les jambes se croisent en l'air.
+// La jambe avant recule, la jambe arrière avance : chacune garde le pli qu'elle avait au sol.
+const envol = (versGauche: boolean): Pose => ({ ...debout(), racine: { x: 100, y: 98 }, tronc: 5,
+  jambeDroite: versGauche ? jambe(40, -70) : jambe(10, -90), jambeGauche: versGauche ? jambe(10, -90) : jambe(40, -70),
+  brasGauche: bras(versGauche ? 40 : -10, 70), brasDroit: bras(versGauche ? -10 : 40, 70) });
+
+// Burpee complet : mains fixes au sol de l'accroupi à la pompe, puis saut bras en l'air.
+const CHEVILLE_BURPEE = { x: 34.8, y: 171 };
+const [burpeePlanche, burpeePompe] = pompes(CHEVILLE_BURPEE, SOL_Y - 49.8, 152, 0).map(fixerChevilles);
+const burpeeAccroupi: Pose = { ...burpeePlanche, racine: { x: 95, y: 148 }, tronc: 70, tete: -30,
+  jambeGauche: jambePied(60, -120, 60), jambeDroite: jambePied(60, -120, 60),
+  chevilles: { gauche: { x: 102, y: SOL_Y - 6.5 }, droite: { x: 108, y: SOL_Y - 6.5 } } };
+const burpeeSaut: Pose = fixerChevilles({ ...debout(), racine: { x: 104, y: 100 },
+  jambeGauche: jambePied(25, -60, -25), jambeDroite: jambePied(25, -60, -25),
+  mains: { gauche: { x: 112, y: 10 }, droite: { x: 118, y: 10 } }, brasGauche: bras(0, -30), brasDroit: bras(0, -30) });
+
+const NIVEAUX_SUPERIEURS: Record<string, AnimationFigurine> = {
+  'pompe-large': { cles: pompeLarge, dureeCycleMs: 1800 },
+  // Quatre secondes pour descendre, quatre pour remonter.
+  'pompe-tempo': { cles: pompeClassique, dureeCycleMs: 8000 },
+  'pike-pushup': { cles: [vHaut, vBas], dureeCycleMs: 1800 },
+  'dips-chaise': { cles: [dips({ x: 102, y: 100.6 }, 0), dips({ x: 104, y: 120 }, 6)], dureeCycleMs: 1800,
+    accessoire: 'chaise', chaiseX: CHAISE_DIPS },
+  'tractions-australiennes': { cles: [tractions(MAIN_TABLE.y + 49.8, 0), tractions(134, 15)], dureeCycleMs: 1800, accessoire: 'table' },
+  'superman-tirage': { cles: [
+    appuiMains(ventrePlat, 181, 143, 6, -30),
+    appuiMains({ ...ventrePlat, tronc: 80, tete: -15 }, 134, 147, 6, -30),
+  ], dureeCycleMs: 2000 },
+  'squat-pause': { cles: [squatPauseHaut, squatPauseBas, squatPauseBas], dureeCycleMs: 7500 },
+  'squat-bulgare': { cles: [bulgare({ x: 120, y: 120 }, 8), bulgare({ x: 112.8, y: 146 }, 18)], dureeCycleMs: 2000,
+    accessoire: 'chaise', chaiseX: CHAISE_BULGARE },
+  'planche-epaules': { cles: [plancheEpaules, toucheEpaule(false), plancheEpaules, toucheEpaule(true)], dureeCycleMs: 2000 },
+  'hollow-hold': { cles: [
+    { ...debout(), racine: { x: 110, y: 172 }, tronc: -70, tete: 10, dos: 4, brasGauche: bras(-175), brasDroit: bras(-175),
+      jambeGauche: jambePied(112, 0, 122), jambeDroite: jambePied(112, 0, 122) },
+    { ...debout(), racine: { x: 110, y: 172 }, tronc: -72, tete: 10, dos: 4.5, poitrine: .4, brasGauche: bras(-177), brasDroit: bras(-177),
+      jambeGauche: jambePied(110, 0, 120), jambeDroite: jambePied(110, 0, 120) },
+  ], dureeCycleMs: 6000 },
+  'releves-jambes': { cles: [
+    { ...debout(), racine: { x: 104, y: 171 }, tronc: -90, brasGauche: bras(-5), brasDroit: bras(-5),
+      jambeGauche: jambePied(98, 0, 143), jambeDroite: jambePied(98, 0, 143) },
+    { ...debout(), racine: { x: 104, y: 171 }, tronc: -90, brasGauche: bras(-5), brasDroit: bras(-5),
+      jambeGauche: jambePied(178, 0, 223), jambeDroite: jambePied(178, 0, 223) },
+  ], dureeCycleMs: 2000 },
+  'pompe-diamant': { cles: pompeDiamant, dureeCycleMs: 1800 },
+  'pompe-archer': { cles: [
+    plancheFace(100, SOL_Y - Math.sqrt(49.8 ** 2 - 28 ** 2), archerG, archerD),
+    plancheFace(112, 154, archerG, archerD),
+  ], dureeCycleMs: 2000 },
+  'pompe-pieds-sureleves': { cles: pompeDeclinee, dureeCycleMs: 1800, accessoire: 'chaise', chaiseX: CHAISE_DECLINEE },
+  'pompe-hindoue': { cles: [hindoueV, hindouePlongee, cobra], dureeCycleMs: 2000 },
+  'pompe-spiderman': { cles: [spiderHaut, genouAuCoude(spiderBas, true), spiderHaut, genouAuCoude(spiderBas, false)], dureeCycleMs: 2000 },
+  // Planche penchée : on tient, seul le souffle bouge.
+  'planche-penchee': { cles: (() => {
+    const cheville = { x: 30, y: 168 };
+    const epaules = epaulesA(cheville, SOL_Y - Math.sqrt(49.8 ** 2 - 22 ** 2));
+    const pose = appuiMains(gaine(cheville, epaules, piedSol(cheville.y)), epaules.x + 3 - 22);
+    return [pose, { ...pose, poitrine: .5 }];
+  })(), dureeCycleMs: 6000 },
+  'gainage-commando': { cles: [surCoudes, uneMain, surMains, uneMain], dureeCycleMs: 2000 },
+  'fentes-sautees': { cles: [fenteDroite, envol(true), fenteGauche, envol(false)], dureeCycleMs: 2000 },
+  'burpee-complet': { cles: [burpeeAccroupi, burpeePlanche, burpeePompe, burpeePlanche, burpeeAccroupi, burpeeSaut], dureeCycleMs: 2000 },
+};
+
 export const POSES_PAR_EXERCICE: Record<string, AnimationFigurine> = {
   // De profil, bouts des doigts sur les épaules : le coude dessine un grand cercle (avant, haut, arrière, bas).
   // En haut, le coude passe un peu en arrière de la tête pour ne pas masquer le visage.
@@ -236,6 +468,7 @@ export const POSES_PAR_EXERCICE: Record<string, AnimationFigurine> = {
     jambeGauche: jambe(-100), jambeDroite: jambe(-100) }], dureeCycleMs: 2000 },
   'planche-laterale': { cles: [lateral, { ...lateral, poitrine: .6 }], dureeCycleMs: 2000 },
   'crunch-velo': { cles: [velo(true), velo(false)], dureeCycleMs: 4000 },
+  ...NIVEAUX_SUPERIEURS,
 };
 
 export function posesPour(exerciceId: string): AnimationFigurine {

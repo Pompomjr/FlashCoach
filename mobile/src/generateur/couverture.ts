@@ -1,4 +1,14 @@
-import { DUREES, RESSENTIS, type Contexte, type Duree, type Effet, type Exercice, type Ressenti } from '../catalogue/types';
+import {
+  DUREES,
+  NOMS_NIVEAU,
+  RESSENTIS,
+  type Contexte,
+  type Duree,
+  type Effet,
+  type Exercice,
+  type Niveau,
+  type Ressenti,
+} from '../catalogue/types';
 import { apparier } from './appariement';
 import { cibleDePhase, type Cible } from './cibles';
 import { filtrerCatalogue } from './filtres';
@@ -38,10 +48,10 @@ function manquesDeSeance(compatibles: Exercice[], contexteId: string, ressenti: 
 }
 
 // Analyse déterministe, sans tirage. Ordre : contexte, ressenti, phase, durée.
-export function analyserCouverture(catalogue: Exercice[], contextes: Contexte[]): Manque[] {
+export function analyserCouverture(catalogue: Exercice[], contextes: Contexte[], niveau: Niveau = 1): Manque[] {
   const manques: Manque[] = [];
   for (const contexte of contextes) {
-    const compatibles = filtrerCatalogue(catalogue, contexte.contraintes);
+    const compatibles = filtrerCatalogue(catalogue, contexte.contraintes).filter((e) => e.niveau <= niveau);
     for (const ressenti of RESSENTIS) {
       const parDuree = DUREES.flatMap((duree) => manquesDeSeance(compatibles, contexte.id, ressenti, duree));
       for (const phase of ORDRE_PHASES) {
@@ -50,6 +60,47 @@ export function analyserCouverture(catalogue: Exercice[], contextes: Contexte[])
     }
   }
   return manques;
+}
+
+// Combinaison dont une partie du cœur n'a pas d'exercice idéal du niveau exact : le générateur la rabat sur un niveau inférieur.
+export interface Rabattement {
+  contexteId: string;
+  ressenti: Ressenti;
+  duree: Duree;
+  // Places du cœur qui peuvent recevoir un exercice idéal de ce niveau exact.
+  auNiveau: number;
+  places: number;
+}
+
+// Ordre : contexte, ressenti, durée.
+export function analyserRabattements(catalogue: Exercice[], contextes: Contexte[], niveau: Niveau): Rabattement[] {
+  const rabattements: Rabattement[] = [];
+  for (const contexte of contextes) {
+    const duNiveau = filtrerCatalogue(catalogue, contexte.contraintes).filter((e) => e.niveau === niveau);
+    for (const ressenti of RESSENTIS) {
+      for (const duree of DUREES) {
+        const plan = STRUCTURE_PAR_DUREE[duree].find((p) => p.phase === 'coeur');
+        if (plan === undefined) continue;
+        const places = Array.from({ length: plan.nombre }, () => cibleDePhase('coeur', ressenti));
+        const auNiveau = apparier(places, duNiveau).filter(Boolean).length;
+        if (auNiveau < plan.nombre) {
+          rabattements.push({ contexteId: contexte.id, ressenti, duree, auNiveau, places: plan.nombre });
+        }
+      }
+    }
+  }
+  return rabattements;
+}
+
+export function formaterRabattements(rabattements: Rabattement[], niveau: Niveau): string {
+  const nom = `Niveau ${NOMS_NIVEAU[niveau]}`;
+  if (rabattements.length === 0) return `${nom} : cœur entièrement au niveau.`;
+  return [
+    `${nom} : ${rabattements.length} combinaison(s) rabattue(s) :`,
+    ...rabattements.map(
+      (r) => `- ${r.contexteId} + ${r.ressenti}, ${r.duree} min : ${r.auNiveau}/${r.places} places au niveau, le reste est rabattu`,
+    ),
+  ].join('\n');
 }
 
 const LIBELLES_PHASE: Record<Phase, string> = {

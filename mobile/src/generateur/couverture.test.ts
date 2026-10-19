@@ -3,7 +3,14 @@ import { EXERCICES } from '../catalogue/exercices';
 import { DUREES, RESSENTIS, type Contexte, type Effet, type Exercice, type Intensite, type Zone } from '../catalogue/types';
 import { fabriquerExercice, SANS_CONTRAINTE } from '../test-utils/fabrique';
 import { creerAleatoire } from './aleatoire';
-import { analyserCouverture, formaterRapport, type Manque } from './couverture';
+import {
+  analyserCouverture,
+  analyserRabattements,
+  formaterRabattements,
+  formaterRapport,
+  type Manque,
+  type Rabattement,
+} from './couverture';
 import { genererSeance } from './generer';
 
 const LIBRE: Contexte = { id: 'libre', nom: 'Libre', emoji: '✨', premium: false, ordre: 1, contraintes: SANS_CONTRAINTE };
@@ -182,6 +189,61 @@ describe('couverture et générateur', () => {
     }
     expect(echecs).toEqual([]);
     expect(verifiees).toBeGreaterThan(100);
+  });
+});
+
+describe('analyserCouverture par niveau', () => {
+  it('ignore les exercices d’un niveau supérieur à celui demandé', () => {
+    const catalogue = [...sans('ene'), ...serie('ene', 8, { effets: ['energie'], intensite: 2, niveau: 2 })];
+    expect(analyserCouverture(catalogue, [LIBRE]).some((m) => m.phase === 'coeur')).toBe(true);
+    expect(analyserCouverture(catalogue, [LIBRE], 1).some((m) => m.phase === 'coeur')).toBe(true);
+    expect(analyserCouverture(catalogue, [LIBRE], 2)).toEqual([]);
+  });
+});
+
+describe('analyserRabattements', () => {
+  it('ne signale rien quand le cœur est entièrement au niveau', () => {
+    const catalogue = [...sans('ene'), ...serie('ene', 8, { effets: ['energie'], intensite: 2, niveau: 2 })];
+    // Seul le cœur d'énergie (« mou », « en forme ») est au niveau 2 ici.
+    const energie = analyserRabattements(catalogue, [LIBRE], 2).filter((r) => r.ressenti === 'mou' || r.ressenti === 'en_forme');
+    expect(energie).toEqual([]);
+  });
+
+  it('compte les places du cœur qui peuvent recevoir un exercice idéal du niveau exact', () => {
+    // 3 exercices d'énergie de niveau 2 : le cœur compte 2 places en 3 min, 4 en 5 min et 8 en 10 min.
+    const catalogue = [...COMPLET, ...serie('tonique', 3, { effets: ['energie'], intensite: 2, niveau: 2 })];
+    const mou = analyserRabattements(catalogue, [LIBRE], 2).filter((r) => r.ressenti === 'mou');
+    expect(mou.map((r) => [r.duree, r.auNiveau, r.places])).toEqual([
+      [5, 3, 4],
+      [10, 3, 8],
+    ]);
+    expect(mou[0]).toEqual({ contexteId: 'libre', ressenti: 'mou', duree: 5, auNiveau: 3, places: 4 });
+  });
+
+  it('signale tout le cœur quand aucun exercice n’existe à ce niveau', () => {
+    const rabattements = analyserRabattements(COMPLET, [LIBRE], 3);
+    expect(rabattements).toHaveLength(RESSENTIS.length * DUREES.length);
+    expect(rabattements.every((r) => r.auNiveau === 0)).toBe(true);
+  });
+
+  it('sur le catalogue embarqué, signale tout le niveau 3 (aucun exercice pour l’instant)', () => {
+    expect(analyserRabattements(EXERCICES, CONTEXTES, 3).every((r) => r.auNiveau === 0)).toBe(true);
+  });
+});
+
+describe('formaterRabattements', () => {
+  it('annonce un cœur entièrement au niveau', () => {
+    expect(formaterRabattements([], 2)).toBe('Niveau Tonique : cœur entièrement au niveau.');
+  });
+
+  it('liste une ligne par combinaison', () => {
+    const r: Rabattement[] = [{ contexteId: 'bureau', ressenti: 'mou', duree: 5, auNiveau: 0, places: 4 }];
+    expect(formaterRabattements(r, 3)).toBe(
+      [
+        'Niveau Costaud : 1 combinaison(s) rabattue(s) :',
+        '- bureau + mou, 5 min : 0/4 places au niveau, le reste est rabattu',
+      ].join('\n'),
+    );
   });
 });
 

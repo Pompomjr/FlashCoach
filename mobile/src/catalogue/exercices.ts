@@ -16,6 +16,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 1,
     zone: 'haut',
     bilateral: false,
+    niveau: 1,
   },
   {
     id: 'respiration-carree',
@@ -30,6 +31,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 1,
     zone: 'global',
     bilateral: false,
+    niveau: 1,
   },
   {
     id: 'inclinaison-laterale',
@@ -44,6 +46,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 1,
     zone: 'tronc',
     bilateral: true,
+    niveau: 1,
   },
   {
     id: 'pompes-mur',
@@ -58,6 +61,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 2,
     zone: 'haut',
     bilateral: false,
+    niveau: 1,
   },
   {
     id: 'squat-lent',
@@ -72,6 +76,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 2,
     zone: 'bas',
     bilateral: false,
+    niveau: 1,
   },
   {
     id: 'marche-genoux-hauts',
@@ -86,6 +91,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 2,
     zone: 'global',
     bilateral: false,
+    niveau: 1,
   },
   {
     id: 'jumping-jacks',
@@ -100,6 +106,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 3,
     zone: 'global',
     bilateral: false,
+    niveau: 1,
   },
   {
     id: 'fentes-arriere',
@@ -114,6 +121,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 2,
     zone: 'bas',
     bilateral: true,
+    niveau: 1,
   },
   {
     id: 'chat-vache',
@@ -128,6 +136,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 1,
     zone: 'tronc',
     bilateral: false,
+    niveau: 1,
   },
   {
     id: 'planche',
@@ -142,6 +151,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 3,
     zone: 'tronc',
     bilateral: false,
+    niveau: 2,
   },
   {
     id: 'rotation-cou',
@@ -156,6 +166,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 1,
     zone: 'haut',
     bilateral: false,
+    niveau: 1,
   },
   {
     id: 'haussement-epaules',
@@ -170,6 +181,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 1,
     zone: 'haut',
     bilateral: false,
+    niveau: 1,
   },
   {
     id: 'rotation-poignets',
@@ -184,6 +196,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 1,
     zone: 'haut',
     bilateral: false,
+    niveau: 1,
   },
   {
     id: 'ouverture-poitrine',
@@ -198,6 +211,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 1,
     zone: 'haut',
     bilateral: false,
+    niveau: 1,
   },
   {
     id: 'cercles-bras',
@@ -212,6 +226,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 1,
     zone: 'haut',
     bilateral: false,
+    niveau: 1,
   },
   {
     id: 'etirement-cou',
@@ -226,6 +241,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 1,
     zone: 'haut',
     bilateral: true,
+    niveau: 1,
   },
   {
     id: 'rotation-buste',
@@ -240,6 +256,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 1,
     zone: 'tronc',
     bilateral: false,
+    niveau: 1,
   },
   {
     id: 'cercles-hanches',
@@ -254,6 +271,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 1,
     zone: 'tronc',
     bilateral: false,
+    niveau: 1,
   },
   {
     id: 'enroule-deroule',
@@ -268,6 +286,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 1,
     zone: 'tronc',
     bilateral: false,
+    niveau: 1,
   },
   {
     id: 'balancier-jambe',
@@ -282,6 +301,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 1,
     zone: 'bas',
     bilateral: true,
+    niveau: 1,
   },
   {
     id: 'cercles-chevilles',
@@ -296,6 +316,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 1,
     zone: 'bas',
     bilateral: true,
+    niveau: 1,
   },
   {
     id: 'etirement-mollet',
@@ -310,6 +331,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 1,
     zone: 'bas',
     bilateral: true,
+    niveau: 1,
   },
   {
     id: 'respiration-ventre',
@@ -324,6 +346,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 1,
     zone: 'global',
     bilateral: false,
+    niveau: 1,
   },
   {
     id: 'grand-soupir',
@@ -338,6 +361,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 1,
     zone: 'global',
     bilateral: false,
+    niveau: 1,
   },
   {
     id: 'respiration-allongee',
@@ -352,6 +376,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 1,
     zone: 'global',
     bilateral: false,
+    niveau: 1,
   },
   {
     id: 'bras-respiration',
@@ -366,6 +391,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 1,
     zone: 'haut',
     bilateral: false,
+    niveau: 1,
   },
   {
     id: 'epaules-lourdes',
@@ -380,6 +406,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 1,
     zone: 'haut',
     bilateral: false,
+    niveau: 1,
   },
   {
     id: 'massage-nuque',
@@ -394,6 +421,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 1,
     zone: 'haut',
     bilateral: false,
+    niveau: 1,
   },
   {
     id: 'secouer-bras',
@@ -408,6 +436,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 1,
     zone: 'haut',
     bilateral: false,
+    niveau: 1,
   },
   {
     id: 'balancement-bras',
@@ -422,6 +451,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 1,
     zone: 'tronc',
     bilateral: false,
+    niveau: 1,
   },
   {
     id: 'etirement-ciel',
@@ -436,6 +466,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 1,
     zone: 'global',
     bilateral: false,
+    niveau: 1,
   },
   {
     id: 'ancrage-pieds',
@@ -450,6 +481,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 1,
     zone: 'bas',
     bilateral: false,
+    niveau: 1,
   },
   {
     id: 'montees-pointes',
@@ -464,6 +496,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 2,
     zone: 'bas',
     bilateral: false,
+    niveau: 1,
   },
   {
     id: 'assis-debout',
@@ -478,6 +511,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 2,
     zone: 'bas',
     bilateral: false,
+    niveau: 1,
   },
   {
     id: 'chaise-murale',
@@ -492,6 +526,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 2,
     zone: 'bas',
     bilateral: false,
+    niveau: 1,
   },
   {
     id: 'marche-sur-place',
@@ -506,6 +541,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 1,
     zone: 'global',
     bilateral: false,
+    niveau: 1,
   },
   {
     id: 'genou-coude',
@@ -520,6 +556,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 2,
     zone: 'tronc',
     bilateral: false,
+    niveau: 1,
   },
   {
     id: 'gainage-debout',
@@ -534,6 +571,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 2,
     zone: 'tronc',
     bilateral: false,
+    niveau: 1,
   },
   {
     id: 'boxe-air',
@@ -548,6 +586,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 2,
     zone: 'haut',
     bilateral: false,
+    niveau: 1,
   },
   {
     id: 'jambe-arriere',
@@ -562,6 +601,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 2,
     zone: 'bas',
     bilateral: true,
+    niveau: 1,
   },
   {
     id: 'squats-sautes',
@@ -576,6 +616,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 3,
     zone: 'bas',
     bilateral: false,
+    niveau: 2,
   },
   {
     id: 'talons-fesses',
@@ -590,6 +631,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 2,
     zone: 'global',
     bilateral: false,
+    niveau: 1,
   },
   {
     id: 'patineur',
@@ -604,6 +646,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 2,
     zone: 'bas',
     bilateral: false,
+    niveau: 1,
   },
   {
     id: 'pas-chasses',
@@ -618,6 +661,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 2,
     zone: 'bas',
     bilateral: false,
+    niveau: 1,
   },
   {
     id: 'burpee-sans-saut',
@@ -632,6 +676,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 3,
     zone: 'global',
     bilateral: false,
+    niveau: 2,
   },
   {
     id: 'grimpeur',
@@ -646,6 +691,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 3,
     zone: 'global',
     bilateral: false,
+    niveau: 2,
   },
   {
     id: 'pont-fessier',
@@ -660,6 +706,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 2,
     zone: 'bas',
     bilateral: false,
+    niveau: 1,
   },
   {
     id: 'superman',
@@ -674,6 +721,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 2,
     zone: 'tronc',
     bilateral: false,
+    niveau: 1,
   },
   {
     id: 'planche-laterale',
@@ -688,6 +736,7 @@ export const EXERCICES: Exercice[] = [
     intensite: 3,
     zone: 'tronc',
     bilateral: true,
+    niveau: 2,
   },
   {
     id: 'crunch-velo',
@@ -702,5 +751,6 @@ export const EXERCICES: Exercice[] = [
     intensite: 2,
     zone: 'tronc',
     bilateral: false,
+    niveau: 1,
   },
 ];

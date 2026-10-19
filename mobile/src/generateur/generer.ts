@@ -6,7 +6,7 @@ import { filtrerCatalogue } from './filtres';
 import { STRUCTURE_PAR_DUREE } from './structure';
 import type { Bloc, NiveauAssouplissement, ParametresSeance, Seance } from './types';
 
-const NIVEAUX: NiveauAssouplissement[] = [0, 1, 2, 3, 4];
+const PALIERS: NiveauAssouplissement[] = [0, 1, 2, 3, 4];
 
 interface Situation {
   precedent: Exercice | undefined;
@@ -17,6 +17,8 @@ interface Situation {
   // Cibles des phases suivantes : à appariement égal, on évite encore de leur prendre un exercice idéal.
   ciblesAVenir: Cible[];
   recents: Set<string>;
+  // Niveau de la séance pour une place du cœur, null ailleurs : mise en route et retour au calme n'ont pas de préférence.
+  niveauVise: number | null;
 }
 
 // 0 : idéal ; 1 : intensité hors plage ; 2 : autre effet accepté ; 3 : hors famille.
@@ -42,6 +44,7 @@ function cle(exercice: Exercice, situation: Situation, appariementActuel: () => 
     precedent !== undefined && precedent.id === exercice.id ? 1 : 0,
     distance(exercice, cible),
     perte(exercice, situation, appariementActuel),
+    situation.niveauVise === null ? 0 : situation.niveauVise - exercice.niveau,
     recents.has(exercice.id) ? 1 : 0,
     ciblesAVenir.some((aVenir) => correspond(exercice, aVenir, 0)) ? 1 : 0,
     precedent !== undefined && precedent.zone === exercice.zone ? 1 : 0,
@@ -69,7 +72,8 @@ function departager(candidats: Exercice[], situation: Situation, alea: () => num
 
 export function genererSeance(params: ParametresSeance, catalogue: Exercice[]): Seance {
   // 1. Filtrer : les contraintes sont strictes et ne sont jamais assouplies.
-  const compatibles = filtrerCatalogue(catalogue, params.contraintes);
+  const niveau = params.niveau ?? 1;
+  const compatibles = filtrerCatalogue(catalogue, params.contraintes).filter((e) => e.niveau <= niveau);
   if (compatibles.length === 0) {
     throw new Error(`Aucun exercice compatible avec le contexte ${params.contexteId}`);
   }
@@ -93,15 +97,19 @@ export function genererSeance(params: ParametresSeance, catalogue: Exercice[]): 
       const libres = compatibles.filter((exercice) => !utilises.has(exercice.id));
       let place = false;
       // 2-3. Classer selon la cible et choisir, en assouplissant niveau par niveau.
-      for (const niveau of NIVEAUX) {
+      for (const palier of PALIERS) {
         const candidats = compatibles.filter(
-          (exercice) => (niveau >= 3 || !utilises.has(exercice.id)) && correspond(exercice, cible, niveau),
+          (exercice) => (palier >= 3 || !utilises.has(exercice.id)) && correspond(exercice, cible, palier),
         );
         if (candidats.length === 0) continue;
-        const exercice = departager(candidats, { precedent, cible, placesAVenir, libres, ciblesAVenir, recents }, alea);
+        const exercice = departager(
+          candidats,
+          { precedent, cible, placesAVenir, libres, ciblesAVenir, recents, niveauVise: plan.phase === 'coeur' ? niveau : null },
+          alea,
+        );
         utilises.add(exercice.id);
         blocs.push({ exercice, phase: plan.phase, transitionS: plan.transitionS, effortS: plan.effortS });
-        if (niveau > assouplissement) assouplissement = niveau;
+        if (palier > assouplissement) assouplissement = palier;
         place = true;
         break;
       }
@@ -116,6 +124,7 @@ export function genererSeance(params: ParametresSeance, catalogue: Exercice[]): 
     ressenti: params.ressenti,
     duree: params.duree,
     graine: params.graine,
+    niveau,
     blocs,
     dureeTotaleS: blocs.reduce((total, bloc) => total + bloc.transitionS + bloc.effortS, 0),
     assouplissement,

@@ -1,4 +1,4 @@
-import type { Contraintes, Exercice, Zone } from '../catalogue/types';
+import type { Contraintes, Exercice, Niveau, Zone } from '../catalogue/types';
 import { fabriquerExercice, SANS_CONTRAINTE } from '../test-utils/fabrique';
 import { genererSeance } from './generer';
 import type { ParametresSeance, Seance } from './types';
@@ -198,5 +198,75 @@ describe('genererSeance : phases calmes', () => {
     const seance = genererSeance(parametres({ ressenti: 'stresse' }), ENERGIE);
     expect(seance.assouplissement).toBe(4);
     expect(seance.dureeTotaleS).toBe(300);
+  });
+});
+
+describe('genererSeance : niveau', () => {
+  const au = (niveau: Niveau, exercices: Exercice[]) => exercices.map((ex) => ({ ...ex, niveau }));
+
+  it('sans niveau, la séance est celle du niveau 1', () => {
+    const catalogue = [...MOBILITE, ...DETENTE, ...ENERGIE.slice(0, 2), ...au(2, ENERGIE.slice(2))];
+    for (let graine = 1; graine <= 20; graine++) {
+      const sans = genererSeance(parametres({ graine }), catalogue);
+      const un = genererSeance(parametres({ graine, niveau: 1 }), catalogue);
+      expect(sans.niveau).toBe(1);
+      expect(un.niveau).toBe(1);
+      expect(ids(sans)).toEqual(ids(un));
+    }
+  });
+
+  it('recopie le niveau demandé dans la séance', () => {
+    expect(genererSeance(parametres({ niveau: 3 }), CATALOGUE).niveau).toBe(3);
+  });
+
+  it('au niveau 1, n’utilise jamais un exercice de niveau 2, même quand il serait le seul idéal', () => {
+    const catalogue = [...MOBILITE, ...DETENTE, ...au(2, ENERGIE)];
+    for (let graine = 1; graine <= 20; graine++) {
+      const seance = genererSeance(parametres({ graine, niveau: 1 }), catalogue);
+      expect(seance.blocs.every((bloc) => bloc.exercice.niveau === 1)).toBe(true);
+      expect(seance.assouplissement).toBeGreaterThan(0);
+    }
+  });
+
+  it('au niveau 2, préfère à un exercice de niveau 1 un exercice de niveau 2 également idéal', () => {
+    const catalogue = [...MOBILITE, ...DETENTE, ...au(1, ENERGIE.slice(1)), ...au(2, ENERGIE.slice(0, 1))];
+    for (let graine = 1; graine <= 30; graine++) {
+      const seance = genererSeance(parametres({ graine, niveau: 2 }), catalogue);
+      expect(ids(seance)).toContain('ene-1');
+      expect(seance.assouplissement).toBe(0);
+    }
+  });
+
+  it('au niveau 3 sans exercice de niveau 3, se construit avec des niveaux ≤ 2', () => {
+    const catalogue = [...MOBILITE, ...DETENTE, ...au(2, ENERGIE)];
+    const seance = genererSeance(parametres({ niveau: 3 }), catalogue);
+    expect(seance.niveau).toBe(3);
+    expect(seance.blocs.every((bloc) => bloc.exercice.niveau <= 2)).toBe(true);
+    expect(seance.assouplissement).toBe(0);
+  });
+
+  it('n’exprime aucune préférence de niveau en mise en route et en retour au calme', () => {
+    const mobilites = [
+      fabriquerExercice({ id: 'mob-a', effets: ['mobilite'], intensite: 1, zone: 'haut' }),
+      ...au(3, [
+        fabriquerExercice({ id: 'mob-b', effets: ['mobilite'], intensite: 1, zone: 'bas' }),
+        fabriquerExercice({ id: 'mob-c', effets: ['mobilite'], intensite: 1, zone: 'tronc' }),
+      ]),
+    ];
+    const detentes = [
+      fabriquerExercice({ id: 'det-a', effets: ['detente'], intensite: 1, zone: 'haut' }),
+      ...au(3, [
+        fabriquerExercice({ id: 'det-b', effets: ['detente'], intensite: 1, zone: 'bas' }),
+        fabriquerExercice({ id: 'det-c', effets: ['detente'], intensite: 1, zone: 'tronc' }),
+      ]),
+    ];
+    const catalogue = [...mobilites, ...detentes, ...au(3, ENERGIE)];
+    const choisis = new Set<string>();
+    for (let graine = 1; graine <= 40; graine++) {
+      const seance = genererSeance(parametres({ graine, niveau: 3, duree: 3 }), catalogue);
+      for (const bloc of seance.blocs) if (bloc.phase !== 'coeur') choisis.add(bloc.exercice.id);
+    }
+    expect(choisis.has('mob-a')).toBe(true);
+    expect(choisis.has('det-a')).toBe(true);
   });
 });

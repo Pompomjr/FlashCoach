@@ -15,6 +15,7 @@ export function fabriquerExercice(surcharge: Partial<Exercice> = {}): Exercice {
     intensite: 2,
     zone: 'global',
     bilateral: false,
+    niveau: 1,
     ...surcharge,
   };
 }

@@ -1,4 +1,4 @@
-import type { Contraintes, Duree, Exercice, Ressenti } from '../catalogue/types';
+import type { Contraintes, Duree, Exercice, Niveau, Ressenti } from '../catalogue/types';
 
 export type Phase = 'mise_en_route' | 'coeur' | 'retour_au_calme';
 
@@ -23,6 +23,8 @@ export interface ParametresSeance {
   graine: number;
   // Exercices de la séance précédente, à éviter quand c'est possible.
   exclure?: string[];
+  // Plafond de niveau des exercices ; 1 (Doux) par défaut.
+  niveau?: Niveau;
 }
 
 export interface Seance {
@@ -31,6 +33,7 @@ export interface Seance {
   ressenti: Ressenti;
   duree: Duree;
   graine: number;
+  niveau: Niveau;
   blocs: Bloc[];
   dureeTotaleS: number;
   // Le plus fort assouplissement utilisé dans la séance.

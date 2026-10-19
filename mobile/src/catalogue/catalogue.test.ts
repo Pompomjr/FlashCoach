@@ -26,6 +26,11 @@ describe('validerCatalogue', () => {
     );
   });
 
+  it('signale un niveau hors de 1 à 3', () => {
+    const ex = fabriquerExercice({ id: 'd', niveau: 4 as never });
+    expect(validerCatalogue([ex], [])).toContain('Niveau invalide : d');
+  });
+
   it('signale un contexte en double', () => {
     const ctx = CONTEXTES[0];
     expect(validerCatalogue([], [ctx, ctx])).toContain(`Contexte en double : ${ctx.id}`);
@@ -35,6 +40,13 @@ describe('validerCatalogue', () => {
 describe('catalogue embarqué', () => {
   it('contient 50 exercices', () => {
     expect(EXERCICES).toHaveLength(50);
+  });
+
+  it('place exactement cinq exercices au niveau 2 et aucun au niveau 3 pour l’instant', () => {
+    const ids = (niveau: number) => EXERCICES.filter((e) => e.niveau === niveau).map((e) => e.id).sort();
+    expect(ids(2)).toEqual(['burpee-sans-saut', 'grimpeur', 'planche', 'planche-laterale', 'squats-sautes']);
+    expect(ids(3)).toEqual([]);
+    expect(EXERCICES.filter((e) => e.niveau === 1)).toHaveLength(45);
   });
 
   it.each(EXERCICES.map((e) => [e.id, e] as const))(

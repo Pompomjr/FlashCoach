@@ -77,3 +77,10 @@ test('assis-debout dessine une chaise derrière la figurine', async () => {
   await render(<Figurine exerciceId="assis-debout" libelle="Assis-debout" anime={false} />);
   expect(screen.getByTestId('accessoire-chaise')).toBeTruthy();
 });
+
+test('tractions-australiennes dessine une table, squat-bulgare une chaise à sa place', async () => {
+  await render(<Figurine exerciceId="tractions-australiennes" libelle="Tractions sous la table" anime={false} />);
+  expect(screen.getByTestId('accessoire-table')).toBeTruthy();
+  await screen.rerender(<Figurine exerciceId="squat-bulgare" libelle="Squat bulgare" anime={false} />);
+  expect(screen.getByTestId('accessoire-chaise').props.x).toBe(posesPour('squat-bulgare').chaiseX);
+});

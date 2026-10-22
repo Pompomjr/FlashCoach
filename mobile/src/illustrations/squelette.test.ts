@@ -53,3 +53,34 @@ test('vitesse constante en mode continu', () => {
 test('la poitrine s’interpole comme le dos', () => {
   expect(interpolerPose(DEBOUT, { ...DEBOUT, poitrine: 1 }, .5).poitrine).toBeCloseTo(.5);
 });
+
+test('cibles de mains : le bras atteint l’appui sans changer de longueur, le pli suit le signe du coude', () => {
+  const cible = { x: 103, y: 110 };
+  for (const signe of [1, -1]) {
+    const pose: Pose = { ...DEBOUT, brasDroit: { epaule: 0, coude: 30 * signe }, mains: { gauche: cible, droite: cible } };
+    const p = calculerPoints(pose);
+    expect(p.mainDroite.x).toBeCloseTo(cible.x, 5);
+    expect(p.mainDroite.y).toBeCloseTo(cible.y, 5);
+    expect(Math.hypot(p.coudeDroit.x - p.epauleDroite.x, p.coudeDroit.y - p.epauleDroite.y)).toBeCloseTo(26, 5);
+    expect(Math.hypot(p.mainDroite.x - p.coudeDroit.x, p.mainDroite.y - p.coudeDroit.y)).toBeCloseTo(24, 5);
+    // Coude positif : le coude part en arrière (vers les x négatifs pour une figurine de profil).
+    expect(Math.sign(cible.x - p.coudeDroit.x)).toBe(signe);
+  }
+  // Hors de portée, le bras se tend vers la cible.
+  const loin = calculerPoints({ ...DEBOUT, mains: { gauche: { x: 100, y: 170 }, droite: { x: 103, y: 170 } } });
+  expect(loin.mainDroite.y).toBeCloseTo(120, 5);
+});
+
+test('raccourci : le buste fuit vers l’arrière, seule sa longueur projetée change', () => {
+  const p = calculerPoints({ ...DEBOUT, vue: 'face', raccourci: .25 });
+  expect(Math.hypot(p.epaules.x - p.bassin.x, p.epaules.y - p.bassin.y)).toBeCloseTo(42 * .25, 5);
+  expect(Math.hypot(p.genouDroit.x - p.hancheDroite.x, p.genouDroit.y - p.hancheDroite.y)).toBeCloseTo(34, 5);
+});
+
+test('les cibles de mains et le raccourci s’interpolent', () => {
+  const a: Pose = { ...DEBOUT, raccourci: .2, mains: { gauche: { x: 80, y: 180 }, droite: { x: 120, y: 180 } } };
+  const b: Pose = { ...DEBOUT, raccourci: .4, mains: { gauche: { x: 90, y: 160 }, droite: { x: 120, y: 140 } } };
+  const m = interpolerPose(a, b, .5);
+  expect(m.raccourci).toBeCloseTo(.3);
+  expect(m.mains).toEqual({ gauche: { x: 85, y: 170 }, droite: { x: 120, y: 160 } });
+});

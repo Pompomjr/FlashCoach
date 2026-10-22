@@ -1,5 +1,7 @@
 # Flash Coach — repères pour l'agent
 
+> Ce fichier doit toujours rester **sous 100 lignes** : le détail va dans `PASSATION-CODEX.md` ou `docs/`.
+
 App mobile Expo (Android d'abord) de séances au poids du corps : séance flash 3-10 min en un tap (contexte × ressenti × niveau) et 13 séances prêtes en circuit. **Tout l'état du projet, l'architecture, les conventions et les prochaines étapes sont dans `PASSATION-CODEX.md` : le lire avant de fouiller le code.**
 
 ## Règles produit (non négociables)

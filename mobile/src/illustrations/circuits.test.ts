@@ -129,3 +129,11 @@ test('Y-T : bras tendus, deux ouvertures distinctes, ventre horizontal', () => {
     expect(Math.hypot(p.mainDroite.x - p.epauleDroite.x, p.mainDroite.y - p.epauleDroite.y)).toBeGreaterThan(49);
   }
 });
+
+test('bird-dog : sur tout le cycle, aucune main ne passe devant la tête', () => {
+  for (const p of cycle('bird-dog')) {
+    for (const main of [p.mainGauche, p.mainDroite]) {
+      expect(distance(main, p.tete)).toBeGreaterThan(LONGUEURS.rayonTete + RAYONS.main + .5);
+    }
+  }
+});

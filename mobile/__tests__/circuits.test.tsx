@@ -46,6 +46,7 @@ const journalEnMemoire = () => JSON.parse(memoire.contenu[CLE_JOURNAL] ?? '[]');
 const CONSEIL = 'Conseil : 2 séances par semaine, jours non consécutifs. Garde 1 à 3 répétitions en réserve.';
 const PRUDENCE = 'Utilise une chaise ou une table stable, ni pliante ni vitrée.';
 const PAS_DE_MEUBLE = 'Je n’ai pas de meuble stable';
+const SANS_TIRAGE = 'Sans vrai tirage, le dos travaille moins.';
 const DERNIER_TOUR = 'Dernier tour ! Va au bout si la technique reste propre.';
 const circuitUrl = (id: string, options = '') => `/seance?circuit=${id}&sansMateriel=0&tourEnPlus=0&graine=7${options}`;
 
@@ -188,7 +189,7 @@ describe('liste des séances prêtes', () => {
     await renderRouter(ROUTES, { initialUrl: '/circuits' });
     const carte = async (nom: string) => within(await screen.findByRole('button', { name: nom }));
     const fullBody = await carte('Full body, Tonique, 4 tours, 21 minutes');
-    expect(fullBody.getByText('Full body')).toBeTruthy();
+    expect(fullBody.getByText('Full body')).toBeTruthy(); // famille et nom : une seule ligne
     expect(fullBody.getByText('4 tours · 21 min')).toBeTruthy();
     expect(fullBody.getByText('table')).toBeTruthy();
     expect((await carte('Poussée, Tonique, 4 tours, 21 minutes')).getByText('chaise')).toBeTruthy();
@@ -197,6 +198,19 @@ describe('liste des séances prêtes', () => {
     expect(cardio.getByText('sans matériel')).toBeTruthy();
     await fireEvent.press(screen.getByRole('button', { name: 'Costaud' }));
     expect((await carte('Full body, Costaud, 4 tours, 21 minutes')).getByText('chaise et table')).toBeTruthy();
+  });
+
+  it('montre la famille de chaque carte, sans répéter le nom qui la dit déjà', async () => {
+    memoire.contenu['flashcoach.niveau'] = '2';
+    await renderRouter(ROUTES, { initialUrl: '/circuits' });
+    const carte = async (nom: string) => within(await screen.findByRole('button', { name: nom }));
+    expect((await carte('Dos, Tonique, 4 tours, 21 minutes')).getAllByText('Dos')).toHaveLength(1);
+    expect((await carte('Cardio athlétique, Tonique, 3 tours, 16 minutes')).getByText('Cardio')).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: 'Doux' }));
+    expect((await carte('Dos et tronc, Doux, 3 tours, 16 minutes')).getByText('Dos')).toBeTruthy();
+    for (const [nom, famille] of [['Full body', 'Full body'], ['Poussée', 'Poussée'], ['Jambes', 'Jambes']]) {
+      expect((await carte(`${nom}, Doux, 3 tours, 16 minutes`)).getAllByText(famille)).toHaveLength(1);
+    }
   });
 
   it('dessine l’icône « circuit » sur chaque carte', async () => {
@@ -294,6 +308,78 @@ describe('détail d’un circuit', () => {
     await fireEvent.press(screen.getByRole('switch', { name: PAS_DE_MEUBLE }));
     expect(postes()[0]).toBe('1, Tractions sous la table');
     await waitFor(() => expect(memoire.contenu['flashcoach.sansMateriel']).toBe('false'));
+  });
+
+  it.each(['dos-tonique', 'dos-costaud'])('%s : prévient que le dos travaille moins quand le Y-T remplace les tractions', async (id) => {
+    await renderRouter(ROUTES, { initialUrl: `/circuit/${id}` });
+    const interrupteur = await screen.findByRole('switch', { name: PAS_DE_MEUBLE });
+    expect(screen.queryByText(SANS_TIRAGE)).toBeNull();
+    await fireEvent.press(interrupteur);
+    expect(screen.getByText(SANS_TIRAGE)).toBeTruthy();
+    await fireEvent.press(screen.getByRole('switch', { name: PAS_DE_MEUBLE }));
+    expect(screen.queryByText(SANS_TIRAGE)).toBeNull();
+  });
+
+  it.each(['poussee-tonique', 'jambes-tonique'])('%s : ne prévient pas, aucune traction n’est remplacée', async (id) => {
+    await renderRouter(ROUTES, { initialUrl: `/circuit/${id}` });
+    await fireEvent.press(await screen.findByRole('switch', { name: PAS_DE_MEUBLE }));
+    expect(screen.queryByText(SANS_TIRAGE)).toBeNull();
+  });
+
+  it('dos-doux : pas de meuble, donc ni interrupteur ni avertissement', async () => {
+    await renderRouter(ROUTES, { initialUrl: '/circuit/dos-doux' });
+    await screen.findByRole('header', { name: 'Dos et tronc' });
+    expect(screen.queryByRole('switch', { name: PAS_DE_MEUBLE })).toBeNull();
+    expect(screen.queryByText(SANS_TIRAGE)).toBeNull();
+  });
+
+  it('annonce le matériel nécessaire, et plus aucun avec « Je n’ai pas de meuble stable »', async () => {
+    await renderRouter(ROUTES, { initialUrl: '/circuit/dos-tonique' });
+    expect(await screen.findByText('Matériel : table')).toBeTruthy();
+    await fireEvent.press(screen.getByRole('switch', { name: PAS_DE_MEUBLE }));
+    expect(screen.getByText('Matériel : sans matériel')).toBeTruthy();
+    expect(screen.queryByText('Matériel : table')).toBeNull();
+  });
+
+  it('annonce chaise et table pour un circuit Costaud', async () => {
+    await renderRouter(ROUTES, { initialUrl: '/circuit/full-body-costaud' });
+    expect(await screen.findByText('Matériel : chaise et table')).toBeTruthy();
+  });
+
+  it('annonce « sans matériel » quand le circuit n’en demande aucun', async () => {
+    await renderRouter(ROUTES, { initialUrl: '/circuit/cardio-athletique' });
+    expect(await screen.findByText('Matériel : sans matériel')).toBeTruthy();
+  });
+
+  it('garde « C’est parti » inactif tant que la préférence « sans meuble » n’est pas lue', async () => {
+    memoire.contenu['flashcoach.sansMateriel'] = 'true';
+    const stockage = stockageTelephone as unknown as { lire: (cle: string) => Promise<string | null> };
+    const lireOrigine = stockage.lire;
+    let liberer: () => void = () => undefined;
+    const porte = new Promise<void>((resolve) => {
+      liberer = resolve;
+    });
+    stockage.lire = async (cle) => {
+      await porte;
+      return lireOrigine(cle);
+    };
+    try {
+      await renderRouter(ROUTES, { initialUrl: '/circuit/dos-tonique' });
+      const lancer = await screen.findByRole('button', { name: 'C’est parti' });
+      expect(lancer).toBeDisabled();
+      await fireEvent.press(lancer);
+      expect(screen).toHavePathname('/circuit/dos-tonique');
+      await act(async () => {
+        liberer();
+        await porte;
+      });
+      await waitFor(() => expect(screen.getByRole('button', { name: 'C’est parti' })).toBeEnabled());
+      await fireEvent.press(screen.getByRole('button', { name: 'C’est parti' }));
+      await waitFor(() => expect(screen).toHavePathname('/seance'));
+      expect(screen).toHaveSearchParams(expect.objectContaining({ sansMateriel: '1' }));
+    } finally {
+      stockage.lire = lireOrigine;
+    }
   });
 
   it('garde le côté du poste quand le squat bulgare devient des fentes arrière', async () => {

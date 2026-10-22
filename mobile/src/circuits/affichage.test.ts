@@ -3,10 +3,12 @@ import {
   circuitDemandeUnMeuble,
   circuitsDuNiveau,
   libelleAccessibleCircuit,
+  libelleFamille,
   libelleMateriel,
   libellePoste,
   libelleTours,
   minutesDe,
+  tirageRemplace,
 } from './affichage';
 import { exerciceDuPoste } from './construire';
 import type { Circuit } from './types';
@@ -52,7 +54,35 @@ describe('circuitsDuNiveau', () => {
   });
 });
 
+describe('libelleFamille', () => {
+  it('nomme la famille de chaque circuit', () => {
+    expect(libelleFamille(circuit('full-body-doux'))).toBe('Full body');
+    expect(libelleFamille(circuit('poussee-tonique'))).toBe('Poussée');
+    expect(libelleFamille(circuit('jambes-costaud'))).toBe('Jambes');
+    expect(libelleFamille(circuit('dos-doux'))).toBe('Dos');
+    expect(libelleFamille(circuit('cardio-athletique'))).toBe('Cardio');
+  });
+});
+
+describe('tirageRemplace', () => {
+  it('vrai quand « sans meuble » remplace des tractions par le Y-T', () => {
+    for (const id of ['dos-tonique', 'dos-costaud', 'full-body-tonique', 'full-body-costaud']) {
+      expect(tirageRemplace(circuit(id), true)).toBe(true);
+      expect(tirageRemplace(circuit(id), false)).toBe(false);
+    }
+  });
+  it('faux quand aucun poste de tractions n’est remplacé', () => {
+    for (const id of ['dos-doux', 'poussee-tonique', 'jambes-tonique', 'cardio-athletique', 'full-body-doux']) {
+      expect(tirageRemplace(circuit(id), true)).toBe(false);
+    }
+  });
+});
+
 describe('libelleMateriel', () => {
+  it('ne demande plus aucun meuble quand « sans meuble » est activé', () => {
+    for (const c of CIRCUITS) expect(libelleMateriel(c, true)).toBe('sans matériel');
+  });
+
   it('dit le meuble demandé, ou « sans matériel »', () => {
     expect(libelleMateriel(circuit('poussee-tonique'))).toBe('chaise'); // dips sur une chaise
     expect(libelleMateriel(circuit('dos-tonique'))).toBe('table'); // tractions sous la table

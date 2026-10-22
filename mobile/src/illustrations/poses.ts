@@ -1,5 +1,5 @@
 import { CHAISE, MUR, RAYONS, TABLE } from './dessin';
-import { calculerPoints, LONGUEURS, SOL_Y, type Bras, type Jambe, type Point, type Pose } from './squelette';
+import { calculerPoints, interpolerPose, LONGUEURS, SOL_Y, type Bras, type Jambe, type Point, type Pose } from './squelette';
 
 /** `continu` : vitesse constante d'une clé à l'autre, pour un geste circulaire sans à-coups. */
 export type AnimationFigurine = {
@@ -427,6 +427,16 @@ const birdExtension = (gauche: boolean): Pose => {
     jambeGauche: gauche ? birdRepos.jambeGauche : jambeLevee,
     jambeDroite: gauche ? jambeLevee : birdRepos.jambeDroite };
 };
+// Entre appui et extension, la main passe par un point avancé et bas (bras presque tendu, main juste au-dessus du sol)
+// plutôt que par la ligne droite, qui la ferait balayer le visage. La jambe est à mi-course.
+const birdMilieu = (gauche: boolean): Pose => {
+  const epaule = gauche ? birdPoints.epauleGauche : birdPoints.epauleDroite;
+  const longueur = LONGUEURS.bras + LONGUEURS.avantBras;
+  const dy = SOL_Y - 9.4 - epaule.y;
+  const main = { x: epaule.x + Math.sqrt(longueur * longueur - dy * dy), y: epaule.y + dy };
+  const pose = interpolerPose(birdRepos, birdExtension(gauche), .5);
+  return { ...pose, mains: { gauche: gauche ? main : birdRepos.mains!.gauche, droite: gauche ? birdRepos.mains!.droite : main } };
+};
 const pontUneJambe = [-90, -115].map(tronc => {
   const racine = { x: 50 - 42 * Math.sin(rad(tronc)), y: 164 + 42 * Math.cos(rad(tronc)) };
   return appuiMains({ ...pontBas, racine, tronc, tete: -90 - tronc,
@@ -445,7 +455,7 @@ export const POSES_PAR_EXERCICE: Record<string, AnimationFigurine> = {
   'pompe-genoux': { cles: pompeGenoux, dureeCycleMs: 2600 },
   'pompe-classique': { cles: pompeClassique, dureeCycleMs: 2600 },
   'tirage-yt': { cles: tirageYT, dureeCycleMs: 3600 },
-  'bird-dog': { cles: [birdExtension(false), birdRepos, birdExtension(true), birdRepos], dureeCycleMs: 4000 },
+  'bird-dog': { cles: [birdExtension(false), birdMilieu(false), birdRepos, birdMilieu(true), birdExtension(true), birdMilieu(true), birdRepos, birdMilieu(false)], dureeCycleMs: 4000 },
   'pont-une-jambe': { cles: pontUneJambe, dureeCycleMs: 3600 },
   // De profil, bouts des doigts sur les épaules : le coude dessine un grand cercle (avant, haut, arrière, bas).
   // En haut, le coude passe un peu en arrière de la tête pour ne pas masquer le visage.

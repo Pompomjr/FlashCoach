@@ -4,7 +4,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { NIVEAUX, NOMS_NIVEAU, type Niveau } from '../src/catalogue/types';
-import { circuitsDuNiveau, libelleAccessibleCircuit, libelleMateriel, libelleTours, minutesDe } from '../src/circuits/affichage';
+import { circuitsDuNiveau, libelleAccessibleCircuit, libelleFamille, libelleMateriel, libelleTours, minutesDe } from '../src/circuits/affichage';
 import { CIRCUITS } from '../src/circuits/circuits';
 import { dureeCircuitS } from '../src/circuits/construire';
 import type { Circuit } from '../src/circuits/types';
@@ -105,6 +105,7 @@ function CarteCircuit({ circuit, minutes, onPress }: { circuit: Circuit; minutes
         <Icone nom="circuit" taille={22} />
       </View>
       <View style={styles.corps}>
+        {libelleFamille(circuit) !== circuit.nom && <Text style={styles.famille}>{libelleFamille(circuit)}</Text>}
         <Text style={styles.nom}>{circuit.nom}</Text>
         <Text style={styles.detail}>{libelleTours(circuit.tours, minutes)}</Text>
         <Text style={styles.materiel}>{libelleMateriel(circuit)}</Text>
@@ -134,6 +135,7 @@ const styles = StyleSheet.create({
   },
   pastille: { width: 40, height: 40, borderRadius: 20, backgroundColor: COULEURS.fond, alignItems: 'center', justifyContent: 'center' },
   corps: { flex: 1, gap: 2 },
+  famille: { ...TYPO.labelLarge, color: COULEURS.texteDiscret },
   nom: { ...TYPO.titleLarge, color: COULEURS.texte },
   detail: { ...TYPO.bodyLarge, color: COULEURS.texte },
   materiel: { ...TYPO.bodyMedium, color: COULEURS.texteDiscret },

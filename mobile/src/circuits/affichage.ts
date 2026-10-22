@@ -3,7 +3,7 @@ import { NOMS_NIVEAU, type Niveau } from '../catalogue/types';
 import { CIRCUITS } from './circuits';
 import { exerciceDuPoste } from './construire';
 import { materielDe } from './materiel';
-import type { Circuit, Materiel, Poste } from './types';
+import type { Circuit, FamilleCircuit, Materiel, Poste } from './types';
 
 const NOMS_EXERCICES = new Map(EXERCICES.map((exercice) => [exercice.id, exercice.nom]));
 
@@ -21,9 +21,10 @@ export function libelleTours(tours: number, minutes: number): string {
   return `${tours} tours · ${minutes} min`;
 }
 
-// Les meubles que demande le circuit, chacun une seule fois, la chaise d'abord.
-function meublesDuCircuit(circuit: Circuit): Materiel[] {
-  const demandes = new Set(circuit.postes.map((poste) => materielDe(poste.exerciceId)));
+// Les meubles que demande le circuit, chacun une seule fois, la chaise d'abord. Sans meuble stable, les
+// remplaçants sont joués : ils n'en demandent aucun.
+function meublesDuCircuit(circuit: Circuit, sansMateriel = false): Materiel[] {
+  const demandes = new Set(circuit.postes.map((poste) => materielDe(exerciceDuPoste(poste, sansMateriel))));
   return (['chaise', 'table'] as const).filter((meuble) => demandes.has(meuble));
 }
 
@@ -32,9 +33,26 @@ export function circuitDemandeUnMeuble(circuit: Circuit): boolean {
 }
 
 // « chaise », « table », « chaise et table » ou « sans matériel ».
-export function libelleMateriel(circuit: Circuit): string {
-  const meubles = meublesDuCircuit(circuit);
+export function libelleMateriel(circuit: Circuit, sansMateriel = false): string {
+  const meubles = meublesDuCircuit(circuit, sansMateriel);
   return meubles.length === 0 ? 'sans matériel' : meubles.join(' et ');
+}
+
+const NOMS_FAMILLES: Record<FamilleCircuit, string> = {
+  full_body: 'Full body',
+  poussee: 'Poussée',
+  jambes: 'Jambes',
+  dos: 'Dos',
+  cardio: 'Cardio',
+};
+
+export function libelleFamille(circuit: Circuit): string {
+  return NOMS_FAMILLES[circuit.famille];
+}
+
+// Vrai quand « sans meuble » remplace des tractions sous la table par le Y-T au sol : le dos travaille moins.
+export function tirageRemplace(circuit: Circuit, sansMateriel: boolean): boolean {
+  return sansMateriel && circuit.postes.some((poste) => poste.exerciceId === 'tractions-australiennes' && exerciceDuPoste(poste, true) === 'tirage-yt');
 }
 
 // « Squat bulgare (gauche) » : le côté imposé par le poste suit le nom.

@@ -4,7 +4,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { NOMS_NIVEAU } from '../../src/catalogue/types';
-import { circuitDemandeUnMeuble, libellePoste, libelleTours, minutesDe } from '../../src/circuits/affichage';
+import { circuitDemandeUnMeuble, libelleMateriel, libellePoste, libelleTours, minutesDe, tirageRemplace } from '../../src/circuits/affichage';
 import { circuitParId } from '../../src/circuits/circuits';
 import { dureeCircuitS, nombreDeTours } from '../../src/circuits/construire';
 import type { Circuit } from '../../src/circuits/types';
@@ -17,6 +17,7 @@ import { CIBLE_MIN, COULEURS, ELEVATION, ESPACE, RAYON, TYPO } from '../../src/u
 import { ondulation } from '../../src/ui/toucher';
 
 const PRUDENCE = 'Utilise une chaise ou une table stable, ni pliante ni vitrée.';
+const SANS_TIRAGE = 'Sans vrai tirage, le dos travaille moins.';
 
 export default function DetailCircuit() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -29,6 +30,8 @@ export default function DetailCircuit() {
 function Detail({ circuit }: { circuit: Circuit }) {
   const [sansMateriel, setSansMateriel] = useState(false);
   const [tourEnPlus, setTourEnPlus] = useState(false);
+  // Tant que la préférence n'est pas lue, on ne lance pas : un démarrage à froid ne doit pas imposer un meuble.
+  const [preferenceLue, setPreferenceLue] = useState(false);
   // Un interrupteur touché pendant la lecture de la préférence ne doit pas être écrasé par elle.
   const interrupteurTouche = useRef(false);
   // Garde contre le double appui : une seule séance part, jusqu'au prochain retour sur ce détail.
@@ -38,7 +41,9 @@ function Detail({ circuit }: { circuit: Circuit }) {
   useEffect(() => {
     let actif = true;
     lireSansMateriel(stockageTelephone).then((lue) => {
-      if (actif && !interrupteurTouche.current) setSansMateriel(lue);
+      if (!actif) return;
+      if (!interrupteurTouche.current) setSansMateriel(lue);
+      setPreferenceLue(true);
     });
     return () => {
       actif = false;
@@ -64,7 +69,7 @@ function Detail({ circuit }: { circuit: Circuit }) {
   const retour = () => (router.canGoBack() ? router.back() : router.replace('/circuits'));
 
   const lancer = () => {
-    if (lancement.current) return;
+    if (lancement.current || !preferenceLue) return;
     lancement.current = true;
     router.push({
       pathname: '/seance',
@@ -100,6 +105,7 @@ function Detail({ circuit }: { circuit: Circuit }) {
           <Text style={styles.niveau}>{NOMS_NIVEAU[circuit.niveau]}</Text>
           <Text style={styles.duree}>{libelleTours(nombreDeTours(circuit, tourEnPlus), minutes)}</Text>
         </View>
+        <Text style={styles.materiel}>{`Matériel : ${libelleMateriel(circuit, sansMateriel)}`}</Text>
 
         <View style={styles.postes}>
           {circuit.postes.map((poste, index) => {
@@ -119,13 +125,14 @@ function Detail({ circuit }: { circuit: Circuit }) {
           <>
             <Text style={styles.prudence}>{PRUDENCE}</Text>
             <Interrupteur libelle="Je n’ai pas de meuble stable" valeur={sansMateriel} onChange={changerSansMateriel} />
+            {tirageRemplace(circuit, sansMateriel) && <Text style={styles.prudence}>{SANS_TIRAGE}</Text>}
           </>
         )}
         {circuit.tourFacultatif && <Interrupteur libelle="Ajouter un 5e tour" valeur={tourEnPlus} onChange={setTourEnPlus} />}
       </ScrollView>
 
       <View style={styles.pied}>
-        <Bouton libelle="C’est parti" onPress={lancer} />
+        <Bouton libelle="C’est parti" onPress={lancer} desactive={!preferenceLue} />
       </View>
     </SafeAreaView>
   );
@@ -153,6 +160,7 @@ const styles = StyleSheet.create({
   numero: { width: 32, height: 32, borderRadius: 16, backgroundColor: COULEURS.fond, alignItems: 'center', justifyContent: 'center' },
   texteNumero: { ...TYPO.labelLarge, color: COULEURS.texte },
   nomPoste: { ...TYPO.titleMedium, color: COULEURS.texte, flex: 1 },
+  materiel: { ...TYPO.bodyLarge, color: COULEURS.texteDiscret },
   prudence: { ...TYPO.bodyLarge, color: COULEURS.texteDiscret },
   pied: { paddingHorizontal: ESPACE, paddingBottom: ESPACE, paddingTop: 8 },
 });

@@ -23,9 +23,6 @@ export type Pose = {
   /** Cibles de mains pour les appuis (pompes, planches, dips) : le bras se plie pour atteindre le point,
    * du côté donné par le signe de `coude` (positif : coude vers l'arrière de profil). */
   mains?: { gauche: Point; droite: Point };
-  /** Corps couché vu de face (planche vue de la tête) : fraction visible du tronc et du cou, qui fuient
-   * vers l'arrière ; le bassin et les jambes passent alors derrière le buste. */
-  raccourci?: number;
   /** Recale verticalement le pied porteur lors de l'échantillonnage du cycle. */
   appuiPieds?: boolean;
 };
@@ -45,9 +42,8 @@ function avancer(p: Point, longueur: number, angle: number): Point {
 export function calculerPoints(pose: Pose) {
   const l = LONGUEURS;
   const bassin = { ...pose.racine };
-  const fuite = pose.raccourci ?? 1;
-  const epaules = avancer(bassin, l.tronc * fuite + (pose.haussement ?? 0), 180 - pose.tronc);
-  const cou = avancer(bassin, (l.tronc + l.cou) * fuite, 180 - pose.tronc);
+  const epaules = avancer(bassin, l.tronc + (pose.haussement ?? 0), 180 - pose.tronc);
+  const cou = avancer(bassin, l.tronc + l.cou, 180 - pose.tronc);
   const tete = avancer(cou, l.tete, 180 - pose.tronc - pose.tete);
   const largeur = pose.vue === 'face' ? l.demiEpaules : 3;
   // En profil, le petit décalage horizontal révèle le membre éloigné sans
@@ -123,8 +119,6 @@ export function interpolerPose(a: Pose, b: Pose, t: number): Pose {
       gauche: { x: melanger(a.mains.gauche.x, b.mains.gauche.x, t), y: melanger(a.mains.gauche.y, b.mains.gauche.y, t) },
       droite: { x: melanger(a.mains.droite.x, b.mains.droite.x, t), y: melanger(a.mains.droite.y, b.mains.droite.y, t) },
     } } : {}),
-    ...(a.raccourci !== undefined || b.raccourci !== undefined
-      ? { raccourci: melanger(a.raccourci ?? 1, b.raccourci ?? 1, t) } : {}),
     ...(a.appuiPieds && b.appuiPieds ? { appuiPieds: true } : {}),
   };
 }

@@ -213,7 +213,7 @@ const NIVEAUX = [
   'pompe-spiderman', 'planche-penchee', 'gainage-commando', 'fentes-sautees', 'burpee-complet',
 ];
 const LENTS = ['pompe-tempo', 'planche-penchee', 'hollow-hold', 'squat-pause'];
-const DE_FACE = ['pompe-archer'];
+const DE_FACE: string[] = [];
 const ACCESSOIRES: Record<string, string> = {
   'dips-chaise': 'chaise', 'squat-bulgare': 'chaise', 'pompe-pieds-sureleves': 'chaise', 'tractions-australiennes': 'table',
 };
@@ -437,18 +437,23 @@ test('planche, toucher d’épaules : corps gainé, une main quitte le sol pour 
   }
 });
 
-test('pompe archer : mains très larges, un bras plié, l’autre tendu', () => {
+test('pompe archer : de profil, un bras se plie, l’autre reste tendu loin devant, corps gainé', () => {
   for (const pose of toutLeCycle('pompe-archer')) {
     const p = calculerPoints(pose);
     expect(p.mainDroite.y).toBeCloseTo(SOL_Y, 5);
     expect(p.mainGauche.y).toBeCloseTo(SOL_Y, 5);
-    expect(Math.abs(p.mainDroite.x - p.mainGauche.x)).toBeGreaterThan(70);
+    expect(ecartAlignement(p)).toBeLessThan(1.5);
+    // Pieds au sol derrière les mains.
+    expect(p.orteilsDroits.y).toBeCloseTo(SOL_Y, 0);
+    expect(p.chevilleDroite.x).toBeLessThan(Math.min(p.mainDroite.x, p.mainGauche.x) - 60);
+    // Le bras éloigné reste presque tendu sur tout le cycle (tendu aux clés, à peine fléchi entre elles).
+    expect(angleEntre(p.coudeGauche, p.epauleGauche, p.mainGauche)).toBeGreaterThan(140);
   }
   const [haut, bas] = posesPour('pompe-archer').cles.map(calculerPoints);
-  expect(bas.epaules.y).toBeGreaterThan(haut.epaules.y + 10);
-  const tendu = (epaule: Point, main: Point) => distance(epaule, main) > 46;
-  expect(tendu(bas.epauleGauche, bas.mainGauche) !== tendu(bas.epauleDroite, bas.mainDroite)).toBe(true);
-  expect(Math.min(distance(bas.epauleGauche, bas.mainGauche), distance(bas.epauleDroite, bas.mainDroite))).toBeLessThan(36);
+  expect(bas.epaules.y).toBeGreaterThan(haut.epaules.y + 12);
+  expect(angleEntre(bas.coudeDroit, bas.epauleDroite, bas.mainDroite)).toBeLessThan(100);
+  for (const p of [haut, bas]) expect(angleEntre(p.coudeGauche, p.epauleGauche, p.mainGauche)).toBeGreaterThan(160);
+  expect(bas.mainGauche.x).toBeGreaterThan(bas.mainDroite.x + 25);
 });
 
 test('superman tirage : à plat ventre, bras tendus devant puis coudes tirés vers les côtes', () => {

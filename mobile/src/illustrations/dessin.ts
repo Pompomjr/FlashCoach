@@ -162,12 +162,6 @@ function tete(pose: Pose, centre: Point, haut: Point, r: number) {
   };
 }
 
-/** Planche vue de face : les pieds sont posés derrière, au sol (cibles `chevilles` de la pose, sinon sous le bassin). */
-export function piedsFuyants(pose: Pose): { gauche: Point; droite: Point } {
-  if (pose.chevilles) return pose.chevilles;
-  return { gauche: { x: pose.racine.x - 4, y: SOL_Y - 2 }, droite: { x: pose.racine.x + 4, y: SOL_Y - 2 } };
-}
-
 /** Ombre au sol, sous les appuis ; plus petite et plus pâle quand la figurine est en l'air. */
 function ombre(points: ReturnType<typeof calculerPoints>): Ombre {
   const appuis = Object.values(points).filter(p => p.y >= SOL_Y - 6).map(p => p.x);
@@ -248,25 +242,12 @@ export function dessinerFigurine(pose: Pose): DessinFigurine {
   cercles.push(...visage.etendue);
   // De face, les deux bras sont au premier plan, devant le tronc ; de profil, le bras gauche passe derrière.
   const devant = profil ? [bras(false)] : [bras(true), bras(false)];
-  // Couché vu de face, les jambes fuient derrière le buste : en perspective, elles s'affinent et convergent
-  // vers les pieds posés au sol derrière les mains, en teinte éloignée.
-  const fuyantes = pose.raccourci !== undefined;
-  const pieds = piedsFuyants(pose);
-  const jambeFuyante = (gauche: boolean): string[] => {
-    const hanche = gauche ? p.hancheGauche : p.hancheDroite;
-    const pied = gauche ? pieds.gauche : pieds.droite;
-    return [
-      capsuleNotee(hanche, RAYONS.hancheFace * .7, pied, RAYONS.cheville * .6),
-      capsuleNotee(pied, RAYONS.talon * .7, { x: pied.x, y: pied.y + 2 }, RAYONS.orteils * .8),
-    ];
-  };
   const formes: FormeFigurine[] = [
-    ...(fuyantes ? [...jambeFuyante(true), ...jambeFuyante(false)].map(d => ({ d, teinte: 'loin' as const }))
-      : jambe(true).map(d => ({ d, teinte: loin }))),
+    ...jambe(true).map(d => ({ d, teinte: loin })),
     ...(profil ? bras(true).membre.map(d => ({ d, teinte: loin })) : []),
     { d: capsuleNotee(p.epaules, RAYONS.cou, plus(p.tete, fois(haut, -r * 0.6)), RAYONS.cou), teinte: 'proche' },
     { d: contourLisse(contour), teinte: 'proche' },
-    ...(fuyantes ? [] : jambe(false).map(d => ({ d, teinte: 'proche' as const }))),
+    ...jambe(false).map(d => ({ d, teinte: 'proche' as const })),
     ...visage.arriere.map(d => ({ d, teinte: 'cheveux' as const })),
     { d: cercleNote(p.tete, r), teinte: 'proche' },
     ...visage.cheveux.map(d => ({ d, teinte: 'cheveux' as const })),
@@ -287,8 +268,7 @@ export function dessinerFigurine(pose: Pose): DessinFigurine {
   const ys = [...cercles.map(c => c.c.y - c.r - 1), ...cercles.map(c => c.c.y + c.r), ...contour.map(c => c.y)];
   return {
     formes,
-    ombre: ombre(fuyantes ? { ...p, genouGauche: pieds.gauche, genouDroit: pieds.droite, chevilleGauche: pieds.gauche,
-      chevilleDroite: pieds.droite, orteilsGauches: pieds.gauche, orteilsDroits: pieds.droite } : p),
+    ombre: ombre(p),
     bornes: { minX: Math.min(...xs), minY: Math.min(...ys), maxX: Math.max(...xs), maxY: Math.max(...ys) },
   };
 }

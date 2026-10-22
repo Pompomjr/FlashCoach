@@ -290,16 +290,6 @@ const bulgare = (racine: Point, tronc: number): Pose => ({ ...debout(), racine, 
   chevilles: { gauche: { x: CHAISE_BULGARE + 36, y: 146 }, droite: { x: 150, y: SOL_Y } },
   brasGauche: bras(tronc + 10, 25), brasDroit: bras(tronc - 5, 25) });
 
-// Planche vue de face (depuis la tête) : buste raccourci, jambes qui fuient vers les pieds posés derrière.
-const RACCOURCI = .4;
-// Pieds joints loin derrière : en perspective, un peu au-dessus de la ligne des mains.
-const PIEDS_FACE = { gauche: { x: 98, y: SOL_Y - 7 }, droite: { x: 102, y: SOL_Y - 7 } };
-const plancheFace = (x: number, hauteurEpaules: number, mainGauche: Point, mainDroite: Point): Pose => ({ ...debout('face'),
-  racine: { x, y: hauteurEpaules + LONGUEURS.tronc * RACCOURCI }, raccourci: RACCOURCI, chevilles: PIEDS_FACE,
-  // Squelette des jambes non dessiné (fuyantes) : genoux pliés vers le haut, pour rester dans le cadre.
-  jambeGauche: jambe(0, 30), jambeDroite: jambe(0, 30),
-  mains: { gauche: mainGauche, droite: mainDroite }, brasGauche: bras(0, 20), brasDroit: bras(0, -20) });
-
 // Planche, toucher d'épaules (profil) : corps gainé, une main quitte le sol pour l'épaule opposée.
 const CHEVILLE_TOUCHER = { x: 36, y: 171 };
 const plancheTendue = (() => {
@@ -321,7 +311,14 @@ const pliVersLeSol = (droite: boolean) => {
 const plancheToucher: Pose = { ...plancheTendue, brasDroit: bras(0, pliVersLeSol(true)), brasGauche: bras(0, pliVersLeSol(false)) };
 const toucheEpaule = (droite: boolean): Pose => ({ ...toucher(droite, pliVersLeSol(droite)),
   [droite ? 'brasGauche' : 'brasDroit']: droite ? plancheToucher.brasGauche : plancheToucher.brasDroit });
-const archerG = { x: 58, y: SOL_Y }, archerD = { x: 142, y: SOL_Y };
+// Pompe archer (profil) : le bras proche se plie, la poitrine descend vers sa main ; le bras éloigné reste
+// tendu et glisse loin devant sur le sol. Un seul côté montré : l'exercice se fait de chaque côté.
+const brasEloigneTendu = (pose: Pose): Pose => {
+  const p = calculerPoints(pose);
+  const devant = { x: p.epauleGauche.x + Math.sqrt(49.9 ** 2 - (SOL_Y - p.epauleGauche.y) ** 2), y: SOL_Y };
+  return { ...pose, mains: { gauche: devant, droite: pose.mains!.droite } };
+};
+const [archerHaut, archerBas] = pompes(CHEVILLE_POMPE, 132, 150, 10).map(brasEloigneTendu);
 
 // Gainage commando : avant-bras au sol, puis une main, puis l'autre ; pointes de pieds fixes.
 const CHEVILLE_COMMANDO = { x: 36, y: 171 };
@@ -381,10 +378,7 @@ const NIVEAUX_SUPERIEURS: Record<string, AnimationFigurine> = {
       jambeGauche: jambePied(178, 0, 223), jambeDroite: jambePied(178, 0, 223) },
   ], dureeCycleMs: 2000 },
   'pompe-diamant': { cles: pompeDiamant, dureeCycleMs: 1800 },
-  'pompe-archer': { cles: [
-    plancheFace(100, SOL_Y - Math.sqrt(49.8 ** 2 - 28 ** 2), archerG, archerD),
-    plancheFace(112, 154, archerG, archerD),
-  ], dureeCycleMs: 2000 },
+  'pompe-archer': { cles: [archerHaut, archerBas], dureeCycleMs: 2000 },
   'pompe-pieds-sureleves': { cles: pompeDeclinee, dureeCycleMs: 1800, accessoire: 'chaise', chaiseX: CHAISE_DECLINEE },
   'pompe-hindoue': { cles: [hindoueV, hindouePlongee, cobra], dureeCycleMs: 2000 },
   'pompe-spiderman': { cles: [spiderHaut, genouAuCoude(spiderBas, true), spiderHaut, genouAuCoude(spiderBas, false)], dureeCycleMs: 2000 },

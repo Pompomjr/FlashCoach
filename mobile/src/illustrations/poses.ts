@@ -4,6 +4,8 @@ import { calculerPoints, LONGUEURS, SOL_Y, type Bras, type Jambe, type Point, ty
 /** `continu` : vitesse constante d'une clé à l'autre, pour un geste circulaire sans à-coups. */
 export type AnimationFigurine = {
   cles: Pose[]; dureeCycleMs: number; accessoire?: 'mur' | 'chaise' | 'table'; murX?: number; chaiseX?: number; continu?: boolean;
+  /** Dossier du côté opposé au corps pour les mains en appui sur l'assise. */
+  chaiseDossierDroite?: boolean;
 };
 const bras = (epaule = 0, coude = 0): Bras => ({ epaule, coude });
 const jambe = (hanche = 0, genou = 0, cheville = -hanche - genou): Jambe => ({ hanche, genou, cheville });
@@ -395,7 +397,7 @@ const NIVEAUX_SUPERIEURS: Record<string, AnimationFigurine> = {
 };
 
 // Circuits : variantes indépendantes des tempos et clés des exercices existants.
-const CHAISE_INCLINEE = 147;
+const CHAISE_INCLINEE = 143;
 const pompeInclinee = [106, 124].map(y => appuiMains(
   gaine(CHEVILLE_POMPE, epaulesA(CHEVILLE_POMPE, y), piedSol(CHEVILLE_POMPE.y)),
   155, CHAISE.assise - RAYONS.main));
@@ -407,12 +409,24 @@ const pompeGenoux = [60, 77].map(inclinaison => {
     jambeDroite: jambe(-inclinaison, inclinaison - 90, -90) };
   return appuiMains(pose, 145);
 });
-const birdRepos = appuiMains({ ...quatrePattes, racine: { x: 84, y: 146 }, tronc: 90 }, 129);
-const birdExtension = (gauche: boolean): Pose => ({ ...birdRepos,
-  mains: { gauche: gauche ? { x: 171, y: 146 } : birdRepos.mains!.gauche,
-    droite: gauche ? birdRepos.mains!.droite : { x: 177, y: 146 } },
-  jambeGauche: gauche ? birdRepos.jambeGauche : jambe(-90, 0, -180),
-  jambeDroite: gauche ? jambe(-90, 0, -180) : birdRepos.jambeDroite });
+// Les cuisses sont plus courtes que les bras : un dos plat incliné de 20°
+// laisse les mains sous les épaules et le coude porteur presque tendu.
+const birdBase: Pose = { ...quatrePattes, racine: { x: 88, y: SOL_Y - LONGUEURS.cuisse }, tete: 55, dos: 0 };
+const birdPoints = calculerPoints(birdBase);
+const birdRepos = appuiMains(birdBase, birdPoints.epauleDroite.x);
+const birdExtension = (gauche: boolean): Pose => {
+  // Bras complètement allongé, légèrement au-dessus du dos ; regard au sol
+  // pour dégager le visage. La jambe opposée prolonge exactement le tronc.
+  const epaule = gauche ? birdPoints.epauleGauche : birdPoints.epauleDroite;
+  const longueur = LONGUEURS.bras + LONGUEURS.avantBras;
+  const main = { x: epaule.x + longueur * Math.cos(rad(40)), y: epaule.y - longueur * Math.sin(rad(40)) };
+  const jambeLevee = jambe(-birdBase.tronc, 0, birdBase.tronc - 180);
+  return { ...birdRepos,
+    mains: { gauche: gauche ? main : birdRepos.mains!.gauche,
+      droite: gauche ? birdRepos.mains!.droite : main },
+    jambeGauche: gauche ? birdRepos.jambeGauche : jambeLevee,
+    jambeDroite: gauche ? jambeLevee : birdRepos.jambeDroite };
+};
 const pontUneJambe = [-90, -115].map(tronc => {
   const racine = { x: 50 - 42 * Math.sin(rad(tronc)), y: 164 + 42 * Math.cos(rad(tronc)) };
   return appuiMains({ ...pontBas, racine, tronc, tete: -90 - tronc,
@@ -427,7 +441,7 @@ const tirageYT: Pose[] = [0, 1].map(t => ({ ...ventreSol, vue: 'face', racine: {
   jambeGauche: jambe(-90, 0, -90), jambeDroite: jambe(-90, 0, -90) }));
 
 export const POSES_PAR_EXERCICE: Record<string, AnimationFigurine> = {
-  'pompe-inclinee': { cles: pompeInclinee, dureeCycleMs: 2600, accessoire: 'chaise', chaiseX: CHAISE_INCLINEE },
+  'pompe-inclinee': { cles: pompeInclinee, dureeCycleMs: 2600, accessoire: 'chaise', chaiseX: CHAISE_INCLINEE, chaiseDossierDroite: true },
   'pompe-genoux': { cles: pompeGenoux, dureeCycleMs: 2600 },
   'pompe-classique': { cles: pompeClassique, dureeCycleMs: 2600 },
   'tirage-yt': { cles: tirageYT, dureeCycleMs: 3600 },

@@ -84,3 +84,8 @@ test('tractions-australiennes dessine une table, squat-bulgare une chaise à sa 
   await screen.rerender(<Figurine exerciceId="squat-bulgare" libelle="Squat bulgare" anime={false} />);
   expect(screen.getByTestId('accessoire-chaise').props.x).toBe(posesPour('squat-bulgare').chaiseX);
 });
+
+test('pompe inclinée : dossier à droite, à distance du visage', async () => {
+  await render(<Figurine exerciceId="pompe-inclinee" libelle="Pompe inclinée" anime={false} />);
+  expect(screen.getByTestId('accessoire-chaise').props.x).toBe(posesPour('pompe-inclinee').chaiseX! + 42 - 6);
+});

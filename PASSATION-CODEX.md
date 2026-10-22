@@ -54,18 +54,19 @@ Documents de référence : `PRODUCT.md`, `DESIGN.md` (+ `.impeccable/design.json
 
 ## 5. État au moment de la passation
 
-- `main` (d234a36) : jalons 1 à 4 (générateur, écrans, journal, Supabase), design, contenu réel (50 exercices), **niveaux** Doux/Tonique/Costaud (pastille au départ, « L'effort ? » sur Bravo), lien direct.
+- `main` (ff69cdd, poussée sur GitHub `origin` = https://github.com/Pompomjr/FlashCoach) : jalons 1 à 4 (générateur, écrans, journal, Supabase), design, contenu réel (50 exercices), **niveaux** Doux/Tonique/Costaud (pastille au départ, « L'effort ? » sur Bravo), lien direct.
 - **Séances prêtes en circuit** (fusionnées dans `main` le 2026-10-22, d234a36) : 13 circuits, 6 nouveaux exercices et leurs poses, écrans liste/détail, séance de circuit, journal et Supabase ; trois lots revus, revue finale et ses corrections validées (1315 tests verts). Branches et worktree supprimés.
 - Le registre de ce chantier (décisions, mineurs différés, revues) : `.superpowers/sdd/2026-10-22-circuits/progress.md`.
 
 ## 6. Prochaines étapes (dans l'ordre)
 
-1. ~~Finir les circuits~~ : fait (fusionné, branches et worktree supprimés).
-2. **Petit nettoyage** : supprimer le cycle d'import `journal.ts ↔ fusion.ts` (avertissement Metro) en déplaçant `fusionner` dans `journal.ts` ou `TAILLE_MAX_JOURNAL` dans un petit module commun.
-3. **Brancher le vrai Supabase** avec Mattia : il crée le projet (Francfort) en suivant `docs/supabase.md`, applique les 3 migrations dans l'ordre, met l'URL et la clé publique dans `mobile/.env.local` ; puis vérifier sur téléphone la sauvegarde, la liaison par code e-mail et la restauration. Rien n'a encore été testé contre un vrai Supabase.
-4. **Test sur téléphone** des circuits (rendu natif jamais vu, seulement l'aperçu web).
-5. Jalons suivants de la fiche technique : **5** RevenueCat (abonnement, verrouillage Premium — durées 3 et 10 min et contextes bureau/voyage/dehors prévus Premium ; les circuits sont **gratuits**), **6** PostHog + RGPD (consentement, politique, suppression du compte), **7** contenu final et test fermé Play Store (12 testeurs × 14 jours).
-6. **Idées en attente** (seulement si Mattia le demande) : phrases de motivation de grands sportifs sur l'écran de fin (attribution à vérifier) ; variantes lestées (sac, élastique) ; suivi des répétitions ; programme sur plusieurs semaines.
+1. **Refonte « objectif · intensité · durée »** (décidée par Mattia le 2026-10-22, spec validable : `docs/superpowers/specs/2026-10-23-objectifs-design.md`). Écran de départ : Brûler des calories / Prise de masse / Étirements, Léger / Moyen / Lourd, 5 · 10 · 15 · 30 min ; contextes et ressenti **supprimés** ; Prise de masse joue les circuits (familles en rotation, tours selon la durée). Si Mattia a validé la spec : écrire le plan (~3 lots) dans `docs/superpowers/plans/`, puis exécuter avec une revue par lot et une revue finale. Sinon, lui demander de la relire d'abord. Diagnostic d'origine : en « Costaud » avec le ressenti « Mou » présélectionné, le cœur ne visait que l'intensité 1-2, donc Costaud ne paraissait pas plus dur.
+2. **Retouches de la figurine en cours** : le worktree `.worktrees/figurine` (branche `figurine-retouches`) contient des changements **non commités** de Codex, interrompu par sa limite (pont sur une jambe qui suit le côté imposé, bird-dog jambe/bras alignés, pompes large/tempo distinctes, pompes sur les genoux bras tendus en haut ; brief : `.superpowers/sdd/figurine-retouches-brief.md`). Faire `git status` / `git diff`, relancer `npx jest`, finir, committer, fusionner dans `main`, supprimer le worktree.
+3. **Nouvel habillage de la figurine** (demande de Mattia, référence : illustration plate d'une sportive — peau, brassière, legging, baskets, queue de cheval, visage simple, volumes arrondis en deux tons, sur carte crème). Garder le squelette, les poses et l'animation ; changer seulement le rendu (`mobile/src/illustrations/dessin.ts`, `Figurine.tsx`) : formes vêtements/peau par segment, couleurs dans le thème, épaules fondues, aucune « boule » aux articulations. Montrer d'abord une galerie avant/après à Mattia avant de généraliser aux 76 exercices.
+4. **Petit nettoyage** : supprimer le cycle d'import `journal.ts ↔ fusion.ts` (avertissement Metro).
+5. **Brancher le vrai Supabase** avec Mattia (`docs/supabase.md`, migrations dans l'ordre, `mobile/.env.local`), puis vérifier sur téléphone sauvegarde, liaison par code e-mail et restauration.
+6. Jalons suivants : **5** RevenueCat (le découpage gratuit / Premium est à redéfinir avec la refonte par objectif), **6** PostHog + RGPD, **7** contenu final et test fermé Play Store (12 testeurs × 14 jours).
+7. **Idées en attente** (seulement si Mattia le demande) : phrases de motivation de grands sportifs sur l'écran de fin ; variantes lestées ; suivi des répétitions ; programme sur plusieurs semaines.
 
 ## 7. Décisions déjà tranchées (à ne pas rouvrir sans Mattia)
 

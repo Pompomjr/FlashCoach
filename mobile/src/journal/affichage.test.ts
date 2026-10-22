@@ -1,4 +1,5 @@
-import { formaterBilan, formaterDate, texteResume } from './affichage';
+import { fabriquerEntree } from '../test-utils/journal';
+import { estEntreeCircuit, formaterBilan, formaterDate, nomCircuit, texteResume } from './affichage';
 
 describe('formaterDate', () => {
   it('donne le jour, la date et l’heure locale en français', () => {
@@ -41,5 +42,19 @@ describe('texteResume', () => {
 
   it('montre la preuve de la promesse', () => {
     expect(texteResume({ seances: 12, repondues: 10, mieux: 9 })).toBe('Séances qui t’ont fait du bien : 9 sur 10');
+  });
+});
+
+describe('séances en circuit', () => {
+  it('reconnaît une entrée de circuit à son identifiant', () => {
+    expect(estEntreeCircuit(fabriquerEntree({ circuitId: 'dos-tonique', duree: 21 }))).toBe(true);
+    expect(estEntreeCircuit(fabriquerEntree())).toBe(false);
+    expect(estEntreeCircuit(fabriquerEntree({ circuitId: '' }))).toBe(false);
+  });
+
+  it('donne le nom du circuit, ou un nom neutre pour un circuit que cette version ne connaît pas', () => {
+    expect(nomCircuit('full-body-tonique')).toBe('Full body');
+    expect(nomCircuit('dos-doux')).toBe('Dos et tronc');
+    expect(nomCircuit('circuit-du-futur')).toBe('Séance prête');
   });
 });

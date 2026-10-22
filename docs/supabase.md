@@ -24,8 +24,9 @@ Guide pas à pas pour créer le projet Supabase qui sauvegarde le journal des s�
 
 1. **SQL Editor** → New query.
 2. Colle le contenu de `supabase/migrations/20261019000000_seances.sql`, puis **Run**.
-3. Nouvelle requête : colle le contenu de `supabase/migrations/20261019120000_seances_niveau.sql` (niveau et effort des séances), puis **Run**. Les deux migrations s'appliquent dans cet ordre.
-4. La première migration ne contient pas de `grant` : c'est le réglage par défaut de Supabase sur le schéma `public` qui permet au rôle `authenticated` (les utilisateurs anonymes en font partie) d'utiliser la table. La sécurité par ligne (RLS) limite ensuite chacun à ses propres lignes. Si ton projet n'expose pas automatiquement les nouvelles tables, ajoute `grant select, insert, update on public.seances to authenticated;`.
+3. Nouvelle requête : colle le contenu de `supabase/migrations/20261019120000_seances_niveau.sql` (niveau et effort des séances), puis **Run**.
+4. Nouvelle requête : colle le contenu de `supabase/migrations/20261022120000_seances_circuit.sql` (identifiant du circuit et durées de 1 à 60 minutes pour les séances prêtes en circuit), puis **Run**. Les trois migrations s'appliquent dans cet ordre.
+5. La première migration ne contient pas de `grant` : c'est le réglage par défaut de Supabase sur le schéma `public` qui permet au rôle `authenticated` (les utilisateurs anonymes en font partie) d'utiliser la table. La sécurité par ligne (RLS) limite ensuite chacun à ses propres lignes. Si ton projet n'expose pas automatiquement les nouvelles tables, ajoute `grant select, insert, update on public.seances to authenticated;`.
 
 ## 5. Brancher l'app
 

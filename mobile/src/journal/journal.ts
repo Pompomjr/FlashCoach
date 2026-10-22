@@ -14,7 +14,8 @@ export interface EntreeJournal {
   debut: string;
   contexteId: string;
   ressenti: Ressenti;
-  duree: Duree;
+  // Minutes : 3, 5 ou 10 pour une séance flash ; un entier de 1 à 60 pour un circuit (circuitId présent).
+  duree: number;
   graine: number;
   exercices: string[];
   ecouleMs: number;
@@ -24,12 +25,25 @@ export interface EntreeJournal {
   apres: Apres | null;
   niveau: Niveau;
   effort: Effort | null;
+  // Séance prête en circuit : identifiant du circuit ; nul pour une séance flash.
+  circuitId: string | null;
 }
 
 export type ChangementEntree = Partial<Pick<EntreeJournal, 'ecouleMs' | 'exercicesFaits' | 'terminee' | 'apres' | 'effort'>>;
 
 export const CLE_JOURNAL = 'flashcoach.journal.v1';
 export const TAILLE_MAX_JOURNAL = 500;
+
+const DUREE_CIRCUIT_MIN = 1;
+const DUREE_CIRCUIT_MAX = 60;
+
+// Une séance de circuit dure un nombre libre de minutes (16, 21, 26…) ; une séance flash, 3, 5 ou 10.
+function dureeValide(duree: unknown, circuitId: unknown): boolean {
+  if (typeof circuitId === 'string' && circuitId !== '') {
+    return Number.isInteger(duree) && (duree as number) >= DUREE_CIRCUIT_MIN && (duree as number) <= DUREE_CIRCUIT_MAX;
+  }
+  return DUREES.includes(duree as Duree);
+}
 
 export function creerIdentifiant(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
@@ -43,7 +57,8 @@ export function estEntreeJournal(valeur: unknown): valeur is EntreeJournal {
     typeof v.debut === 'string' &&
     typeof v.contexteId === 'string' &&
     RESSENTIS.includes(v.ressenti as Ressenti) &&
-    DUREES.includes(v.duree as Duree) &&
+    (v.circuitId === null || typeof v.circuitId === 'string') &&
+    dureeValide(v.duree, v.circuitId) &&
     Number.isFinite(v.graine) &&
     Array.isArray(v.exercices) &&
     v.exercices.every((id) => typeof id === 'string') &&
@@ -58,11 +73,12 @@ export function estEntreeJournal(valeur: unknown): valeur is EntreeJournal {
   );
 }
 
-// Les entrées d'avant les niveaux n'ont ni niveau ni effort : elles restent valides (niveau 1, effort nul).
+// Les entrées d'avant les niveaux n'ont ni niveau ni effort, celles d'avant les circuits n'ont pas de circuitId :
+// elles restent valides (niveau 1, effort nul, pas de circuit).
 export function normaliserEntree(valeur: unknown): EntreeJournal | null {
   if (typeof valeur !== 'object' || valeur === null) return null;
   const v = valeur as Record<string, unknown>;
-  const complete: unknown = { ...v, niveau: v.niveau ?? 1, effort: v.effort ?? null };
+  const complete: unknown = { ...v, niveau: v.niveau ?? 1, effort: v.effort ?? null, circuitId: v.circuitId ?? null };
   return estEntreeJournal(complete) ? complete : null;
 }
 

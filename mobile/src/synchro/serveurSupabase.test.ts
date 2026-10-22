@@ -12,6 +12,30 @@ describe('conversion séance ↔ ligne', () => {
     expect(versLigne(costaud)).toMatchObject({ niveau: 3, effort: 'dur' });
   });
 
+  it('fait l’aller-retour d’une séance en circuit, durée de 21 minutes comprise', () => {
+    const circuit = fabriquerEntree({ id: 'c', circuitId: 'dos-tonique', duree: 21, niveau: 2, exercices: ['tractions-australiennes', 'planche-laterale'] });
+    expect(versLigne(circuit)).toMatchObject({ circuit_id: 'dos-tonique', duree: 21, niveau: 2 });
+    expect(depuisLigne(versLigne(circuit))).toEqual(circuit);
+  });
+
+  it('envoie circuit_id nul pour une séance flash et la relit sans circuit', () => {
+    const flash = fabriquerEntree();
+    expect(versLigne(flash)).toHaveProperty('circuit_id', null);
+    expect(depuisLigne(versLigne(flash))).toEqual(flash);
+  });
+
+  it('lit une ligne d’avant les circuits : colonne absente ou nulle', () => {
+    const { circuit_id, ...ancienne } = versLigne(fabriquerEntree());
+    expect(depuisLigne(ancienne)).toMatchObject({ circuitId: null, duree: 5 });
+    expect(depuisLigne({ ...ancienne, circuit_id: null })).toMatchObject({ circuitId: null });
+  });
+
+  it('ignore une ligne de circuit à la durée invalide, ou une durée de circuit sans circuit', () => {
+    const circuit = fabriquerEntree({ circuitId: 'dos-tonique', duree: 21 });
+    expect(depuisLigne({ ...versLigne(circuit), duree: 61 })).toBeNull();
+    expect(depuisLigne({ ...versLigne(circuit), circuit_id: null })).toBeNull();
+  });
+
   it('lit une ligne sans les colonnes niveau et effort', () => {
     const { niveau, effort, ...ancienne } = versLigne(fabriquerEntree());
     expect(depuisLigne(ancienne)).toMatchObject({ niveau: 1, effort: null });
@@ -65,7 +89,7 @@ describe('ServeurSupabase', () => {
     const lue = { ...versLigne(bonne), debut: bonne.debut.replace('Z', '+00:00') };
     const { client, select, order, limit } = clientDeLecture({ data: [lue, { ...versLigne(fabriquerEntree({ id: 'b' })), duree: 7 }, null], error: null });
     expect(await new ServeurSupabase(client).recuperer()).toEqual([bonne]);
-    expect(select).toHaveBeenCalledWith('id,debut,contexte_id,ressenti,duree,graine,exercices,ecoule_ms,exercices_faits,terminee,apres,niveau,effort');
+    expect(select).toHaveBeenCalledWith('id,debut,contexte_id,ressenti,duree,graine,exercices,ecoule_ms,exercices_faits,terminee,apres,niveau,effort,circuit_id');
     expect(order).toHaveBeenCalledWith('debut', { ascending: false });
     expect(limit).toHaveBeenCalledWith(500);
   });

@@ -15,6 +15,7 @@ export function fabriquerEntree(surcharge: Partial<EntreeJournal> = {}): EntreeJ
     apres: null,
     niveau: 1,
     effort: null,
+    circuitId: null,
     ...surcharge,
   };
 }

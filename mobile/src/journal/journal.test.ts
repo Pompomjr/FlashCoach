@@ -249,3 +249,53 @@ describe('niveau et effort', () => {
     expect((await lireJournal(stockage))[0].effort).toBe('facile');
   });
 });
+
+describe('séances en circuit', () => {
+  const circuit = (surcharge = {}) => fabriquerEntree({ id: 'circuit', circuitId: 'full-body-tonique', duree: 21, niveau: 2, ...surcharge });
+  const sansCircuit = () => {
+    const { circuitId, ...reste } = fabriquerEntree({ id: 'vieille' });
+    return reste;
+  };
+
+  it('lit une entrée d’avant les circuits : circuitId nul, durée flash inchangée', async () => {
+    const stockage = creerStockageMemoire({ [CLE_JOURNAL]: JSON.stringify([sansCircuit()]) });
+    expect(await lireJournal(stockage)).toEqual([fabriquerEntree({ id: 'vieille', circuitId: null })]);
+    expect(normaliserEntree(sansCircuit())).toMatchObject({ circuitId: null, duree: 5 });
+  });
+
+  it('accepte une entrée de circuit de 21 minutes et la retrouve telle quelle', async () => {
+    expect(estEntreeJournal(circuit())).toBe(true);
+    const stockage = creerStockageMemoire();
+    await ajouterEntree(stockage, circuit());
+    expect(await lireJournal(stockage)).toEqual([circuit()]);
+  });
+
+  it('accepte toute durée entière de 1 à 60 minutes pour un circuit', () => {
+    for (const duree of [1, 16, 21, 26, 60]) expect(estEntreeJournal(circuit({ duree }))).toBe(true);
+  });
+
+  it('refuse pour un circuit une durée hors de 1 à 60 ou non entière', () => {
+    for (const duree of [0, -3, 61, 120, 1.5, Number.NaN, '21']) expect(estEntreeJournal(circuit({ duree }))).toBe(false);
+  });
+
+  it('garde les durées 3, 5 et 10 pour une séance sans circuit', () => {
+    for (const duree of [3, 5, 10]) expect(estEntreeJournal(fabriquerEntree({ duree }))).toBe(true);
+    for (const duree of [1, 7, 21, 60]) expect(estEntreeJournal(fabriquerEntree({ duree: duree as never }))).toBe(false);
+  });
+
+  it('refuse un identifiant de circuit qui n’est ni nul ni du texte', () => {
+    for (const circuitId of [5, true, {}, undefined]) expect(estEntreeJournal(circuit({ circuitId }))).toBe(false);
+  });
+
+  it('écarte à la lecture une entrée de circuit à la durée invalide, garde les autres', async () => {
+    const stockage = creerStockageMemoire({ [CLE_JOURNAL]: JSON.stringify([circuit({ duree: 90 }), circuit({ id: 'bonne' })]) });
+    expect((await lireJournal(stockage)).map((e) => e.id)).toEqual(['bonne']);
+  });
+
+  it('complète une entrée de circuit sans perdre son circuit ni sa durée', async () => {
+    const stockage = creerStockageMemoire();
+    await ajouterEntree(stockage, circuit());
+    await mettreAJourEntree(stockage, 'circuit', { terminee: true, apres: 'mieux' });
+    expect((await lireJournal(stockage))[0]).toEqual(circuit({ terminee: true, apres: 'mieux' }));
+  });
+});

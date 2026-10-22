@@ -1,4 +1,6 @@
+import { circuitParId } from '../circuits/circuits';
 import { minutesEffectuees } from '../seance/affichage';
+import type { EntreeJournal } from './journal';
 
 const JOURS = ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'];
 const MOIS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
@@ -28,4 +30,14 @@ export function texteResume(resume: { seances: number; repondues: number; mieux:
   }
   // Espace insécable avant le deux-points (typographie française) : jamais de « : » seul en début de ligne.
   return `Séances qui t’ont fait du bien : ${resume.mieux} sur ${resume.repondues}`;
+}
+
+// Séance prête en circuit : la ligne du journal affiche le circuit à la place du contexte.
+export function estEntreeCircuit(entree: EntreeJournal): entree is EntreeJournal & { circuitId: string } {
+  return entree.circuitId !== null && entree.circuitId !== '';
+}
+
+// Un circuit absent de cette version de l'app (synchronisé depuis une version plus récente) garde un nom neutre.
+export function nomCircuit(circuitId: string): string {
+  return circuitParId(circuitId)?.nom ?? 'Séance prête';
 }

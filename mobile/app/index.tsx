@@ -45,6 +45,8 @@ export default function Depart() {
   const lancement = useRef(false);
   // Même garde pour « Mon journal » : un seul écran s'ouvre, jusqu'au prochain retour sur le départ.
   const ouvertureJournal = useRef(false);
+  // Même garde pour « Séances prêtes ».
+  const ouvertureCircuits = useRef(false);
 
   const contextes = useMemo(() => [...CONTEXTES].sort((a, b) => a.ordre - b.ordre), []);
 
@@ -55,6 +57,7 @@ export default function Depart() {
     useCallback(() => {
       lancement.current = false;
       ouvertureJournal.current = false;
+      ouvertureCircuits.current = false;
       let actif = true;
       const dejaChoisi = choixUtilisateur.current;
       const niveauDejaChoisi = niveauUtilisateur.current;
@@ -107,6 +110,12 @@ export default function Depart() {
     router.push('/journal');
   };
 
+  const ouvrirCircuits = () => {
+    if (ouvertureCircuits.current) return;
+    ouvertureCircuits.current = true;
+    router.push('/circuits');
+  };
+
   const lancer = () => {
     if (lancement.current) return;
     lancement.current = true;
@@ -125,13 +134,22 @@ export default function Depart() {
           <Text style={[styles.slogan, compacte && styles.sloganCompact]}>
             Où que tu sois, 5 minutes pour te sentir mieux.
           </Text>
-          {/* Hors du flux : le bloc logo, nom et slogan reste centré sur l'écran. */}
+          {/* Hors du flux : le bloc logo, nom et slogan reste centré sur l'écran. « Séances prêtes » à gauche, « Mon journal » à droite. */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Séances prêtes"
+            onPress={ouvrirCircuits}
+            android_ripple={ondulation(COULEURS.texte)}
+            style={({ pressed }) => [styles.boutonEntete, styles.boutonCircuits, enfoncement(pressed)]}
+          >
+            <Icone nom="circuit" taille={26} />
+          </Pressable>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Mon journal"
             onPress={ouvrirJournal}
             android_ripple={ondulation(COULEURS.texte)}
-            style={({ pressed }) => [styles.boutonJournal, enfoncement(pressed)]}
+            style={({ pressed }) => [styles.boutonEntete, styles.boutonJournal, enfoncement(pressed)]}
           >
             <Icone nom="journal" taille={26} />
           </Pressable>
@@ -207,10 +225,9 @@ const styles = StyleSheet.create({
   contenuCompact: { gap: 8 },
   entete: { alignItems: 'center', gap: 4, marginBottom: 4 },
   enteteCompact: { gap: 2, marginBottom: 0 },
-  boutonJournal: {
+  boutonEntete: {
     position: 'absolute',
     top: -4,
-    right: -8,
     width: CIBLE_MIN,
     height: CIBLE_MIN,
     borderRadius: CIBLE_MIN / 2,
@@ -218,6 +235,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
   },
+  boutonJournal: { right: -8 },
+  boutonCircuits: { left: -8 },
   slogan: { ...TYPO.bodyLarge, color: COULEURS.texteDiscret, textAlign: 'center' },
   sloganCompact: TYPO.bodyMedium,
   section: { ...TYPO.headlineSmall, color: COULEURS.texte, marginTop: 8 },

@@ -39,6 +39,8 @@ export const TRACES = {
   mieux: [cercle(12, 12, 9), point(9, 9.5), point(15, 9.5), 'M8 14.5a5 5 0 0 0 8 0'],
   pareil: [cercle(12, 12, 9), point(9, 9.5), point(15, 9.5), 'M8.5 15h7'],
   coche: ['M5 12.5l4.5 4.5L19 7.5'],
+  // Deux flèches en boucle : un circuit qui se répète.
+  circuit: ['M4 12a8 8 0 0 1 13.7-5.6', 'M18 3v4h-4', 'M20 12a8 8 0 0 1-13.7 5.6', 'M6 21v-4h4'],
 } as const satisfies Record<string, readonly string[]>;
 
 export type NomIcone = keyof typeof TRACES;

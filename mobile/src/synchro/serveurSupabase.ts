@@ -17,9 +17,11 @@ export interface LigneSeance {
   apres: string | null;
   niveau: number;
   effort: string | null;
+  // Séance prête en circuit : identifiant du circuit ; nul pour une séance flash.
+  circuit_id: string | null;
 }
 
-const COLONNES = 'id,debut,contexte_id,ressenti,duree,graine,exercices,ecoule_ms,exercices_faits,terminee,apres,niveau,effort';
+const COLONNES = 'id,debut,contexte_id,ressenti,duree,graine,exercices,ecoule_ms,exercices_faits,terminee,apres,niveau,effort,circuit_id';
 
 export function versLigne(e: EntreeJournal): LigneSeance {
   return {
@@ -36,6 +38,7 @@ export function versLigne(e: EntreeJournal): LigneSeance {
     apres: e.apres,
     niveau: e.niveau,
     effort: e.effort,
+    circuit_id: e.circuitId,
   };
 }
 
@@ -59,6 +62,8 @@ export function depuisLigne(ligne: unknown): EntreeJournal | null {
     // Une ligne d'avant les niveaux (colonnes absentes ou nulles) reste lisible.
     niveau: l.niveau ?? undefined,
     effort: l.effort ?? undefined,
+    // Une ligne d'avant les circuits (colonne absente ou nulle) est une séance flash.
+    circuitId: l.circuit_id ?? undefined,
   };
   return normaliserEntree(entree);
 }

@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react-native';
 import { CONTEXTES } from '../../catalogue/contextes';
 import { RESSENTIS } from '../../catalogue/types';
 import { ICONE_APRES, ICONE_CONTEXTE, ICONE_RESSENTI, Icone, NOMS_ICONES, type NomIcone } from './index';
+import { TRACES } from './traces';
 
 describe('Icone', () => {
   it.each(NOMS_ICONES)('rend l’icône « %s » sans erreur', async (nom) => {
@@ -16,6 +17,11 @@ describe('Icone', () => {
       'cadenas', 'retour', 'journal', 'mieux', 'pareil',
     ];
     for (const nom of attendues) expect(NOMS_ICONES).toContain(nom);
+  });
+
+  it('dessine l’icône « circuit » : deux flèches en boucle', () => {
+    expect(NOMS_ICONES).toContain('circuit');
+    expect(TRACES.circuit).toEqual(['M4 12a8 8 0 0 1 13.7-5.6', 'M18 3v4h-4', 'M20 12a8 8 0 0 1-13.7 5.6', 'M6 21v-4h4']);
   });
 
   it('est décorative : cachée aux lecteurs d’écran', async () => {

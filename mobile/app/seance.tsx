@@ -5,21 +5,28 @@ import { AccessibilityInfo, Platform, Pressable, ScrollView, StyleSheet, Text, V
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EXERCICES } from '../src/catalogue/exercices';
-import type { Duree } from '../src/catalogue/types';
+import { construireSeanceCircuit } from '../src/circuits/construire';
 import { genererSeance } from '../src/generateur/generer';
 import { Figurine } from '../src/illustrations/Figurine';
-import type { ParametresSeance } from '../src/generateur/types';
+import type { Seance } from '../src/generateur/types';
 import { ajouterEntree, creerIdentifiant, mettreAJourEntree } from '../src/journal/journal';
 import { ecrireDerniersExercices } from '../src/preferences/preferences';
 import { stockageTelephone } from '../src/preferences/stockage';
-import { coteCourant, formaterTemps, minutesEffectuees } from '../src/seance/affichage';
-import { lireParametresSeance } from '../src/seance/parametres';
+import {
+  coteCourant,
+  formaterTemps,
+  libelleEnTete,
+  messageDernierTour,
+  minutesEffectuees,
+  texteAnnonce,
+  titreExercice,
+} from '../src/seance/affichage';
+import { lireParametresCircuit, lireParametresSeance } from '../src/seance/parametres';
 import { useEcranAllume } from '../src/seance/useEcranAllume';
 import { useLecteurSeance } from '../src/seance/useLecteurSeance';
 import { demanderSynchro } from '../src/synchro/instance';
 import { Bouton } from '../src/ui/Bouton';
 import { Icone } from '../src/ui/icones';
-import { LIBELLES_PHASE } from '../src/ui/libelles';
 import { CIBLE_MIN, COULEURS, ELEVATION, ESPACE, RAYON, TYPO } from '../src/ui/theme';
 import { ondulation } from '../src/ui/toucher';
 
@@ -28,28 +35,41 @@ const PADDING_CARTE = 16;
 const ZONE_PAR_DEFAUT = { largeur: 240, hauteur: 240 };
 
 export default function EcranSeance() {
-  const { contexte, ressenti, duree, graine, exclure, niveau } = useLocalSearchParams<{
+  const { contexte, ressenti, duree, graine, exclure, niveau, circuit, sansMateriel, tourEnPlus } = useLocalSearchParams<{
     contexte: string;
     ressenti: string;
     duree: string;
     graine: string;
     exclure: string;
     niveau?: string;
+    circuit?: string;
+    sansMateriel?: string;
+    tourEnPlus?: string;
   }>();
-  const parametres = useMemo(
-    () => lireParametresSeance({ contexte, ressenti, duree, graine, exclure, niveau }),
-    [contexte, ressenti, duree, graine, exclure, niveau],
-  );
-  if (parametres === null) return <Redirect href="/" />;
-  return <LecteurSeance parametres={parametres} />;
+  // La séance se reconstruit depuis l'URL : même lien, même séance. Un paramètre « circuit » désigne une
+  // séance prête ; sans lui, c'est une séance flash. Un lien invalide renvoie au départ.
+  const seance = useMemo(() => {
+    if (circuit !== undefined) {
+      const lus = lireParametresCircuit({ circuit, sansMateriel, tourEnPlus, graine });
+      return lus === null
+        ? null
+        : construireSeanceCircuit(lus.circuit, { sansMateriel: lus.sansMateriel, tourEnPlus: lus.tourEnPlus, graine: lus.graine });
+    }
+    const parametres = lireParametresSeance({ contexte, ressenti, duree, graine, exclure, niveau });
+    return parametres === null ? null : genererSeance(parametres, EXERCICES);
+  }, [contexte, ressenti, duree, graine, exclure, niveau, circuit, sansMateriel, tourEnPlus]);
+  if (seance === null) return <Redirect href="/" />;
+  return <LecteurSeance seance={seance} />;
 }
 
-function LecteurSeance({ parametres }: { parametres: ParametresSeance }) {
+function LecteurSeance({ seance }: { seance: Seance }) {
   useEcranAllume();
-  const seance = useMemo(() => genererSeance(parametres, EXERCICES), [parametres]);
   const { etat, passer, basculerPause, terminer } = useLecteurSeance(seance.blocs);
   const bloc = etat.blocs[etat.index];
   const cote = coteCourant(etat);
+  const circuit = seance.circuitId !== undefined;
+  // Au début du dernier tour d'un circuit seulement.
+  const dernierTour = messageDernierTour(etat);
   const aLeFocus = useIsFocused();
   // La figurine prend toute la hauteur que laissent les textes, le minuteur et les actions (≈ 45 % de
   // l'écran sur un téléphone courant) : la zone est mesurée, pas devinée.
@@ -86,14 +106,15 @@ function LecteurSeance({ parametres }: { parametres: ParametresSeance }) {
   // Si l'on quitte (‹, retour système), on garde le temps réellement fait.
   useEffect(() => {
     const ids = seance.blocs.map((b) => b.exercice.id);
-    ecrireDerniersExercices(stockageTelephone, ids).catch(() => undefined);
+    // La mémoire des derniers exercices varie les séances flash : un circuit, programme fixe, n'y touche pas.
+    if (seance.circuitId === undefined) ecrireDerniersExercices(stockageTelephone, ids).catch(() => undefined);
     ajouterEntree(stockageTelephone, {
       id: idJournal,
       debut: new Date().toISOString(),
       contexteId: seance.contexteId,
       ressenti: seance.ressenti,
-      // Séance flash : 3, 5 ou 10 minutes.
-      duree: seance.duree as Duree,
+      // 3, 5 ou 10 minutes pour une séance flash ; la durée du circuit, arrondie à la minute, sinon.
+      duree: seance.duree,
       graine: seance.graine,
       exercices: ids,
       ecouleMs: 0,
@@ -102,6 +123,7 @@ function LecteurSeance({ parametres }: { parametres: ParametresSeance }) {
       apres: null,
       niveau: seance.niveau,
       effort: null,
+      circuitId: seance.circuitId ?? null,
     });
     const etatAuDemontage = dernierEtat;
     return () => {
@@ -114,15 +136,15 @@ function LecteurSeance({ parametres }: { parametres: ParametresSeance }) {
 
   // Une vibration (et, sur iOS, l'annonce de l'exercice) à chaque changement d'étape, pas au démarrage.
   const premierRendu = useRef(true);
-  const nomExercice = bloc.exercice.nom;
+  const annonce = texteAnnonce(etat);
   useEffect(() => {
     if (premierRendu.current) {
       premierRendu.current = false;
       return;
     }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
-    if (Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(nomExercice);
-  }, [etat.index, etat.etape, nomExercice]);
+    if (Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(annonce);
+  }, [etat.index, etat.etape, annonce]);
 
   // Un lecteur resté en arrière-plan (écran recouvert) ne doit jamais prendre la main sur l'écran visible.
   useEffect(() => {
@@ -164,7 +186,7 @@ function LecteurSeance({ parametres }: { parametres: ParametresSeance }) {
             <Icone nom="retour" taille={26} />
           </Pressable>
           <View style={styles.progression}>
-            <Text style={styles.phase}>{`${LIBELLES_PHASE[bloc.phase]} · `}</Text>
+            <Text style={styles.phase}>{`${libelleEnTete(bloc, circuit)} · `}</Text>
             <Text style={styles.compteur}>{`${etat.index + 1} / ${etat.blocs.length}`}</Text>
           </View>
         </View>
@@ -172,16 +194,21 @@ function LecteurSeance({ parametres }: { parametres: ParametresSeance }) {
         <View style={styles.carte} accessibilityLiveRegion="polite">
           {/* « À suivre » montre le geste à venir, immobile ; il s'anime pendant l'effort, se fige en pause. */}
           <View style={styles.illustration} onLayout={mesurerZone}>
-            <Figurine
-              exerciceId={bloc.exercice.id}
-              libelle={bloc.exercice.nom}
-              anime={!enTransition}
-              enPause={etat.enPause}
-              taille={zone.largeur}
-              hauteur={zone.hauteur}
-            />
+            {/* Hors du flux : la figurine remplit la zone mesurée sans l'empêcher de rétrécir quand le texte
+                s'allonge (titre sur deux lignes, « Repos · À suivre », « Dernier tour »). */}
+            <View style={[StyleSheet.absoluteFill, styles.figurine]}>
+              <Figurine
+                exerciceId={bloc.exercice.id}
+                libelle={bloc.exercice.nom}
+                anime={!enTransition}
+                enPause={etat.enPause}
+                taille={zone.largeur}
+                hauteur={zone.hauteur}
+              />
+            </View>
           </View>
-          <Text style={styles.nom}>{enTransition ? `À suivre : ${bloc.exercice.nom}` : bloc.exercice.nom}</Text>
+          <Text style={styles.nom}>{titreExercice(bloc, etat.etape)}</Text>
+          {dernierTour !== null && <Text style={styles.dernierTour}>{dernierTour}</Text>}
           {cote !== null && <Text style={styles.cote}>{cote === 'gauche' ? 'Côté gauche' : 'Côté droit'}</Text>}
           <Text style={styles.consigne}>{bloc.exercice.consigne}</Text>
         </View>
@@ -222,9 +249,11 @@ const styles = StyleSheet.create({
   compteur: { ...TYPO.titleMedium, color: COULEURS.texte },
   // La carte et sa zone d'illustration absorbent toute la hauteur libre.
   carte: { flex: 1, backgroundColor: COULEURS.carteClaire, borderRadius: RAYON, padding: PADDING_CARTE, gap: 6, ...ELEVATION.niveau1 },
-  illustration: { flex: 1, minHeight: 160, alignItems: 'center', justifyContent: 'center' },
+  illustration: { flex: 1, minHeight: 160 },
+  figurine: { alignItems: 'center', justifyContent: 'center' },
   nom: { ...TYPO.headlineMedium, color: COULEURS.texteSombre, marginTop: 4 },
   cote: { ...TYPO.titleMedium, color: COULEURS.texteSombre },
+  dernierTour: { ...TYPO.titleMedium, color: COULEURS.texteSombre },
   consigne: { ...TYPO.bodyLarge, color: COULEURS.texteSombre },
   minuteur: { ...TYPO.displayLarge, color: COULEURS.texte, textAlign: 'center', fontVariant: ['tabular-nums'] },
   zonePause: { minHeight: TYPO.bodyLarge.lineHeight, alignItems: 'center' },

@@ -1,7 +1,7 @@
 import { EXERCICES } from '../catalogue/exercices';
 import type { Exercice } from '../catalogue/types';
 import type { Bloc, Seance } from '../generateur/types';
-import type { Circuit } from './types';
+import type { Circuit, Poste } from './types';
 
 const ECHAUFFEMENT = ['rotation-epaules', 'cercles-hanches', 'marche-sur-place', 'rotation-poignets'];
 const RETOUR_AU_CALME = ['respiration-ventre', 'etirement-ciel'];
@@ -13,6 +13,11 @@ function exercice(id: string): Exercice {
   const trouve = EXERCICES.find((e) => e.id === id);
   if (!trouve) throw new Error(`Exercice inconnu dans un circuit : ${id}`);
   return trouve;
+}
+
+// Exercice réellement joué à ce poste : son remplaçant quand on n'a pas de meuble stable.
+export function exerciceDuPoste(poste: Poste, sansMateriel: boolean): string {
+  return sansMateriel && poste.sansMateriel ? poste.sansMateriel : poste.exerciceId;
 }
 
 export function nombreDeTours(circuit: Circuit, tourEnPlus: boolean): number {
@@ -32,9 +37,8 @@ export function construireSeanceCircuit(
   const blocs: Bloc[] = ECHAUFFEMENT.map((id) => ({ exercice: exercice(id), phase: 'mise_en_route', transitionS: 5, effortS: 25 }));
   for (let numero = 1; numero <= total; numero++) {
     circuit.postes.forEach((poste, index) => {
-      const id = sansMateriel && poste.sansMateriel ? poste.sansMateriel : poste.exerciceId;
       blocs.push({
-        exercice: exercice(id),
+        exercice: exercice(exerciceDuPoste(poste, sansMateriel)),
         phase: 'coeur',
         // Le repos entre deux tours est la transition du premier poste : on y voit l'exercice qui arrive.
         // Il s'ajoute à l'aperçu de 10 s de chaque poste, ce qui donne les durées annoncées (16, 21 et 26 minutes).

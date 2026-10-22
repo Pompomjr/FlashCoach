@@ -5,8 +5,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { EtatCompte } from '../src/compte/auth';
 import { CONTEXTES } from '../src/catalogue/contextes';
+import { NOMS_NIVEAU } from '../src/catalogue/types';
 import { Figurine } from '../src/illustrations/Figurine';
-import { formaterBilan, formaterDate, texteResume } from '../src/journal/affichage';
+import { estEntreeCircuit, formaterBilan, formaterDate, nomCircuit, texteResume } from '../src/journal/affichage';
 import { lireJournal, resumeJournal, type EntreeJournal } from '../src/journal/journal';
 import { stockageTelephone } from '../src/preferences/stockage';
 import { authApp } from '../src/synchro/instance';
@@ -124,25 +125,31 @@ function LigneJournal({ entree }: { entree: EntreeJournal }) {
   const nomContexte = contexte?.nom ?? entree.contexteId;
   const avant = LIBELLES_RESSENTI[entree.ressenti];
   const apres = entree.apres === null ? null : LIBELLES_APRES[entree.apres];
-  const iconeContexte = ICONE_CONTEXTE[entree.contexteId];
+  const circuit = estEntreeCircuit(entree);
+  // Une séance prête s'affiche par son circuit et son niveau, à la place du contexte et du ressenti
+  // (le ressenti d'un circuit n'est pas choisi par l'utilisateur).
+  const sujet = circuit ? nomCircuit(entree.circuitId) : nomContexte;
+  const etat = circuit ? NOMS_NIVEAU[entree.niveau] : avant.libelle;
+  const icone = circuit ? 'circuit' : ICONE_CONTEXTE[entree.contexteId];
   const date = formaterDate(entree.debut);
   const bilan = formaterBilan(entree.ecouleMs, entree.exercicesFaits, entree.terminee);
+  const etatLu = circuit ? `niveau ${etat}` : etat;
   // Un seul élément accessible, lu en phrase : les icônes et la flèche ne sont pas prononcées.
   const lecture = [
     date.replace(' · ', ' à '),
-    nomContexte,
-    apres === null ? avant.libelle : `${avant.libelle}, puis ${apres.libelle}`,
+    sujet,
+    apres === null ? etatLu : `${etatLu}, puis ${apres.libelle}`,
     bilan.replaceAll(' · ', ', '),
   ].join(', ');
   return (
     <View style={styles.ligne} accessible accessibilityLabel={lecture}>
       <View style={styles.pastille}>
-        {iconeContexte !== undefined && <Icone nom={iconeContexte} taille={22} />}
+        {icone !== undefined && <Icone nom={icone} taille={22} />}
       </View>
       <View style={styles.corps}>
         <Text style={styles.date}>{date}</Text>
         <Text style={styles.principal}>
-          {`${nomContexte} · ${avant.libelle}${apres === null ? '' : ` → ${apres.libelle}`}`}
+          {`${sujet} · ${etat}${apres === null ? '' : ` → ${apres.libelle}`}`}
         </Text>
         <Text style={styles.detail}>{bilan}</Text>
       </View>

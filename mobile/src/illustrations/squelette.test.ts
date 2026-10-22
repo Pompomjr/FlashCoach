@@ -71,16 +71,9 @@ test('cibles de mains : le bras atteint l’appui sans changer de longueur, le p
   expect(loin.mainDroite.y).toBeCloseTo(120, 5);
 });
 
-test('raccourci : le buste fuit vers l’arrière, seule sa longueur projetée change', () => {
-  const p = calculerPoints({ ...DEBOUT, vue: 'face', raccourci: .25 });
-  expect(Math.hypot(p.epaules.x - p.bassin.x, p.epaules.y - p.bassin.y)).toBeCloseTo(42 * .25, 5);
-  expect(Math.hypot(p.genouDroit.x - p.hancheDroite.x, p.genouDroit.y - p.hancheDroite.y)).toBeCloseTo(34, 5);
-});
-
-test('les cibles de mains et le raccourci s’interpolent', () => {
-  const a: Pose = { ...DEBOUT, raccourci: .2, mains: { gauche: { x: 80, y: 180 }, droite: { x: 120, y: 180 } } };
-  const b: Pose = { ...DEBOUT, raccourci: .4, mains: { gauche: { x: 90, y: 160 }, droite: { x: 120, y: 140 } } };
+test('les cibles de mains s’interpolent', () => {
+  const a: Pose = { ...DEBOUT, mains: { gauche: { x: 80, y: 180 }, droite: { x: 120, y: 180 } } };
+  const b: Pose = { ...DEBOUT, mains: { gauche: { x: 90, y: 160 }, droite: { x: 120, y: 140 } } };
   const m = interpolerPose(a, b, .5);
-  expect(m.raccourci).toBeCloseTo(.3);
   expect(m.mains).toEqual({ gauche: { x: 85, y: 170 }, droite: { x: 120, y: 160 } });
 });

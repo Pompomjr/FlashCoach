@@ -1,6 +1,17 @@
 import { CONTEXTES } from '../catalogue/contextes';
 import { EXERCICES } from '../catalogue/exercices';
-import { DUREES, RESSENTIS, type Contexte, type Effet, type Exercice, type Intensite, type Zone } from '../catalogue/types';
+import {
+  DUREES,
+  RESSENTIS,
+  type Contexte,
+  type Duree,
+  type Effet,
+  type Exercice,
+  type Intensite,
+  type Niveau,
+  type Ressenti,
+  type Zone,
+} from '../catalogue/types';
 import { fabriquerExercice, SANS_CONTRAINTE } from '../test-utils/fabrique';
 import { creerAleatoire } from './aleatoire';
 import {
@@ -227,16 +238,52 @@ describe('analyserRabattements', () => {
   });
 
   it('sur le catalogue embarqué, le niveau 3 n’a de places que pour « en forme » (9 exercices)', () => {
-    const avecPlaces = analyserRabattements(EXERCICES, CONTEXTES, 3)
-      .filter((r) => r.auNiveau > 0)
-      .map((r) => `${r.contexteId}/${r.ressenti}/${r.duree}: ${r.auNiveau}/${r.places}`);
-    expect(avecPlaces).toEqual([
-      'reveil/en_forme/10: 5/8',
-      'voyage/en_forme/10: 5/8',
-      'dehors/en_forme/3: 1/2',
-      'dehors/en_forme/5: 1/4',
-      'dehors/en_forme/10: 1/8',
+    const rabattements = analyserRabattements(EXERCICES, CONTEXTES, 3);
+    // Les ressentis autres que « en forme » n'ont aucune place Costaud (cœur calme, ou énergie douce).
+    expect(rabattements.filter((r) => r.ressenti !== 'en_forme').every((r) => r.auNiveau === 0)).toBe(true);
+    // Tous les rabattements « en forme », zéros compris : si « maison » perdait ses places Costaud, elle apparaîtrait ici en 0/N.
+    // Absents de la liste, donc entièrement Costaud : maison (3, 5, 10 min), réveil et voyage (3, 5 min).
+    const enForme = rabattements
+      .filter((r) => r.ressenti === 'en_forme')
+      .map((r) => `${r.contexteId}/${r.duree}: ${r.auNiveau}/${r.places}`);
+    expect(enForme).toEqual([
+      'reveil/10: 5/8',
+      'bureau/3: 0/2',
+      'bureau/5: 0/4',
+      'bureau/10: 0/8',
+      'voyage/10: 5/8',
+      'dehors/3: 1/2',
+      'dehors/5: 1/4',
+      'dehors/10: 1/8',
     ]);
+  });
+});
+
+// Promesse de la spec §7, vérifiée sur le catalogue embarqué : le niveau choisi est tenu là où l'on s'entraîne le plus.
+describe('couverture des niveaux sur le catalogue embarqué', () => {
+  const rabattu = (niveau: Niveau, ids: string[], ressenti: Ressenti, duree: Duree) =>
+    analyserRabattements(
+      EXERCICES,
+      CONTEXTES.filter((c) => ids.includes(c.id)),
+      niveau,
+    ).filter((r) => r.ressenti === ressenti && r.duree === duree);
+
+  it('niveau 2 (Tonique), en forme, 5 min : le cœur est entièrement au niveau à la maison, au réveil et dehors', () => {
+    const ids = ['maison', 'reveil', 'dehors'];
+    expect(CONTEXTES.filter((c) => ids.includes(c.id))).toHaveLength(3);
+    expect(rabattu(2, ids, 'en_forme', 5)).toEqual([]);
+  });
+
+  it('niveau 3 (Costaud), en forme, 5 min : le cœur est entièrement au niveau à la maison', () => {
+    expect(CONTEXTES.some((c) => c.id === 'maison')).toBe(true);
+    expect(rabattu(3, ['maison'], 'en_forme', 5)).toEqual([]);
+  });
+
+  it('le contrôle voit bien un rabattement quand les exercices de niveau 2 ou 3 disparaissent', () => {
+    const niveau1 = EXERCICES.filter((e) => e.niveau === 1);
+    const contextes = CONTEXTES.filter((c) => c.id === 'maison');
+    expect(analyserRabattements(niveau1, contextes, 2).some((r) => r.ressenti === 'en_forme' && r.duree === 5)).toBe(true);
+    expect(analyserRabattements(niveau1, contextes, 3).some((r) => r.ressenti === 'en_forme' && r.duree === 5)).toBe(true);
   });
 });
 

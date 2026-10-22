@@ -32,6 +32,8 @@ export default function Bravo() {
   const [repondu, setRepondu] = useState(false);
   // Texte qui remplace la ligne « L’effort ? » une fois la réponse donnée.
   const effortEnvoye = useRef(false);
+  // Ajustement du niveau en cours : « Et on est repartis » l'attend, pour que le départ relise le nouveau niveau.
+  const ajustement = useRef<Promise<void> | null>(null);
   const [suiteEffort, setSuiteEffort] = useState<string | null>(null);
   const rienFait = exercices === 0 && secondes < SECONDES_MIN_ACTIVITE;
 
@@ -46,9 +48,16 @@ export default function Bravo() {
     if (effortEnvoye.current) return;
     effortEnvoye.current = true;
     if (params.seance) mettreAJourEntree(stockageTelephone, params.seance, { effort }).then(demanderSynchro);
-    ajusterNiveau(stockageTelephone, effort).then(({ avant, apres }) => {
+    ajustement.current = ajusterNiveau(stockageTelephone, effort).then(({ avant, apres }) => {
       setSuiteEffort(apres !== avant ? `Prochaine séance : niveau ${NOMS_NIVEAU[apres]}` : 'Noté !');
     }).catch(() => undefined);
+  };
+
+  const repartir = () => {
+    const enCours = ajustement.current;
+    // Cette promesse n'est jamais rejetée (le .catch plus haut l'absorbe) : on repart toujours.
+    if (enCours === null) router.dismissTo('/');
+    else enCours.then(() => router.dismissTo('/'));
   };
 
   return (
@@ -85,7 +94,7 @@ export default function Bravo() {
           </>
         )}
       </ScrollView>
-      <Bouton libelle="Et on est repartis" onPress={() => router.dismissTo('/')} />
+      <Bouton libelle="Et on est repartis" onPress={repartir} />
     </SafeAreaView>
   );
 }

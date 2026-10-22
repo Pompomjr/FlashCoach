@@ -1,3 +1,5 @@
+import { CONTEXTES } from '../catalogue/contextes';
+import { EXERCICES } from '../catalogue/exercices';
 import type { Contraintes, Exercice, Niveau, Zone } from '../catalogue/types';
 import { fabriquerExercice, SANS_CONTRAINTE } from '../test-utils/fabrique';
 import { genererSeance } from './generer';
@@ -268,5 +270,60 @@ describe('genererSeance : niveau', () => {
     }
     expect(choisis.has('mob-a')).toBe(true);
     expect(choisis.has('det-a')).toBe(true);
+  });
+});
+
+describe('genererSeance : préférence de niveau', () => {
+  const energies = (prefixe: string, nombre: number, niveau: Niveau) =>
+    Array.from({ length: nombre }, (_, i) =>
+      fabriquerExercice({ id: `${prefixe}-${i}`, effets: ['energie'], intensite: 2, zone: ZONES[i % ZONES.length], niveau }),
+    );
+  // Cœur de 5 minutes : 4 places, 8 exercices d'énergie tous également idéaux.
+  const catalogue = [...MOBILITE, ...DETENTE, ...energies('un', 4, 1), ...energies('deux', 2, 2), ...energies('trois', 2, 3)];
+  const niveauxDuCoeur = (seance: Seance) =>
+    seance.blocs
+      .filter((bloc) => bloc.phase === 'coeur')
+      .map((bloc) => bloc.exercice.niveau)
+      .sort();
+
+  it('au niveau 3, prend d’abord le niveau 3, puis le niveau 2, avant le niveau 1', () => {
+    for (let graine = 1; graine <= 30; graine++) {
+      const seance = genererSeance(parametres({ graine, niveau: 3 }), catalogue);
+      expect(seance.assouplissement).toBe(0);
+      expect(niveauxDuCoeur(seance)).toEqual([2, 2, 3, 3]);
+    }
+  });
+
+  it('au niveau 2, écarte le niveau 3 et prend d’abord le niveau 2, avant le niveau 1', () => {
+    for (let graine = 1; graine <= 30; graine++) {
+      const seance = genererSeance(parametres({ graine, niveau: 2 }), catalogue);
+      expect(seance.assouplissement).toBe(0);
+      expect(niveauxDuCoeur(seance)).toEqual([1, 1, 2, 2]);
+    }
+  });
+});
+
+// Promesse du niveau : à la maison, en forme, en 5 minutes, le cœur est entièrement du niveau choisi.
+describe('genererSeance : niveau sur le catalogue embarqué', () => {
+  const maison = CONTEXTES.find((contexte) => contexte.id === 'maison');
+  const coeurDuNiveau = (niveau: Niveau, graine: number) => {
+    if (maison === undefined) throw new Error('Contexte « maison » introuvable');
+    const seance = genererSeance(
+      { contexteId: maison.id, contraintes: maison.contraintes, ressenti: 'en_forme', duree: 5, graine, niveau },
+      EXERCICES,
+    );
+    return seance.blocs.filter((bloc) => bloc.phase === 'coeur').map((bloc) => bloc.exercice.niveau);
+  };
+
+  it('une séance Tonique a un cœur entièrement de niveau 2', () => {
+    for (let graine = 1; graine <= 30; graine++) {
+      expect(coeurDuNiveau(2, graine)).toEqual([2, 2, 2, 2]);
+    }
+  });
+
+  it('une séance Costaud a un cœur entièrement de niveau 3', () => {
+    for (let graine = 1; graine <= 30; graine++) {
+      expect(coeurDuNiveau(3, graine)).toEqual([3, 3, 3, 3]);
+    }
   });
 });

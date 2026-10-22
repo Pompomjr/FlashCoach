@@ -246,6 +246,35 @@ describe('niveau au départ', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Et on est repartis' }));
     expect(await screen.findByRole('button', { name: 'Niveau Tonique, modifier' })).toBeTruthy();
   });
+
+  it('attend que Bravo ait enregistré le niveau avant de repartir, même si on enchaîne vite', async () => {
+    await renderRouter(ROUTES, { initialUrl: '/' });
+    await screen.findByRole('button', { name: 'Niveau Doux, modifier' });
+    await act(() => router.push('/bravo?minutes=5&exercices=8'));
+    // L'écriture du niveau est retenue : « Et on est repartis » tapé avant qu'elle n'aboutisse ne doit rien lancer.
+    let enregistrer = () => {};
+    const retenue = new Promise<void>((resoudre) => {
+      enregistrer = resoudre;
+    });
+    const ecrire = stockageTelephone.ecrire.bind(stockageTelephone);
+    jest.spyOn(stockageTelephone, 'ecrire').mockImplementation(async (cle, valeur) => {
+      if (cle === 'flashcoach.niveau') await retenue;
+      await ecrire(cle, valeur);
+    });
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Trop facile' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Et on est repartis' }));
+    await act(async () => {
+      for (let i = 0; i < 5; i++) await Promise.resolve();
+    });
+    expect(screen).toHavePathname('/bravo');
+    expect(memoire.contenu['flashcoach.niveau']).toBeUndefined();
+
+    await act(async () => enregistrer());
+    await waitFor(() => expect(screen).toHavePathname('/'));
+    expect(await screen.findByRole('button', { name: 'Niveau Tonique, modifier' })).toBeTruthy();
+    expect(memoire.contenu['flashcoach.niveau']).toBe('2');
+  });
 });
 
 describe('écran de séance', () => {

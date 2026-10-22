@@ -391,7 +391,7 @@ const NIVEAUX_SUPERIEURS: Record<string, AnimationFigurine> = {
   })(), dureeCycleMs: 6000 },
   'gainage-commando': { cles: [surCoudes, uneMain, surMains, uneMain], dureeCycleMs: 2000 },
   'fentes-sautees': { cles: [fenteDroite, envol(true), fenteGauche, envol(false)], dureeCycleMs: 2000 },
-  'burpee-complet': { cles: [burpeeAccroupi, burpeePlanche, burpeePompe, burpeePlanche, burpeeAccroupi, burpeeSaut], dureeCycleMs: 2000 },
+  'burpee-complet': { cles: [burpeeAccroupi, burpeePlanche, burpeePompe, burpeePlanche, burpeeAccroupi, burpeeSaut], dureeCycleMs: 3600 },
 };
 
 export const POSES_PAR_EXERCICE: Record<string, AnimationFigurine> = {

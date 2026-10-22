@@ -221,6 +221,8 @@ const ACCESSOIRES: Record<string, string> = {
 const CLES_MAX: Record<string, number> = {
   'planche-epaules': 4, 'pompe-spiderman': 4, 'gainage-commando': 4, 'fentes-sautees': 4, 'burpee-complet': 6,
 };
+// Bornes propres à un exercice (ms). Un burpee à 6 clés prend 3 à 4 s : en 2 s, chaque clé ne durerait que 0,33 s.
+const CYCLE_MS: Record<string, [number, number]> = { 'burpee-complet': [3000, 4000] };
 const toutLeCycle = (id: string) => {
   const a = posesPour(id);
   return Array.from({ length: 100 }, (_, i) => poseALinstant(a.cles, i / 100, a.continu));
@@ -244,8 +246,9 @@ test.each(NIVEAUX)('%s : clés, vue, tempo et accessoire prévus', id => {
   expect(a.cles.length).toBeGreaterThanOrEqual(2);
   expect(a.cles.length).toBeLessThanOrEqual(CLES_MAX[id] ?? 3);
   for (const pose of a.cles) expect(pose.vue).toBe(DE_FACE.includes(id) ? 'face' : 'profil');
-  expect(a.dureeCycleMs).toBeGreaterThanOrEqual(LENTS.includes(id) ? 4000 : 1200);
-  expect(a.dureeCycleMs).toBeLessThanOrEqual(LENTS.includes(id) ? 8000 : 2000);
+  const [min, max] = CYCLE_MS[id] ?? (LENTS.includes(id) ? [4000, 8000] : [1200, 2000]);
+  expect(a.dureeCycleMs).toBeGreaterThanOrEqual(min);
+  expect(a.dureeCycleMs).toBeLessThanOrEqual(max);
   expect(a.accessoire).toBe(ACCESSOIRES[id]);
 });
 

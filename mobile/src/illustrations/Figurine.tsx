@@ -88,8 +88,8 @@ export function Figurine({ exerciceId, anime = true, enPause = false, taille = 2
           <Rect x={murX} y={MUR.haut} width={3} height={SOL_Y + 6 - MUR.haut} rx={1.5} fill={COULEURS.areteMur} />
         </>}
         {animation.accessoire === 'chaise' && <>
-          <Rect testID="accessoire-chaise" x={chaiseX} y={CHAISE.haut} width={6} height={SOL_Y - CHAISE.haut} rx={3} fill={COULEURS.areteMur} />
-          <Rect x={chaiseX + CHAISE.largeur - CHAISE.pied} y={CHAISE.assise} width={CHAISE.pied} height={SOL_Y - CHAISE.assise} rx={2} fill={COULEURS.areteMur} />
+          <Rect testID="accessoire-chaise" x={chaiseX + (animation.chaiseDossierDroite ? CHAISE.largeur - 6 : 0)} y={CHAISE.haut} width={6} height={SOL_Y - CHAISE.haut} rx={3} fill={COULEURS.areteMur} />
+          <Rect x={chaiseX + (animation.chaiseDossierDroite ? 0 : CHAISE.largeur - CHAISE.pied)} y={CHAISE.assise} width={CHAISE.pied} height={SOL_Y - CHAISE.assise} rx={2} fill={COULEURS.areteMur} />
           <Rect x={chaiseX} y={CHAISE.assise} width={CHAISE.largeur} height={6} rx={3} fill={COULEURS.mur} />
         </>}
         {animation.accessoire === 'table' && <>

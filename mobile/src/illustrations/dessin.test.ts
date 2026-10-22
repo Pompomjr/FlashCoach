@@ -155,6 +155,21 @@ test('la détection des disques reconnaît les arcs SVG relatifs et absolus', ()
   expect(centreDisque('M80 70A6 6 0 1 0 92 70A6 6 0 1 0 80 70Z')).toEqual({ x: 86, y: 70 });
 });
 
+test.each(Object.keys(POSES_PAR_EXERCICE))('%s : aucun disque ajouté aux articulations sur le cycle', id => {
+  const a = posesPour(id);
+  for (const t of instants(48)) {
+    const pose = poseALinstant(a.cles, t, a.continu), p = calculerPoints(pose);
+    const articulations = [p.epauleGauche, p.epauleDroite, p.coudeGauche, p.coudeDroit,
+      p.hancheGauche, p.hancheDroite, p.genouGauche, p.genouDroit];
+    for (const forme of dessinerFigurine(pose).formes) {
+      const centre = centreDisque(forme.d);
+      if (centre) for (const articulation of articulations) {
+        expect(Math.hypot(centre.x - articulation.x, centre.y - articulation.y)).toBeGreaterThan(.1);
+      }
+    }
+  }
+});
+
 // Échantillonne les deux Bézier et le demi-cercle du coude du contour réellement dessiné.
 function contourBras(d: string) {
   const v = d.match(/-?\d+(?:\.\d+)?/g)!.map(Number);

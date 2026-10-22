@@ -5,6 +5,7 @@ import { AccessibilityInfo, Platform, Pressable, ScrollView, StyleSheet, Text, V
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EXERCICES } from '../src/catalogue/exercices';
+import type { Duree } from '../src/catalogue/types';
 import { genererSeance } from '../src/generateur/generer';
 import { Figurine } from '../src/illustrations/Figurine';
 import type { ParametresSeance } from '../src/generateur/types';
@@ -91,7 +92,8 @@ function LecteurSeance({ parametres }: { parametres: ParametresSeance }) {
       debut: new Date().toISOString(),
       contexteId: seance.contexteId,
       ressenti: seance.ressenti,
-      duree: seance.duree,
+      // Séance flash : 3, 5 ou 10 minutes.
+      duree: seance.duree as Duree,
       graine: seance.graine,
       exercices: ids,
       ecouleMs: 0,

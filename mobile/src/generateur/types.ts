@@ -13,6 +13,9 @@ export interface Bloc {
   // La transition précède l'effort : on y montre l'exercice qui arrive.
   transitionS: number;
   effortS: number;
+  // Séances en circuit seulement : tour en cours (« Tour 2 / 4 ») et côté imposé à ce poste.
+  tour?: { numero: number; total: number };
+  cote?: 'gauche' | 'droite';
 }
 
 export interface ParametresSeance {
@@ -31,11 +34,14 @@ export interface Seance {
   contexteId: string;
   contraintes: Contraintes;
   ressenti: Ressenti;
-  duree: Duree;
+  // 3, 5 ou 10 pour une séance flash ; minutes arrondies pour un circuit.
+  duree: number;
   graine: number;
   niveau: Niveau;
   blocs: Bloc[];
   dureeTotaleS: number;
   // Le plus fort assouplissement utilisé dans la séance.
   assouplissement: NiveauAssouplissement;
+  // Présent seulement pour une séance prête en circuit.
+  circuitId?: string;
 }

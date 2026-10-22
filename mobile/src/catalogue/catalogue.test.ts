@@ -38,22 +38,61 @@ describe('validerCatalogue', () => {
 });
 
 describe('catalogue embarqué', () => {
-  it('contient 70 exercices', () => {
-    expect(EXERCICES).toHaveLength(70);
+  it('contient 76 exercices', () => {
+    expect(EXERCICES).toHaveLength(76);
   });
 
-  it('compte 45 exercices Doux, 16 Tonique et 9 Costaud, ids exacts', () => {
+  it('compte 49 exercices Doux, 18 Tonique et 9 Costaud, ids exacts', () => {
     const ids = (niveau: number) => EXERCICES.filter((e) => e.niveau === niveau).map((e) => e.id).sort();
     expect(ids(2)).toEqual([
       'burpee-sans-saut', 'dips-chaise', 'grimpeur', 'hollow-hold', 'pike-pushup', 'planche', 'planche-epaules',
-      'planche-laterale', 'pompe-large', 'pompe-tempo', 'releves-jambes', 'squat-bulgare', 'squat-pause',
-      'squats-sautes', 'superman-tirage', 'tractions-australiennes',
+      'planche-laterale', 'pompe-classique', 'pompe-large', 'pompe-tempo', 'pont-une-jambe', 'releves-jambes',
+      'squat-bulgare', 'squat-pause', 'squats-sautes', 'superman-tirage', 'tractions-australiennes',
     ]);
     expect(ids(3)).toEqual([
       'burpee-complet', 'fentes-sautees', 'gainage-commando', 'planche-penchee', 'pompe-archer', 'pompe-diamant',
       'pompe-hindoue', 'pompe-pieds-sureleves', 'pompe-spiderman',
     ]);
-    expect(EXERCICES.filter((e) => e.niveau === 1)).toHaveLength(45);
+    expect(EXERCICES.filter((e) => e.niveau === 1)).toHaveLength(49);
+  });
+
+  it('ajoute les 6 exercices des séances en circuit, valeurs exactes', () => {
+    const base = { sauts: false, espace: 'sur_place' } as const;
+    const attendus = [
+      {
+        ...base, id: 'pompe-inclinee', nom: 'Pompes inclinées', animation: 'pompe-inclinee.json',
+        consigne: 'Mains sur le bord d’une chaise stable ou d’une table, corps gainé, tu descends la poitrine et tu pousses.',
+        niveau: 1, intensite: 2, sol: false, zone: 'haut', bilateral: false, effets: ['energie'], transpiration: 'moyenne',
+      },
+      {
+        ...base, id: 'pompe-genoux', nom: 'Pompes sur les genoux', animation: 'pompe-genoux.json',
+        consigne: 'Genoux au sol, corps droit des genoux à la tête, tu descends la poitrine entre les mains.',
+        niveau: 1, intensite: 2, sol: true, zone: 'haut', bilateral: false, effets: ['energie'], transpiration: 'moyenne',
+      },
+      {
+        ...base, id: 'pompe-classique', nom: 'Pompes', animation: 'pompe-classique.json',
+        consigne: 'Mains sous les épaules, corps gainé de la tête aux pieds, la poitrine frôle le sol.',
+        niveau: 2, intensite: 3, sol: true, zone: 'haut', bilateral: false, effets: ['energie'], transpiration: 'moyenne',
+      },
+      {
+        ...base, id: 'tirage-yt', nom: 'Y-T au sol', animation: 'tirage-yt.json',
+        consigne: 'À plat ventre, tu décolles les bras en Y, puis en T, en serrant les omoplates.',
+        niveau: 1, intensite: 2, sol: true, zone: 'tronc', bilateral: false, effets: ['energie', 'mobilite'], transpiration: 'faible',
+      },
+      {
+        ...base, id: 'bird-dog', nom: 'Bird-dog', animation: 'bird-dog.json',
+        consigne: 'À quatre pattes, tu tends le bras et la jambe opposés, dos plat, puis tu changes.',
+        niveau: 1, intensite: 1, sol: true, zone: 'tronc', bilateral: false, effets: ['mobilite', 'energie'], transpiration: 'faible',
+      },
+      {
+        ...base, id: 'pont-une-jambe', nom: 'Pont fessier sur une jambe', animation: 'pont-une-jambe.json',
+        consigne: 'Sur le dos, une jambe tendue en l’air, tu montes le bassin avec l’autre et tu serres.',
+        niveau: 2, intensite: 3, sol: true, zone: 'bas', bilateral: true, effets: ['energie'], transpiration: 'moyenne',
+      },
+    ];
+    for (const attendu of attendus) {
+      expect(EXERCICES.find((e) => e.id === attendu.id)).toEqual(attendu);
+    }
   });
 
   it('n’a aucun exercice de niveau 2 ou 3 compatible avec le bureau', () => {

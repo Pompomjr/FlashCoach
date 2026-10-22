@@ -1,6 +1,6 @@
 import type { Bloc } from '../generateur/types';
 import { fabriquerExercice } from '../test-utils/fabrique';
-import { coteCourant, formaterTemps, minutesEffectuees } from './affichage';
+import { coteCourant, formaterTemps, LIBELLE_ECHAUFFEMENT, libelleEtape, minutesEffectuees } from './affichage';
 import { creerEtatInitial, lecteur } from './lecteur';
 
 const blocDeuxCotes: Bloc = { exercice: fabriquerExercice({ bilateral: true }), phase: 'coeur', transitionS: 10, effortS: 40 };
@@ -16,6 +16,35 @@ describe('coteCourant', () => {
   it('ne parle pas de côté pendant la transition ni pour un exercice simple', () => {
     expect(coteCourant(creerEtatInitial([blocDeuxCotes]))).toBeNull();
     expect(coteCourant(lecteur(creerEtatInitial([blocSimple]), { type: 'avancer', ms: 15000 }))).toBeNull();
+  });
+
+  it('impose le côté du bloc pendant tout l’effort, et aucun en transition', () => {
+    for (const cote of ['gauche', 'droite'] as const) {
+      const bloc: Bloc = { ...blocDeuxCotes, cote };
+      const transition = creerEtatInitial([bloc]);
+      const effort = lecteur(transition, { type: 'avancer', ms: 10000 });
+      expect(coteCourant(transition)).toBeNull();
+      expect(coteCourant(effort)).toBe(cote);
+      expect(coteCourant(lecteur(effort, { type: 'avancer', ms: 20000 }))).toBe(cote);
+      expect(coteCourant(lecteur(effort, { type: 'avancer', ms: 39000 }))).toBe(cote);
+    }
+  });
+});
+
+describe('libelleEtape', () => {
+  it('annonce le tour quand le bloc en fait partie', () => {
+    expect(libelleEtape({ ...blocSimple, tour: { numero: 2, total: 4 } })).toBe('Tour 2 / 4');
+    expect(libelleEtape({ ...blocSimple, tour: { numero: 1, total: 3 } })).toBe('Tour 1 / 3');
+  });
+
+  it('reprend le libellé de la phase sinon', () => {
+    expect(libelleEtape({ ...blocSimple, phase: 'coeur' })).toBe('On y va');
+    expect(libelleEtape({ ...blocSimple, phase: 'mise_en_route' })).toBe('Mise en route');
+    expect(libelleEtape({ ...blocSimple, phase: 'retour_au_calme' })).toBe('Retour au calme');
+  });
+
+  it('fournit le libellé de l’échauffement des circuits', () => {
+    expect(LIBELLE_ECHAUFFEMENT).toBe('Échauffement');
   });
 });
 

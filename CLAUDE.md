@@ -10,6 +10,7 @@ App mobile Expo (Android d'abord) de séances au poids du corps : séance en un 
 - Ton complice, jamais culpabilisant ; pas de promesse de perte de poids ni de prise de masse garantie ; noir sur orange, jamais blanc.
 - Local d'abord : rien ne bloque une séance ; contraintes « maison » jamais assouplies ; jamais un exercice au-dessus de l'intensité ou du niveau choisis.
 - Référence : `PRODUCT.md`, `DESIGN.md`, specs et plans dans `docs/superpowers/`.
+- Figurine : dessinée en code (pas de bibliothèque) ; nouvel habillage « illustration plate » en cours, brief et liste des exercices dans `docs/figurine-habillage.md`. Pendant l'aperçu, un bouton « Variante » remplace un exercice à chaise / table.
 
 ## Commandes (depuis `mobile/`)
 - `npx jest` · `npm run typecheck` · `npm run lint` (si bloqué sous Windows : `node node_modules/eslint/bin/eslint.js .`) · `npm run couverture` (manques connus et acceptés : cœur calories 10 min en Léger 7/8 et Lourd 6/8)

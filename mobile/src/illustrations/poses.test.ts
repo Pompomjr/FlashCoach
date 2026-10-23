@@ -213,7 +213,7 @@ const NIVEAUX = [
   'pompe-spiderman', 'planche-penchee', 'gainage-commando', 'fentes-sautees', 'burpee-complet',
 ];
 const LENTS = ['pompe-tempo', 'planche-penchee', 'hollow-hold', 'squat-pause'];
-const DE_FACE: string[] = [];
+const DE_FACE: string[] = ['pompe-archer'];
 const ACCESSOIRES: Record<string, string> = {
   'dips-chaise': 'chaise', 'squat-bulgare': 'chaise', 'pompe-pieds-sureleves': 'chaise', 'tractions-australiennes': 'table',
 };
@@ -440,23 +440,33 @@ test('planche, toucher d’épaules : corps gainé, une main quitte le sol pour 
   }
 });
 
-test('pompe archer : de profil, un bras se plie, l’autre reste tendu loin devant, corps gainé', () => {
-  for (const pose of toutLeCycle('pompe-archer')) {
+test.each(['gauche', 'droite'] as const)('pompe archer de face : appuis fixes et descente du côté %s', cote => {
+  const animation = posesPour('pompe-archer', cote);
+  const [haut, bas] = animation.cles.map(calculerPoints);
+  const signe = cote === 'droite' ? 1 : -1;
+  expect((bas.epaules.x - haut.epaules.x) * signe).toBeGreaterThan(10);
+  expect(bas.epaules.y - haut.epaules.y).toBeGreaterThan(12);
+  for (let i = 0; i < 100; i++) {
+    const pose = poseALinstant(animation.cles, i / 100);
     const p = calculerPoints(pose);
-    expect(p.mainDroite.y).toBeCloseTo(SOL_Y, 5);
+    expect(pose.vue).toBe('face');
+    expect(p.mainGauche.x).toBeCloseTo(haut.mainGauche.x, 5);
+    expect(p.mainDroite.x).toBeCloseTo(haut.mainDroite.x, 5);
     expect(p.mainGauche.y).toBeCloseTo(SOL_Y, 5);
-    expect(ecartAlignement(p)).toBeLessThan(1.5);
-    // Pieds au sol derrière les mains.
-    expect(p.orteilsDroits.y).toBeCloseTo(SOL_Y, 0);
-    expect(p.chevilleDroite.x).toBeLessThan(Math.min(p.mainDroite.x, p.mainGauche.x) - 60);
-    // Le bras éloigné reste presque tendu sur tout le cycle (tendu aux clés, à peine fléchi entre elles).
-    expect(angleEntre(p.coudeGauche, p.epauleGauche, p.mainGauche)).toBeGreaterThan(140);
+    expect(p.mainDroite.y).toBeCloseTo(SOL_Y, 5);
+    expect(p.mainDroite.x - p.mainGauche.x).toBeGreaterThan(85);
+    const flexion = cote === 'droite'
+      ? angleEntre(p.coudeGauche, p.epauleGauche, p.mainGauche)
+      : angleEntre(p.coudeDroit, p.epauleDroite, p.mainDroite);
+    expect(flexion).toBeGreaterThanOrEqual(165);
+    expect(p.coudeGauche.y).toBeLessThanOrEqual(SOL_Y);
+    expect(p.coudeDroit.y).toBeLessThanOrEqual(SOL_Y);
+    expect(p.tete.y).toBeLessThan(p.epaules.y - 10);
   }
-  const [haut, bas] = posesPour('pompe-archer').cles.map(calculerPoints);
-  expect(bas.epaules.y).toBeGreaterThan(haut.epaules.y + 12);
-  expect(angleEntre(bas.coudeDroit, bas.epauleDroite, bas.mainDroite)).toBeLessThan(100);
-  for (const p of [haut, bas]) expect(angleEntre(p.coudeGauche, p.epauleGauche, p.mainGauche)).toBeGreaterThan(160);
-  expect(bas.mainGauche.x).toBeGreaterThan(bas.mainDroite.x + 25);
+  expect(angleEntre(haut.coudeDroit, haut.epauleDroite, haut.mainDroite)).toBeGreaterThan(165);
+  expect(angleEntre(haut.coudeGauche, haut.epauleGauche, haut.mainGauche)).toBeGreaterThan(165);
+  expect(cote === 'droite' ? angleEntre(bas.coudeDroit, bas.epauleDroite, bas.mainDroite)
+    : angleEntre(bas.coudeGauche, bas.epauleGauche, bas.mainGauche)).toBeLessThan(100);
 });
 
 test('superman tirage : à plat ventre, bras tendus devant puis coudes tirés vers les côtes', () => {

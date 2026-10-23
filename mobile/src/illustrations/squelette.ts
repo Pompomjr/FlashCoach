@@ -27,6 +27,8 @@ export type Pose = {
   mains?: { gauche: Point; droite: Point };
   /** Recale verticalement le pied porteur lors de l'échantillonnage du cycle. */
   appuiPieds?: boolean;
+  /** Appui frontal au sol : buste en raccourci, bras opposé au côté tendu. */
+  faceSol?: 'gauche' | 'droite';
 };
 
 export const SOL_Y = 180;
@@ -44,8 +46,8 @@ function avancer(p: Point, longueur: number, angle: number): Point {
 export function calculerPoints(pose: Pose) {
   const l = LONGUEURS;
   const bassin = { ...pose.racine };
-  const epaules = avancer(bassin, l.tronc + (pose.haussement ?? 0), 180 - pose.tronc);
-  const cou = avancer(bassin, l.tronc + l.cou, 180 - pose.tronc);
+  const epaules = pose.faceSol ? { x: bassin.x, y: bassin.y + 14 } : avancer(bassin, l.tronc + (pose.haussement ?? 0), 180 - pose.tronc);
+  const cou = pose.faceSol ? { x: epaules.x, y: epaules.y - l.cou } : avancer(bassin, l.tronc + l.cou, 180 - pose.tronc);
   const tete = avancer(cou, l.tete, 180 - pose.tronc - pose.tete);
   const largeur = pose.vue === 'face' ? l.demiEpaules : 3;
   // En profil, le petit décalage horizontal révèle le membre éloigné sans
@@ -104,7 +106,7 @@ export function interpolerPose(a: Pose, b: Pose, t: number): Pose {
   const bras = (x: Bras, y: Bras): Bras => ({ epaule: angle(x.epaule, y.epaule, t), coude: angle(x.coude, y.coude, t) });
   const jambe = (x: Jambe, y: Jambe): Jambe => ({ hanche: angle(x.hanche, y.hanche, t),
     genou: angle(x.genou, y.genou, t), cheville: angle(x.cheville, y.cheville, t) });
-  return { vue: a.vue, racine: { x: melanger(a.racine.x, b.racine.x, t), y: melanger(a.racine.y, b.racine.y, t) },
+  return { vue: a.vue, ...(a.faceSol ? { faceSol: a.faceSol } : {}), racine: { x: melanger(a.racine.x, b.racine.x, t), y: melanger(a.racine.y, b.racine.y, t) },
     tronc: angle(a.tronc, b.tronc, t), tete: angle(a.tete, b.tete, t),
     brasGauche: bras(a.brasGauche, b.brasGauche), brasDroit: bras(a.brasDroit, b.brasDroit),
     jambeGauche: jambe(a.jambeGauche, b.jambeGauche), jambeDroite: jambe(a.jambeDroite, b.jambeDroite),
@@ -136,6 +138,14 @@ export function poseALinstant(cles: Pose[], t: number, continu = false): Pose {
   const i = Math.floor(position);
   const progression = continu ? position - i : (1 - Math.cos(Math.PI * (position - i))) / 2;
   const pose = interpolerPose(cles[i], cles[(i + 1) % cles.length], progression);
+  if (pose.faceSol && pose.mains) {
+    // Suivre le cercle du bras tendu conserve les deux mains fixes entre les clés.
+    const main = pose.faceSol === 'droite' ? pose.mains.gauche : pose.mains.droite;
+    const sens = pose.faceSol === 'droite' ? 1 : -1;
+    const hauteur = main.y - (pose.racine.y + 14);
+    const portee = Math.sqrt(Math.max(0, (LONGUEURS.bras + LONGUEURS.avantBras) ** 2 - hauteur ** 2));
+    return { ...pose, racine: { x: main.x + sens * (portee + LONGUEURS.demiEpaules), y: pose.racine.y } };
+  }
   if (!pose.appuiPieds) return pose;
   // La racine interpolée seule ferait pénétrer les pieds dans le sol lors d'un squat.
   // La correction appartient au cycle, pas à l'interpolation géométrique générique.

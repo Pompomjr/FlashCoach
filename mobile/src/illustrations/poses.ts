@@ -314,14 +314,17 @@ const pliVersLeSol = (droite: boolean) => {
 const plancheToucher: Pose = { ...plancheTendue, brasDroit: bras(0, pliVersLeSol(true)), brasGauche: bras(0, pliVersLeSol(false)) };
 const toucheEpaule = (droite: boolean): Pose => ({ ...toucher(droite, pliVersLeSol(droite)),
   [droite ? 'brasGauche' : 'brasDroit']: droite ? plancheToucher.brasGauche : plancheToucher.brasDroit });
-// Pompe archer (profil) : le bras proche se plie, la poitrine descend vers sa main ; le bras éloigné reste
-// tendu et glisse loin devant sur le sol. Un seul côté montré : l'exercice se fait de chaque côté.
-const brasEloigneTendu = (pose: Pose): Pose => {
-  const p = calculerPoints(pose);
-  const devant = { x: p.epauleGauche.x + Math.sqrt(49.9 ** 2 - (SOL_Y - p.epauleGauche.y) ** 2), y: SOL_Y };
-  return { ...pose, mains: { gauche: devant, droite: pose.mains!.droite } };
-};
-const [archerHaut, archerBas] = pompes(CHEVILLE_POMPE, 132, 150, 10).map(brasEloigneTendu);
+// Vue frontale au sol : buste en raccourci, appuis fixes, bras opposé tendu.
+const archer = (cote: 'gauche' | 'droite'): Pose[] => [36, 12].map(hauteur => {
+  const ecart = Math.sqrt(50 ** 2 - 36 ** 2);
+  const x = 100 + (cote === 'droite' ? 1 : -1) * (Math.sqrt(50 ** 2 - hauteur ** 2) - ecart);
+  return { ...face, faceSol: cote, appuiPieds: false, racine: { x, y: SOL_Y - hauteur - 14 },
+    brasGauche: bras(0, 30), brasDroit: bras(0, -30),
+    jambeGauche: jambe(180), jambeDroite: jambe(180),
+    mains: { gauche: { x: 100 - 14 - ecart, y: SOL_Y }, droite: { x: 100 + 14 + ecart, y: SOL_Y } } };
+});
+const [archerHaut, archerBas] = archer('droite');
+const archerGauche: AnimationFigurine = { cles: archer('gauche'), dureeCycleMs: 2000 };
 
 // Gainage commando : avant-bras au sol, puis une main, puis l'autre ; pointes de pieds fixes.
 const CHEVILLE_COMMANDO = { x: 36, y: 171 };
@@ -558,6 +561,7 @@ const pontJambeDroite: AnimationFigurine = {
 };
 
 export function posesPour(exerciceId: string, cote?: 'gauche' | 'droite'): AnimationFigurine {
+  if (exerciceId === 'pompe-archer' && cote === 'gauche') return archerGauche;
   if (exerciceId === 'pont-une-jambe' && cote === 'droite') return pontJambeDroite;
   return Object.prototype.hasOwnProperty.call(POSES_PAR_EXERCICE, exerciceId) ? POSES_PAR_EXERCICE[exerciceId] : REPLI;
 }

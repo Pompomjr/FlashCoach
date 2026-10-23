@@ -172,6 +172,12 @@ function ombre(points: ReturnType<typeof calculerPoints>): Ombre {
 
 export function dessinerFigurine(pose: Pose): DessinFigurine {
   const p = calculerPoints(pose);
+  if (pose.faceSol) {
+    // La profondeur raccourcit seulement le dessin des jambes, sans plier les genoux.
+    for (const cle of ['genouGauche', 'genouDroit', 'chevilleGauche', 'chevilleDroite', 'orteilsGauches', 'orteilsDroits'] as const) {
+      p[cle] = { x: p.bassin.x + (p[cle].x - p.bassin.x) * .7, y: p.bassin.y + (p[cle].y - p.bassin.y) * .14 };
+    }
+  }
   const profil = pose.vue === 'profil';
   const cercles: Cercle[] = [];
   const capsuleNotee = (a: Point, ra: number, b: Point, rb: number) => {
@@ -243,11 +249,12 @@ export function dessinerFigurine(pose: Pose): DessinFigurine {
   // De face, les deux bras sont au premier plan, devant le tronc ; de profil, le bras gauche passe derrière.
   const devant = profil ? [bras(false)] : [bras(true), bras(false)];
   const formes: FormeFigurine[] = [
+    ...(pose.faceSol ? jambe(false).map(d => ({ d, teinte: loin })) : []),
     ...jambe(true).map(d => ({ d, teinte: loin })),
     ...(profil ? bras(true).membre.map(d => ({ d, teinte: loin })) : []),
     { d: capsuleNotee(p.epaules, RAYONS.cou, plus(p.tete, fois(haut, -r * 0.6)), RAYONS.cou), teinte: 'proche' },
     { d: contourLisse(contour), teinte: 'proche' },
-    ...jambe(false).map(d => ({ d, teinte: 'proche' as const })),
+    ...(pose.faceSol ? [] : jambe(false).map(d => ({ d, teinte: 'proche' as const }))),
     ...visage.arriere.map(d => ({ d, teinte: 'cheveux' as const })),
     { d: cercleNote(p.tete, r), teinte: 'proche' },
     ...visage.cheveux.map(d => ({ d, teinte: 'cheveux' as const })),

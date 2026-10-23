@@ -67,7 +67,7 @@ Documents de référence : `PRODUCT.md`, `DESIGN.md` (+ `.impeccable/design.json
 5. Jalons suivants : **5** RevenueCat (découpage gratuit / Premium à redéfinir autour des objectifs), **6** PostHog + RGPD, **7** contenu final et test fermé Play Store (12 testeurs × 14 jours).
 6. **Idées en attente** (seulement si Mattia le demande) : phrases de motivation de grands sportifs sur l'écran de fin ; variantes lestées ; suivi des répétitions ; programme sur plusieurs semaines.
 
-Fait le 2026-10-23 : bouton « Variante sans chaise / table » dans l'aperçu de la séance (`app/seance.tsx`, variantes dans `src/circuits/circuits.ts`, choix gardé toute la séance ; le journal garde l'exercice prévu). Pompe archer **de face** en cours chez Codex (brief `.superpowers/sdd/archer/brief.md`, Codex). Aperçu web de vérification : configuration `flashcoach-web-verif` (port 8090) dans `.claude/launch.json`.
+Fait le 2026-10-23 : bouton « Variante sans chaise / table » dans l'aperçu de la séance (`app/seance.tsx`, variantes dans `src/circuits/circuits.ts`, choix gardé toute la séance ; le journal garde l'exercice prévu). Pompe archer redessinée **de face** (brief `.superpowers/sdd/archer/brief.md`, Codex). Aperçu web de vérification : configuration `flashcoach-web-verif` (port 8090) dans `.claude/launch.json`.
 Retouches de la figurine (pont sur une jambe selon le côté, bird-dog, pompes large/tempo, pompes sur les genoux) : faites et fusionnées le 2026-10-23.
 Revues : Mattia les trouve coûteuses — Sonnet par défaut, diff sans tests, points ciblés, une revue finale.
 

@@ -107,18 +107,45 @@ describe('genererSeance', () => {
     }
   });
 
-  it("assouplit d'abord l'intensité, en gardant l'objectif", () => {
-    const intenses = ENERGIE.slice(0, 4).map((ex) => ({ ...ex, intensite: 3 as const }));
-    const seance = genererSeance(parametres(), [...MOBILITE, ...DETENTE, ...intenses]);
+  it("assouplit d'abord l'intensité vers le bas, en gardant l'objectif", () => {
+    // Lourd vise l'intensité 3 : faute de cardio à 3, il prend des cardios à 2.
+    const seance = genererSeance(parametres({ niveau: 3 }), CATALOGUE);
     expect(seance.assouplissement).toBe(1);
     for (const bloc of seance.blocs.filter((b) => b.phase === 'coeur')) {
       expect(bloc.exercice.objectifs).toContain('calories');
+      expect(bloc.exercice.intensite).toBe(2);
+    }
+  });
+
+  it('ne monte jamais au-dessus de l’intensité choisie : il répète un cardio plutôt, sans le refaire deux fois de suite', () => {
+    const intenses = ENERGIE.slice(0, 4).map((ex) => ({ ...ex, intensite: 3 as const }));
+    const doux = [
+      fabriquerExercice({ id: 'doux-1', effets: ['energie'], intensite: 2, zone: 'bas' }),
+      fabriquerExercice({ id: 'doux-2', effets: ['energie'], intensite: 1, zone: 'haut' }),
+    ];
+    const renfo = fabriquerExercice({ id: 'renfo', effets: ['energie'], objectifs: ['masse'], intensite: 2 });
+    for (let graine = 1; graine <= 20; graine++) {
+      const seance = genererSeance(parametres({ graine }), [...MOBILITE, ...DETENTE, ...intenses, ...doux, renfo]);
+      const coeur = seance.blocs.filter((b) => b.phase === 'coeur').map((b) => b.exercice.id);
+      expect([...coeur].sort()).toEqual(['doux-1', 'doux-1', 'doux-2', 'doux-2']);
+      for (let i = 1; i < coeur.length; i++) expect(coeur[i]).not.toBe(coeur[i - 1]);
+      expect(seance.assouplissement).toBe(3);
     }
   });
 
   it('remplit la durée en répétant quand le catalogue est trop petit', () => {
-    const seance = genererSeance(parametres(), [ENERGIE[0], MOBILITE[0], DETENTE[0]]);
+    const seance = genererSeance(parametres(), [ENERGIE[0], ENERGIE[1], MOBILITE[0], DETENTE[0]]);
     expect(seance.assouplissement).toBe(3);
+    expect(seance.dureeTotaleS).toBe(300);
+    expect(seance.blocs.filter((b) => b.phase === 'coeur').map((b) => b.exercice.id)).toEqual(
+      expect.arrayContaining(['ene-1', 'ene-2']),
+    );
+  });
+
+  it('ne dépasse l’intensité qu’en tout dernier recours, quand aucun exercice n’est assez doux', () => {
+    const intenses = ENERGIE.map((ex) => ({ ...ex, intensite: 3 as const }));
+    const seance = genererSeance(parametres(), intenses);
+    expect(seance.assouplissement).toBe(4);
     expect(seance.dureeTotaleS).toBe(300);
   });
 

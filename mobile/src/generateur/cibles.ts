@@ -28,25 +28,26 @@ export function cibleDePhase(phase: Phase, objectif: ObjectifGenere, niveau: Niv
 const EFFETS_CALMES: readonly Effet[] = ['mobilite', 'detente'];
 const TOUS_LES_EFFETS: readonly Effet[] = ['mobilite', 'detente', 'energie'];
 
-// Une cible calme (mobilité, détente, étirements) ne reçoit jamais d'énergie avant le dernier recours (niveau 4).
-function effetsAcceptables(cible: Cible): readonly Effet[] {
-  const calme = 'effet' in cible ? EFFETS_CALMES.includes(cible.effet) : cible.objectif === 'etirements';
-  return calme ? EFFETS_CALMES : TOUS_LES_EFFETS;
+// Famille d'une cible, acceptée aux paliers 2 et 3. Une cible calme (mobilité, détente) ne reçoit jamais d'énergie
+// avant le dernier recours (niveau 4) ; une cible d'objectif reste dans son objectif (pas de mobilité dans un cœur
+// « calories » : on y répète un cardio).
+function dansLaFamille(exercice: Exercice, cible: Cible): boolean {
+  if (!('effet' in cible)) return exercice.objectifs.includes(cible.objectif);
+  const acceptables = EFFETS_CALMES.includes(cible.effet) ? EFFETS_CALMES : TOUS_LES_EFFETS;
+  return exercice.effets.some((effet) => acceptables.includes(effet));
 }
 
 function vise(exercice: Exercice, cible: Cible): boolean {
   return 'effet' in cible ? exercice.effets.includes(cible.effet) : exercice.objectifs.includes(cible.objectif);
 }
 
-// Ordre d'assouplissement : intensité (1), effet dans la même famille (2), répétition (3, géré par le générateur),
-// puis tout exercice compatible (4).
+// Ordre d'assouplissement : intensité vers le bas (1), même famille (2), répétition (3, gérée par le générateur),
+// puis tout exercice compatible (4). À aucun palier un exercice ne dépasse l'intensité maximale de la
+// cible : il manque des exercices doux ? le générateur en répète un plutôt que de monter.
 export function correspond(exercice: Exercice, cible: Cible, niveau: NiveauAssouplissement): boolean {
+  if (exercice.intensite > cible.intensiteMax) return false;
   if (niveau >= 4) return true;
-  if (niveau >= 2) {
-    const acceptables = effetsAcceptables(cible);
-    return exercice.effets.some((effet) => acceptables.includes(effet));
-  }
-  const intensiteOk =
-    niveau >= 1 || (exercice.intensite >= cible.intensiteMin && exercice.intensite <= cible.intensiteMax);
+  if (niveau >= 2) return dansLaFamille(exercice, cible);
+  const intensiteOk = niveau >= 1 || exercice.intensite >= cible.intensiteMin;
   return vise(exercice, cible) && intensiteOk;
 }

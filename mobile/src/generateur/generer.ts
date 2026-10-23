@@ -118,8 +118,11 @@ export function genererSeance(params: ParametresSeance, catalogue: Exercice[]): 
       let place = false;
       // 2-3. Classer selon la cible et choisir, en assouplissant niveau par niveau.
       for (const palier of PALIERS) {
+        // Palier 3 : on répète un exercice déjà fait, mais jamais celui qui précède (le palier 4 s'en charge au besoin).
         const candidats = compatibles.filter(
-          (exercice) => (palier >= 3 || !utilises.has(exercice.id)) && correspond(exercice, cible, palier),
+          (exercice) =>
+            (palier >= 4 || (palier === 3 ? exercice.id !== precedent?.id : !utilises.has(exercice.id))) &&
+            correspond(exercice, cible, palier),
         );
         if (candidats.length === 0) continue;
         const exercice = departager(
@@ -134,8 +137,19 @@ export function genererSeance(params: ParametresSeance, catalogue: Exercice[]): 
         place = true;
         break;
       }
-      // Au niveau 4, tout exercice compatible est candidat : on n'arrive ici que si cet invariant est cassé.
-      if (!place) throw new Error('Invariant cassé : aucun exercice placé alors que le catalogue est compatible');
+      // Seul cas où l'intensité peut dépasser la cible : aucun exercice disponible n'est à cette intensité ou en dessous.
+      // On prend alors, au dernier recours, n'importe quel exercice compatible (le catalogue embarqué n'y arrive jamais).
+      if (!place) {
+        const exercice = departager(
+          compatibles,
+          { precedent, cible, placesAVenir, libres, ciblesAVenir, recents, niveauVise: plan.phase === 'coeur' ? niveau : null },
+          alea,
+        );
+        utilises.add(exercice.id);
+        choisis.push(exercice);
+        choisisDuPlan.push(exercice);
+        assouplissement = 4;
+      }
     }
     blocs.push(...deplier(plan, choisisDuPlan));
   });

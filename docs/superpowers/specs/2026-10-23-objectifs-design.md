@@ -31,7 +31,7 @@ Contraintes fixes « maison » pour tout le catalogue. Nouveau champ d'exercice 
 - `masse` : renforcement (pompes et variantes, squats, fentes, dips, tractions sous la table, gainages, ponts, superman…).
 Un exercice peut avoir deux objectifs (ex. burpee : calories + masse).
 
-**Brûler des calories** et **Étirements** : générés par le générateur actuel, avec pour cible du cœur l'objectif choisi et une intensité selon le niveau : Léger 1-2, Moyen 2-3, Lourd 3 (Étirements : intensité 1-2 quel que soit le niveau, le niveau ne fait que plafonner la difficulté des exercices). Mise en route et retour au calme comme aujourd'hui (mobilité / détente).
+**Brûler des calories** et **Étirements** : générés par le générateur actuel, avec pour cible du cœur l'objectif choisi et une intensité selon le niveau : Léger 1-2, Moyen 2-3, Lourd 3 (Étirements : intensité 1-2 quel que soit le niveau, le niveau ne fait que plafonner la difficulté des exercices). Mise en route et retour au calme comme aujourd'hui (mobilité / détente). Quand les exercices manquent, l'intensité ne s'assouplit que vers le bas, jamais au-dessus de la plage choisie : le générateur répète plutôt un exercice de l'objectif (jamais deux fois de suite).
 
 **Prise de masse** : joue un **circuit** (format validé par les études : 30 s par poste, 10 s d'aperçu, repos entre les tours) au niveau choisi, en faisant tourner les familles d'une séance à l'autre (full body → poussée → jambes → dos → full body…, d'après la dernière séance de masse du journal). Nombre de tours selon la durée : 5 min → 1 tour, 10 min → 2, 15 min → 3, 30 min → 6 (durées réelles ≈ 6, 11, 16 et 31 min, affichées telles quelles). L'option « sans meuble » de la page circuits s'applique.
 
@@ -49,7 +49,7 @@ Un exercice peut avoir deux objectifs (ex. burpee : calories + masse).
 ## 4. Tests
 
 - Catalogue : chaque exercice a au moins un objectif ; répartition attendue écrite en dur ; couverture complète pour chaque objectif × intensité × durée (sinon le rapport liste les manques).
-- Générateur : calories et étirements à 5, 10, 15, 30 min tombent à la seconde près ; jamais un exercice d'intensité/niveau au-dessus de la sélection ; étirements sans exercice d'énergie.
+- Générateur : calories et étirements à 5, 10, 15, 30 min tombent à la seconde près ; jamais un exercice d'intensité/niveau au-dessus de la sélection ; étirements sans exercice d'énergie (seule exception : le bird-dog, étiqueté étirements et masse).
 - Prise de masse : nombre de tours par durée, rotation des familles d'après le journal, niveau respecté, « sans meuble » appliqué.
 - Écrans : départ (3 lignes, présélection, un tap, pas de défilement), Bravo (ajustement d'intensité), journal (anciennes et nouvelles entrées), lien direct.
 

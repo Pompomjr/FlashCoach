@@ -38,9 +38,16 @@ describe('correspond', () => {
     expect(correspond(autreEffet, cible, 0)).toBe(false);
   });
 
-  it('assouplit l’intensité au niveau 1, mais garde l’effet', () => {
-    expect(correspond(tropIntense, cible, 1)).toBe(true);
+  it('assouplit l’intensité vers le bas au niveau 1, mais garde l’effet', () => {
+    const tropDoux = fabriquerExercice({ effets: ['energie'], intensite: 1 });
+    expect(correspond(tropDoux, cible, 1)).toBe(true);
     expect(correspond(autreEffet, cible, 1)).toBe(false);
+  });
+
+  it('ne dépasse jamais l’intensité maximale de la cible, à aucun niveau d’assouplissement', () => {
+    for (const palier of [0, 1, 2, 3, 4] as const) {
+      expect(correspond(tropIntense, cible, palier)).toBe(false);
+    }
   });
 
   it('assouplit aussi l’effet à partir du niveau 2', () => {
@@ -80,9 +87,16 @@ describe('correspond : cible d’objectif', () => {
     expect(correspond(renfo, calories, 1)).toBe(false);
   });
 
-  it('accepte au niveau 2 un autre exercice pour les calories, jamais d’énergie pour les étirements avant le niveau 4', () => {
-    expect(correspond(renfo, calories, 2)).toBe(true);
-    expect(correspond(etirement, calories, 2)).toBe(true);
+  it('reste dans l’objectif aux niveaux 2 et 3 ; n’en sort qu’au niveau 4, sans jamais dépasser l’intensité', () => {
+    for (const palier of [2, 3] as const) {
+      expect(correspond(cardioDoux, calories, palier)).toBe(true);
+      expect(correspond(renfo, calories, palier)).toBe(false);
+      expect(correspond(etirement, calories, palier)).toBe(false);
+    }
+    expect(correspond(renfo, calories, 4)).toBe(true);
+    expect(correspond(etirement, calories, 4)).toBe(true);
+    const tropFort = fabriquerExercice({ effets: ['energie'], objectifs: ['calories'], intensite: 3 });
+    expect(correspond(tropFort, etirements, 4)).toBe(false);
     expect(correspond(cardio, etirements, 2)).toBe(false);
     expect(correspond(cardio, etirements, 3)).toBe(false);
     const detente = fabriquerExercice({ effets: ['detente'], objectifs: ['etirements'], intensite: 1 });

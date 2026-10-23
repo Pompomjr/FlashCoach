@@ -1,6 +1,7 @@
 import { CONTRAINTES_MAISON } from '../catalogue/contextes';
 import { EXERCICES } from '../catalogue/exercices';
 import { DUREES, NIVEAUX } from '../catalogue/types';
+import { cibleDuCoeur } from './cibles';
 import { respecteContraintes } from './filtres';
 import { genererSeance } from './generer';
 import { OBJECTIFS_GENERES } from './types';
@@ -32,6 +33,12 @@ describe('générateur sur le catalogue embarqué', () => {
               if (bloc.phase !== 'coeur') {
                 expect(bloc.exercice.effets.some((effet) => effet !== 'energie')).toBe(true);
               }
+            }
+            // Jamais au-dessus de l'intensité choisie : l'assouplissement ne fait que descendre (Léger ≤ 2, Moyen et
+            // Lourd ≤ 3, étirements ≤ 2), à toutes les durées.
+            const { intensiteMax } = cibleDuCoeur(objectif, niveau);
+            for (const bloc of seance.blocs.filter((b) => b.phase === 'coeur')) {
+              expect([bloc.exercice.id, bloc.exercice.intensite <= intensiteMax]).toEqual([bloc.exercice.id, true]);
             }
             // Étirements : rien qui ne serve pas cet objectif, à aucune phase.
             if (objectif === 'etirements') {

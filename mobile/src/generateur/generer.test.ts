@@ -1,7 +1,7 @@
-import { CONTEXTES } from '../catalogue/contextes';
+import { CONTRAINTES_MAISON } from '../catalogue/contextes';
 import { EXERCICES } from '../catalogue/exercices';
-import type { Contraintes, Exercice, Niveau, Zone } from '../catalogue/types';
-import { fabriquerExercice, SANS_CONTRAINTE } from '../test-utils/fabrique';
+import type { Exercice, Niveau, Zone } from '../catalogue/types';
+import { fabriquerExercice } from '../test-utils/fabrique';
 import { genererSeance } from './generer';
 import type { ParametresSeance, Seance } from './types';
 
@@ -13,6 +13,7 @@ const DETENTE = [
   fabriquerExercice({ id: 'det-1', effets: ['detente'], intensite: 1, zone: 'global' }),
   fabriquerExercice({ id: 'det-2', effets: ['detente'], intensite: 1, zone: 'tronc' }),
 ];
+// Cardio (objectif « calories » par défaut de la fabrique).
 const ENERGIE = [
   fabriquerExercice({ id: 'ene-1', effets: ['energie'], intensite: 2, zone: 'haut' }),
   fabriquerExercice({ id: 'ene-2', effets: ['energie'], intensite: 2, zone: 'bas' }),
@@ -21,11 +22,10 @@ const ENERGIE = [
   fabriquerExercice({ id: 'ene-5', effets: ['energie'], intensite: 2, zone: 'haut' }),
 ];
 const CATALOGUE: Exercice[] = [...MOBILITE, ...DETENTE, ...ENERGIE];
-const SILENCIEUX: Contraintes = { ...SANS_CONTRAINTE, bruit: 'silencieux' };
 const ZONES: Zone[] = ['haut', 'bas', 'tronc', 'global'];
 
 function parametres(surcharge: Partial<ParametresSeance> = {}): ParametresSeance {
-  return { contexteId: 'test', contraintes: SANS_CONTRAINTE, ressenti: 'mou', duree: 5, graine: 1, ...surcharge };
+  return { objectif: 'calories', duree: 5, graine: 1, ...surcharge };
 }
 
 function ids(seance: Seance): string[] {
@@ -48,9 +48,12 @@ describe('genererSeance', () => {
     expect(seance.dureeTotaleS).toBe(300);
   });
 
-  it('recopie les paramètres dans la séance', () => {
-    const seance = genererSeance(parametres({ contexteId: 'maison', ressenti: 'raide', duree: 3, graine: 9 }), CATALOGUE);
-    expect(seance).toMatchObject({ contexteId: 'maison', ressenti: 'raide', duree: 3, graine: 9, contraintes: SANS_CONTRAINTE });
+  it('recopie les paramètres dans la séance, avec les contraintes fixes « maison »', () => {
+    const seance = genererSeance(parametres({ objectif: 'etirements', duree: 10, graine: 9 }), [
+      ...CATALOGUE,
+      ...Array.from({ length: 8 }, (_, i) => fabriquerExercice({ id: `eti-${i}`, effets: ['mobilite'], intensite: 2 })),
+    ]);
+    expect(seance).toMatchObject({ objectif: 'etirements', duree: 10, graine: 9, contraintes: CONTRAINTES_MAISON });
   });
 
   it('met en route en mobilité et termine en détente', () => {
@@ -61,11 +64,19 @@ describe('genererSeance', () => {
     }
   });
 
-  it('oriente le cœur selon le ressenti', () => {
-    const coeur = genererSeance(parametres({ ressenti: 'mou' }), CATALOGUE).blocs.filter((b) => b.phase === 'coeur');
+  it('oriente le cœur vers l’objectif « calories », intensité 1-2 en Léger', () => {
+    const coeur = genererSeance(parametres(), CATALOGUE).blocs.filter((b) => b.phase === 'coeur');
     for (const bloc of coeur) {
-      expect(bloc.exercice.effets).toContain('energie');
+      expect(bloc.exercice.objectifs).toContain('calories');
       expect(bloc.exercice.intensite).toBeLessThanOrEqual(2);
+    }
+  });
+
+  it('ne prend pas de renforcement pour les calories quand le cardio suffit', () => {
+    const renfo = ENERGIE.map((ex) => ({ ...ex, id: `renfo-${ex.id}`, objectifs: ['masse' as const] }));
+    for (let graine = 1; graine <= 20; graine++) {
+      const seance = genererSeance(parametres({ graine }), [...CATALOGUE, ...renfo]);
+      expect(ids(seance).some((id) => id.startsWith('renfo-'))).toBe(false);
     }
   });
 
@@ -96,19 +107,17 @@ describe('genererSeance', () => {
     }
   });
 
-  it("assouplit d'abord l'intensité, en gardant l'effet", () => {
+  it("assouplit d'abord l'intensité, en gardant l'objectif", () => {
     const intenses = ENERGIE.slice(0, 4).map((ex) => ({ ...ex, intensite: 3 as const }));
-    const seance = genererSeance(parametres({ ressenti: 'mou' }), [...MOBILITE, ...DETENTE, ...intenses]);
+    const seance = genererSeance(parametres(), [...MOBILITE, ...DETENTE, ...intenses]);
     expect(seance.assouplissement).toBe(1);
     for (const bloc of seance.blocs.filter((b) => b.phase === 'coeur')) {
-      expect(bloc.exercice.effets).toContain('energie');
+      expect(bloc.exercice.objectifs).toContain('calories');
     }
   });
 
-  it('ne viole jamais les contraintes, même en assouplissant tout le reste', () => {
-    const saut = fabriquerExercice({ id: 'saut', sauts: true, effets: ['energie'], intensite: 2 });
-    const seance = genererSeance(parametres({ contraintes: SILENCIEUX }), [saut, MOBILITE[0], DETENTE[0]]);
-    expect(ids(seance)).not.toContain('saut');
+  it('remplit la durée en répétant quand le catalogue est trop petit', () => {
+    const seance = genererSeance(parametres(), [ENERGIE[0], MOBILITE[0], DETENTE[0]]);
     expect(seance.assouplissement).toBe(3);
     expect(seance.dureeTotaleS).toBe(300);
   });
@@ -121,15 +130,63 @@ describe('genererSeance', () => {
     }
   });
 
-  it("lève une erreur quand aucun exercice n'est compatible", () => {
-    const saut = fabriquerExercice({ id: 'saut', sauts: true });
-    expect(() => genererSeance(parametres({ contraintes: SILENCIEUX }), [saut])).toThrow(
-      'Aucun exercice compatible avec le contexte test',
+  it("lève une erreur quand aucun exercice ne sert l'objectif à ce niveau", () => {
+    expect(() => genererSeance(parametres({ objectif: 'etirements' }), ENERGIE)).toThrow(
+      'Aucun exercice compatible avec l’objectif etirements au niveau 1',
+    );
+    const costauds = ENERGIE.map((ex) => ({ ...ex, niveau: 3 as const }));
+    expect(() => genererSeance(parametres({ niveau: 2 }), costauds)).toThrow(
+      'Aucun exercice compatible avec l’objectif calories au niveau 2',
     );
   });
 });
 
-describe('genererSeance : phases calmes', () => {
+describe('genererSeance : 15 et 30 minutes en tours', () => {
+  // Assez pour 30 min sans répétition : 6 mises en route, 5 postes de cœur, 5 retours au calme.
+  const GRAND: Exercice[] = [
+    ...Array.from({ length: 6 }, (_, i) => fabriquerExercice({ id: `mob-${i}`, effets: ['mobilite'], intensite: 1, zone: ZONES[i % 4] })),
+    ...Array.from({ length: 5 }, (_, i) => fabriquerExercice({ id: `det-${i}`, effets: ['detente'], intensite: 1, zone: ZONES[i % 4] })),
+    ...Array.from({ length: 5 }, (_, i) => fabriquerExercice({ id: `ene-${i}`, effets: ['energie'], intensite: 2, zone: ZONES[i % 4] })),
+  ];
+
+  it.each([
+    [15, 900, 2],
+    [30, 1800, 4],
+  ] as const)('%i min : %i s exactement, %i tours du même cœur de 5 postes', (duree, totalS, tours) => {
+    for (let graine = 1; graine <= 10; graine++) {
+      const seance = genererSeance(parametres({ duree, graine }), GRAND);
+      expect(seance.dureeTotaleS).toBe(totalS);
+      expect(seance.blocs.reduce((s, b) => s + b.transitionS + b.effortS, 0)).toBe(totalS);
+      expect(seance.assouplissement).toBe(0);
+      const coeur = seance.blocs.filter((b) => b.phase === 'coeur');
+      expect(coeur).toHaveLength(5 * tours);
+      const premierTour = coeur.slice(0, 5).map((b) => b.exercice.id);
+      expect(new Set(premierTour).size).toBe(5);
+      for (let numero = 1; numero <= tours; numero++) {
+        const tour = coeur.slice((numero - 1) * 5, numero * 5);
+        expect(tour.map((b) => b.exercice.id)).toEqual(premierTour);
+        expect(tour.map((b) => b.tour)).toEqual(Array(5).fill({ numero, total: tours }));
+        // Le repos de 1 min précède le premier poste des tours 2 et suivants, dans sa transition.
+        expect(tour.map((b) => b.transitionS)).toEqual([numero > 1 ? 70 : 10, 10, 10, 10, 10]);
+        expect(tour.every((b) => b.effortS === 45)).toBe(true);
+      }
+      for (const bloc of seance.blocs.filter((b) => b.phase !== 'coeur')) {
+        expect(bloc.tour).toBeUndefined();
+      }
+      const suite = ids(seance);
+      for (let i = 1; i < suite.length; i++) expect(suite[i]).not.toBe(suite[i - 1]);
+    }
+  });
+
+  it('ne met pas de tour sur les séances de 5 et 10 minutes', () => {
+    for (const duree of [5, 10] as const) {
+      const seance = genererSeance(parametres({ duree }), [...GRAND, ...ENERGIE]);
+      expect(seance.blocs.every((b) => b.tour === undefined)).toBe(true);
+    }
+  });
+});
+
+describe('genererSeance : étirements et phases calmes', () => {
   it('garde pour le retour au calme l’exercice mobilité + détente', () => {
     const catalogue = [
       fabriquerExercice({ id: 'mob-haut', effets: ['mobilite'], intensite: 1, zone: 'haut' }),
@@ -146,58 +203,55 @@ describe('genererSeance : phases calmes', () => {
     }
   });
 
-  it('oriente le cœur vers la mobilité pour « raide »', () => {
+  it('oriente le cœur vers les étirements pour l’objectif « étirements »', () => {
     const mobilites = ZONES.concat(ZONES.slice(0, 2)).map((zone, i) =>
       fabriquerExercice({ id: `mob-${i}`, effets: ['mobilite'], intensite: 1, zone }),
     );
-    const seance = genererSeance(parametres({ ressenti: 'raide' }), [...mobilites, ...DETENTE, ...ENERGIE]);
+    const seance = genererSeance(parametres({ objectif: 'etirements' }), [...mobilites, ...DETENTE, ...ENERGIE]);
     expect(seance.assouplissement).toBe(0);
-    for (const bloc of seance.blocs.filter((b) => b.phase === 'coeur')) {
-      expect(bloc.exercice.effets).toContain('mobilite');
+    for (const bloc of seance.blocs) {
+      expect(bloc.exercice.objectifs).toContain('etirements');
     }
   });
 
-  it('oriente le cœur et le retour au calme vers la détente pour « stressé »', () => {
-    const detentes = ZONES.concat(ZONES.slice(0, 2)).map((zone, i) =>
-      fabriquerExercice({ id: `det-${i}`, effets: ['detente'], intensite: 1, zone }),
-    );
-    const seance = genererSeance(parametres({ ressenti: 'stresse' }), [...MOBILITE, ...detentes, ...ENERGIE]);
-    expect(seance.assouplissement).toBe(0);
-    for (const bloc of seance.blocs.filter((b) => b.phase !== 'mise_en_route')) {
-      expect(bloc.exercice.effets).toContain('detente');
-    }
-  });
-
-  it('répète un exercice calme plutôt que de finir sur de l’énergie', () => {
+  it('n’utilise jamais d’exercice hors étirements, même en dernier recours : il répète plutôt', () => {
     for (let graine = 1; graine <= 20; graine++) {
-      const seance = genererSeance(parametres({ graine, ressenti: 'stresse' }), [MOBILITE[0], DETENTE[0], ...ENERGIE]);
-      for (const bloc of seance.blocs) {
-        expect(bloc.exercice.effets).not.toEqual(['energie']);
+      for (const niveau of [1, 2, 3] as const) {
+        const seance = genererSeance(parametres({ graine, niveau, objectif: 'etirements' }), [MOBILITE[0], DETENTE[0], ...ENERGIE]);
+        for (const bloc of seance.blocs) {
+          expect(bloc.exercice.objectifs).toEqual(['etirements']);
+        }
+        expect(seance.assouplissement).toBe(3);
       }
-      expect(seance.assouplissement).toBe(3);
     }
+  });
+
+  it('garde en étirements un exercice d’énergie étiqueté étirements (bird-dog)', () => {
+    const birdDog = fabriquerExercice({ id: 'bird-dog', effets: ['mobilite', 'energie'], objectifs: ['masse', 'etirements'], intensite: 1 });
+    const seance = genererSeance(parametres({ objectif: 'etirements' }), [birdDog]);
+    expect(ids(seance).every((id) => id === 'bird-dog')).toBe(true);
   });
 
   it('ne prend pas en mise en route l’exercice dont le retour au calme a besoin', () => {
-    // Seule séance idéale : mise en route e0, cœur e4 + e2, retour au calme e1 + e3.
-    // e3 est idéal pour la mise en route, mais le retour au calme n'a que e1 et e3.
+    // Seule séance idéale de 5 min : mise en route m0 + m1, cœur c0 à c3, retour au calme x + d0.
+    // x (mobilité + détente) est idéal pour la mise en route et pour le cœur, mais le retour au calme n'a que x et d0.
     const catalogue = [
-      fabriquerExercice({ id: 'e0', effets: ['mobilite'], intensite: 1 }),
-      fabriquerExercice({ id: 'e1', effets: ['detente'], intensite: 1 }),
-      fabriquerExercice({ id: 'e2', effets: ['mobilite', 'detente', 'energie'], intensite: 2 }),
-      fabriquerExercice({ id: 'e3', effets: ['mobilite', 'detente', 'energie'], intensite: 1 }),
-      fabriquerExercice({ id: 'e4', effets: ['mobilite', 'energie'], intensite: 2 }),
+      fabriquerExercice({ id: 'm0', effets: ['mobilite'], intensite: 1 }),
+      fabriquerExercice({ id: 'm1', effets: ['mobilite'], intensite: 1 }),
+      fabriquerExercice({ id: 'x', effets: ['mobilite', 'detente'], intensite: 1 }),
+      fabriquerExercice({ id: 'd0', effets: ['detente'], intensite: 1 }),
+      ...Array.from({ length: 4 }, (_, i) => fabriquerExercice({ id: `c${i}`, effets: ['mobilite'], intensite: 2 })),
     ];
     for (let graine = 1; graine <= 50; graine++) {
-      const seance = genererSeance(parametres({ graine, ressenti: 'raide', duree: 3 }), catalogue);
+      const seance = genererSeance(parametres({ graine, objectif: 'etirements' }), catalogue);
       expect(seance.assouplissement).toBe(0);
-      expect(ids(seance)[0]).toBe('e0');
-      expect(ids(seance).slice(3).sort()).toEqual(['e1', 'e3']);
+      expect(ids(seance).slice(0, 2).sort()).toEqual(['m0', 'm1']);
+      expect(ids(seance).slice(6).sort()).toEqual(['d0', 'x']);
     }
   });
 
   it('n’utilise l’énergie dans une phase calme qu’en dernier recours', () => {
-    const seance = genererSeance(parametres({ ressenti: 'stresse' }), ENERGIE);
+    const seance = genererSeance(parametres(), ENERGIE);
     expect(seance.assouplissement).toBe(4);
     expect(seance.dureeTotaleS).toBe(300);
   });
@@ -240,8 +294,8 @@ describe('genererSeance : niveau', () => {
   });
 
   it('au niveau 3 sans exercice de niveau 3, se construit avec des niveaux ≤ 2', () => {
-    const catalogue = [...MOBILITE, ...DETENTE, ...au(2, ENERGIE)];
-    const seance = genererSeance(parametres({ niveau: 3 }), catalogue);
+    const forts = au(2, ENERGIE).map((ex) => ({ ...ex, intensite: 3 as const }));
+    const seance = genererSeance(parametres({ niveau: 3 }), [...MOBILITE, ...DETENTE, ...forts]);
     expect(seance.niveau).toBe(3);
     expect(seance.blocs.every((bloc) => bloc.exercice.niveau <= 2)).toBe(true);
     expect(seance.assouplissement).toBe(0);
@@ -265,7 +319,7 @@ describe('genererSeance : niveau', () => {
     const catalogue = [...mobilites, ...detentes, ...au(3, ENERGIE)];
     const choisis = new Set<string>();
     for (let graine = 1; graine <= 40; graine++) {
-      const seance = genererSeance(parametres({ graine, niveau: 3, duree: 3 }), catalogue);
+      const seance = genererSeance(parametres({ graine, niveau: 3 }), catalogue);
       for (const bloc of seance.blocs) if (bloc.phase !== 'coeur') choisis.add(bloc.exercice.id);
     }
     expect(choisis.has('mob-a')).toBe(true);
@@ -276,9 +330,9 @@ describe('genererSeance : niveau', () => {
 describe('genererSeance : préférence de niveau', () => {
   const energies = (prefixe: string, nombre: number, niveau: Niveau) =>
     Array.from({ length: nombre }, (_, i) =>
-      fabriquerExercice({ id: `${prefixe}-${i}`, effets: ['energie'], intensite: 2, zone: ZONES[i % ZONES.length], niveau }),
+      fabriquerExercice({ id: `${prefixe}-${i}`, effets: ['energie'], intensite: 3, zone: ZONES[i % ZONES.length], niveau }),
     );
-  // Cœur de 5 minutes : 4 places, 8 exercices d'énergie tous également idéaux.
+  // Cœur de 5 minutes : 4 places, 8 exercices de cardio d'intensité 3, tous également idéaux en Moyen et en Lourd.
   const catalogue = [...MOBILITE, ...DETENTE, ...energies('un', 4, 1), ...energies('deux', 2, 2), ...energies('trois', 2, 3)];
   const niveauxDuCoeur = (seance: Seance) =>
     seance.blocs
@@ -303,27 +357,34 @@ describe('genererSeance : préférence de niveau', () => {
   });
 });
 
-// Promesse du niveau : à la maison, en forme, en 5 minutes, le cœur est entièrement du niveau choisi.
-describe('genererSeance : niveau sur le catalogue embarqué', () => {
-  const maison = CONTEXTES.find((contexte) => contexte.id === 'maison');
-  const coeurDuNiveau = (niveau: Niveau, graine: number) => {
-    if (maison === undefined) throw new Error('Contexte « maison » introuvable');
-    const seance = genererSeance(
-      { contexteId: maison.id, contraintes: maison.contraintes, ressenti: 'en_forme', duree: 5, graine, niveau },
-      EXERCICES,
-    );
-    return seance.blocs.filter((bloc) => bloc.phase === 'coeur').map((bloc) => bloc.exercice.niveau);
-  };
+// Promesse de l'intensité sur le catalogue embarqué : « Brûler des calories » en 5 minutes.
+describe('genererSeance : intensité sur le catalogue embarqué', () => {
+  const coeur = (niveau: Niveau, graine: number) =>
+    genererSeance({ objectif: 'calories', duree: 5, graine, niveau }, EXERCICES).blocs.filter((b) => b.phase === 'coeur');
 
-  it('une séance Tonique a un cœur entièrement de niveau 2', () => {
+  it('Léger : cœur de cardio d’intensité 1-2, entièrement de niveau 1', () => {
     for (let graine = 1; graine <= 30; graine++) {
-      expect(coeurDuNiveau(2, graine)).toEqual([2, 2, 2, 2]);
+      for (const bloc of coeur(1, graine)) {
+        expect(bloc.exercice.objectifs).toContain('calories');
+        expect(bloc.exercice.niveau).toBe(1);
+        expect(bloc.exercice.intensite).toBeLessThanOrEqual(2);
+      }
     }
   });
 
-  it('une séance Costaud a un cœur entièrement de niveau 3', () => {
+  it('Moyen : cœur de cardio d’intensité 2-3, avec les 3 exercices de niveau 2 du cardio', () => {
     for (let graine = 1; graine <= 30; graine++) {
-      expect(coeurDuNiveau(3, graine)).toEqual([3, 3, 3, 3]);
+      const blocs = coeur(2, graine);
+      expect(blocs.every((b) => b.exercice.objectifs.includes('calories') && b.exercice.intensite >= 2)).toBe(true);
+      expect(blocs.map((b) => b.exercice.niveau).sort()).toEqual([1, 2, 2, 2]);
+    }
+  });
+
+  it('Lourd : cœur de cardio entièrement d’intensité 3, dont les 2 exercices de niveau 3 du cardio', () => {
+    for (let graine = 1; graine <= 30; graine++) {
+      const blocs = coeur(3, graine);
+      expect(blocs.map((b) => b.exercice.intensite)).toEqual([3, 3, 3, 3]);
+      expect(blocs.map((b) => b.exercice.niveau).sort()).toEqual([2, 2, 3, 3]);
     }
   });
 });

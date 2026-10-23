@@ -36,7 +36,7 @@ const EMOJI = new RegExp(String.raw`\p{Extended_Pictographic}|[✓‹]`, 'u');
 
 const memoire = stockageTelephone as unknown as { contenu: Record<string, string> };
 const ROUTES = { _layout: Layout, index: Depart, seance: EcranSeance, bravo: Bravo, journal: Journal };
-const SEANCE = '/seance?contexte=maison&ressenti=mou&duree=5&graine=1';
+const SEANCE = '/seance?objectif=calories&duree=5&graine=1';
 const journalEnMemoire = () => JSON.parse(memoire.contenu[CLE_JOURNAL] ?? '[]');
 
 // Le compteur est remis à zéro : un espion déjà posé par un test précédent garderait son historique.
@@ -67,11 +67,11 @@ describe('écran de départ', () => {
   });
 
   it('reprend les derniers choix', async () => {
-    memoire.contenu['flashcoach.choix'] = JSON.stringify({ contexteId: 'reveil', ressenti: 'raide', duree: 3 });
+    memoire.contenu['flashcoach.choix'] = JSON.stringify({ contexteId: 'reveil', ressenti: 'raide', duree: 15 });
     await renderRouter(ROUTES, { initialUrl: '/' });
     await waitFor(() => expect(screen.getByRole('button', { name: 'Au réveil' })).toBeSelected());
     expect(screen.getByRole('button', { name: 'Raide' })).toBeSelected();
-    expect(screen.getByRole('button', { name: '3 min' })).toBeSelected();
+    expect(screen.getByRole('button', { name: '15 min' })).toBeSelected();
   });
 
   it('affiche la marque en titre, avec le slogan dessous', async () => {
@@ -122,7 +122,7 @@ describe('écran de départ', () => {
   });
 
   it('ne laisse pas la lecture des préférences écraser un choix déjà fait', async () => {
-    memoire.contenu['flashcoach.choix'] = JSON.stringify({ contexteId: 'reveil', ressenti: 'raide', duree: 3 });
+    memoire.contenu['flashcoach.choix'] = JSON.stringify({ contexteId: 'reveil', ressenti: 'raide', duree: 15 });
     const stockage = stockageTelephone as unknown as { lire: (cle: string) => Promise<string | null> };
     const lireOrigine = stockage.lire;
     let liberer: () => void = () => undefined;
@@ -197,34 +197,34 @@ describe('écran de départ', () => {
 describe('niveau au départ', () => {
   const NOM_PASTILLE = /^Niveau .*, modifier$/;
 
-  it('montre « Niveau Doux » par défaut', async () => {
+  it('montre « Niveau Léger » par défaut', async () => {
     await renderRouter(ROUTES, { initialUrl: '/' });
-    expect(await screen.findByRole('button', { name: 'Niveau Doux, modifier' })).toBeTruthy();
-    expect(screen.getByText('Niveau Doux')).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'Niveau Léger, modifier' })).toBeTruthy();
+    expect(screen.getByText('Niveau Léger')).toBeTruthy();
   });
 
   it('ouvre la feuille des niveaux, avec le niveau courant marqué', async () => {
     await renderRouter(ROUTES, { initialUrl: '/' });
     await fireEvent.press(await screen.findByRole('button', { name: NOM_PASTILLE }));
-    expect(screen.getByRole('button', { name: 'Doux : on bouge sans forcer' })).toBeSelected();
-    expect(screen.getByRole('button', { name: 'Tonique : ça chauffe un peu' })).not.toBeSelected();
-    expect(screen.getByRole('button', { name: 'Costaud : pour celles et ceux qui s’entraînent déjà' })).not.toBeSelected();
+    expect(screen.getByRole('button', { name: 'Léger : on bouge sans forcer' })).toBeSelected();
+    expect(screen.getByRole('button', { name: 'Moyen : ça chauffe un peu' })).not.toBeSelected();
+    expect(screen.getByRole('button', { name: 'Lourd : pour celles et ceux qui s’entraînent déjà' })).not.toBeSelected();
   });
 
   it('ferme la feuille sans rien changer au tap extérieur', async () => {
     await renderRouter(ROUTES, { initialUrl: '/' });
     await fireEvent.press(await screen.findByRole('button', { name: NOM_PASTILLE }));
     await fireEvent.press(screen.getByRole('button', { name: 'Fermer' }));
-    expect(screen.queryByRole('button', { name: 'Tonique : ça chauffe un peu' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Moyen : ça chauffe un peu' })).toBeNull();
     expect(memoire.contenu['flashcoach.niveau']).toBeUndefined();
   });
 
-  it('choisit « Costaud », l’enregistre et le passe au lancement', async () => {
+  it('choisit « Lourd », l’enregistre et le passe au lancement', async () => {
     await renderRouter(ROUTES, { initialUrl: '/' });
     await fireEvent.press(await screen.findByRole('button', { name: NOM_PASTILLE }));
-    await fireEvent.press(screen.getByRole('button', { name: /^Costaud/ }));
-    expect(await screen.findByRole('button', { name: 'Niveau Costaud, modifier' })).toBeTruthy();
-    expect(screen.queryByRole('button', { name: /^Tonique/ })).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: /^Lourd/ }));
+    expect(await screen.findByRole('button', { name: 'Niveau Lourd, modifier' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /^Moyen/ })).toBeNull();
     await waitFor(() => expect(memoire.contenu['flashcoach.niveau']).toBe('3'));
     await fireEvent.press(screen.getByRole('button', { name: 'Lancer ma séance' }));
     await waitFor(() => expect(screen).toHavePathname('/seance'));
@@ -234,22 +234,22 @@ describe('niveau au départ', () => {
   it('reprend le niveau enregistré', async () => {
     memoire.contenu['flashcoach.niveau'] = '2';
     await renderRouter(ROUTES, { initialUrl: '/' });
-    expect(await screen.findByRole('button', { name: 'Niveau Tonique, modifier' })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'Niveau Moyen, modifier' })).toBeTruthy();
   });
 
   it('affiche le nouveau niveau au retour d’une séance où Bravo l’a modifié', async () => {
     await renderRouter(ROUTES, { initialUrl: '/' });
-    await screen.findByRole('button', { name: 'Niveau Doux, modifier' });
+    await screen.findByRole('button', { name: 'Niveau Léger, modifier' });
     await act(() => router.push('/bravo?minutes=5&exercices=8'));
     await fireEvent.press(await screen.findByRole('button', { name: 'Trop facile' }));
-    await screen.findByText('Prochaine séance : niveau Tonique');
+    await screen.findByText('Prochaine séance : niveau Moyen');
     await fireEvent.press(screen.getByRole('button', { name: 'Et on est repartis' }));
-    expect(await screen.findByRole('button', { name: 'Niveau Tonique, modifier' })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'Niveau Moyen, modifier' })).toBeTruthy();
   });
 
   it('attend que Bravo ait enregistré le niveau avant de repartir, même si on enchaîne vite', async () => {
     await renderRouter(ROUTES, { initialUrl: '/' });
-    await screen.findByRole('button', { name: 'Niveau Doux, modifier' });
+    await screen.findByRole('button', { name: 'Niveau Léger, modifier' });
     await act(() => router.push('/bravo?minutes=5&exercices=8'));
     // L'écriture du niveau est retenue : « Et on est repartis » tapé avant qu'elle n'aboutisse ne doit rien lancer.
     let enregistrer = () => {};
@@ -272,14 +272,14 @@ describe('niveau au départ', () => {
 
     await act(async () => enregistrer());
     await waitFor(() => expect(screen).toHavePathname('/'));
-    expect(await screen.findByRole('button', { name: 'Niveau Tonique, modifier' })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'Niveau Moyen, modifier' })).toBeTruthy();
     expect(memoire.contenu['flashcoach.niveau']).toBe('2');
   });
 });
 
 describe('écran de séance', () => {
   it('démarre la séance avec le compteur et le minuteur', async () => {
-    await renderRouter(ROUTES, { initialUrl: '/seance?contexte=maison&ressenti=mou&duree=5&graine=1' });
+    await renderRouter(ROUTES, { initialUrl: '/seance?objectif=calories&duree=5&graine=1' });
     expect(await screen.findByText('1 / 8')).toBeTruthy();
     expect(screen.getByText('0:05')).toBeTruthy();
   });
@@ -298,12 +298,22 @@ describe('écran de séance', () => {
   });
 
   it('renvoie au départ si les paramètres sont invalides', async () => {
-    await renderRouter(ROUTES, { initialUrl: '/seance?contexte=bureau&ressenti=mou&duree=5&graine=1' });
+    await renderRouter(ROUTES, { initialUrl: '/seance?objectif=lune&duree=5&graine=1' });
     await waitFor(() => expect(screen).toHavePathname('/'));
   });
 
+  it('renvoie au départ sur un ancien lien par contexte et ressenti, sans objectif', async () => {
+    await renderRouter(ROUTES, { initialUrl: '/seance?contexte=reveil&ressenti=mou&duree=5&graine=1' });
+    await waitFor(() => expect(screen).toHavePathname('/'));
+  });
+
+  it('joue une séance de 15 minutes en tours', async () => {
+    await renderRouter(ROUTES, { initialUrl: '/seance?objectif=etirements&duree=15&graine=1' });
+    expect(await screen.findByText('1 / 17')).toBeTruthy();
+  });
+
   it('termine la séance et affiche le bilan', async () => {
-    await renderRouter(ROUTES, { initialUrl: '/seance?contexte=maison&ressenti=mou&duree=5&graine=1' });
+    await renderRouter(ROUTES, { initialUrl: '/seance?objectif=calories&duree=5&graine=1' });
     await fireEvent.press(await screen.findByRole('button', { name: 'Terminer la séance' }));
     await waitFor(() => expect(screen).toHavePathname('/bravo'));
     expect(screen.getByText('Pas grave, on remet ça quand tu veux.')).toBeTruthy();
@@ -514,7 +524,7 @@ describe('Bravo : l’effort', () => {
   it('monte le niveau sur « Trop facile » et l’annonce', async () => {
     await renderRouter(ROUTES, { initialUrl: '/bravo?minutes=5&exercices=8' });
     await fireEvent.press(await screen.findByRole('button', { name: 'Trop facile' }));
-    expect(await screen.findByText('Prochaine séance : niveau Tonique')).toBeTruthy();
+    expect(await screen.findByText('Prochaine séance : niveau Moyen')).toBeTruthy();
     expect(niveauEnMemoire()).toBe('2');
     expect(screen.queryByRole('button', { name: 'Trop facile' })).toBeNull();
   });
@@ -530,7 +540,7 @@ describe('Bravo : l’effort', () => {
     memoire.contenu['flashcoach.niveau'] = '3';
     await renderRouter(ROUTES, { initialUrl: '/bravo?minutes=5&exercices=8' });
     await fireEvent.press(await screen.findByRole('button', { name: 'Trop dur' }));
-    expect(await screen.findByText('Prochaine séance : niveau Tonique')).toBeTruthy();
+    expect(await screen.findByText('Prochaine séance : niveau Moyen')).toBeTruthy();
     expect(niveauEnMemoire()).toBe('2');
   });
 
@@ -555,7 +565,7 @@ describe('Bravo : l’effort', () => {
     memoire.contenu[CLE_JOURNAL] = JSON.stringify([fabriquerEntree({ id: 'e1' })]);
     await renderRouter(ROUTES, { initialUrl: '/bravo?minutes=5&exercices=8&seance=e1' });
     await fireEvent.press(await screen.findByRole('button', { name: 'Trop facile' }));
-    await screen.findByText('Prochaine séance : niveau Tonique');
+    await screen.findByText('Prochaine séance : niveau Moyen');
     expect(screen.getByRole('button', { name: 'Mieux' })).toBeTruthy();
     await fireEvent.press(screen.getByRole('button', { name: 'Mieux' }));
     await waitFor(() => expect(journalEnMemoire()[0]).toMatchObject({ apres: 'mieux', effort: 'facile' }));
@@ -613,8 +623,9 @@ describe('journal : enregistrement', () => {
     await renderRouter(ROUTES, { initialUrl: SEANCE });
     await waitFor(() => expect(journalEnMemoire()).toHaveLength(1));
     expect(journalEnMemoire()[0]).toMatchObject({
+      // Provisoire (lot 2 : entrée par objectif) : une séance « calories » s'inscrit « maison · en forme ».
       contexteId: 'maison',
-      ressenti: 'mou',
+      ressenti: 'en_forme',
       duree: 5,
       graine: 1,
       terminee: false,

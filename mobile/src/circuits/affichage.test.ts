@@ -91,7 +91,7 @@ describe('libelleMateriel', () => {
   });
 
   it('ne cite chaque meuble qu’une fois, la chaise d’abord', () => {
-    // Jambes Tonique : deux squats bulgares, « chaise » une seule fois ; Dos Costaud : deux tractions, « table » une seule fois.
+    // Jambes Moyen : deux squats bulgares, « chaise » une seule fois ; Dos Lourd : deux tractions, « table » une seule fois.
     expect(libelleMateriel(circuit('jambes-tonique'))).toBe('chaise');
     expect(libelleMateriel(circuit('dos-costaud'))).toBe('table');
   });
@@ -140,7 +140,7 @@ describe('exerciceDuPoste et libellePoste', () => {
 
 describe('libelleAccessibleCircuit', () => {
   it('se lit « nom, niveau, N tours, M minutes »', () => {
-    expect(libelleAccessibleCircuit(circuit('full-body-tonique'), 21)).toBe('Full body, Tonique, 4 tours, 21 minutes');
-    expect(libelleAccessibleCircuit(circuit('dos-doux'), 16)).toBe('Dos et tronc, Doux, 3 tours, 16 minutes');
+    expect(libelleAccessibleCircuit(circuit('full-body-tonique'), 21)).toBe('Full body, Moyen, 4 tours, 21 minutes');
+    expect(libelleAccessibleCircuit(circuit('dos-doux'), 16)).toBe('Dos et tronc, Léger, 3 tours, 16 minutes');
   });
 });

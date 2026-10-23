@@ -12,7 +12,7 @@ const enPanne: Stockage = {
 };
 
 describe('niveau', () => {
-  it('démarre au niveau 1 « Doux »', async () => {
+  it('démarre au niveau 1 « Léger »', async () => {
     expect(await lireNiveau(creerStockageMemoire())).toBe(1);
   });
 

@@ -1,6 +1,7 @@
 import { contexteDisponible } from '../abonnement/acces';
 import { CONTEXTES } from '../catalogue/contextes';
 import { DUREES, RESSENTIS, type Duree, type Niveau, type Ressenti } from '../catalogue/types';
+import type { ObjectifGenere } from '../generateur/types';
 import { CHOIX_PAR_DEFAUT, type Choix } from '../preferences/preferences';
 import type { ParametresUrl } from './parametres';
 
@@ -18,15 +19,22 @@ export function choisirLancement(brut: ParametresUrl, derniers: Choix = CHOIX_PA
   };
 }
 
-// Les trois durées restent ouvertes comme sur le départ. Leur accès Premium sera
+// Les durées restent ouvertes comme sur le départ. Leur accès Premium sera
 // ajouté ici au jalon 5, pour les deux points d'entrée à la fois.
 export function lancementDisponible(choix: Choix): boolean {
   return contexteDisponible(choix.contexteId) && DUREES.includes(choix.duree);
 }
 
+// Provisoire, jusqu'au nouvel écran de départ (objectif · intensité · durée) : le ressenti encore choisi au départ
+// désigne l'objectif de la séance générée.
+export function objectifProvisoire(ressenti: Ressenti): ObjectifGenere {
+  return ressenti === 'raide' || ressenti === 'stresse' ? 'etirements' : 'calories';
+}
+
 // L'horloge reste chez l'appelant pour garder ce calcul pur et reproductible.
 export function parametresLancement(choix: Choix, derniersExercices: readonly string[], graine: number, niveau: Niveau = 1) {
   return {
+    objectif: objectifProvisoire(choix.ressenti),
     contexte: choix.contexteId,
     ressenti: choix.ressenti,
     duree: String(choix.duree),

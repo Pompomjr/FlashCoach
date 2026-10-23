@@ -1,4 +1,9 @@
-import type { Contexte } from './types';
+import type { Contexte, Contraintes } from './types';
+
+// Depuis le choix par objectif, toute séance se fait « à la maison » : ces contraintes sont fixes.
+export const CONTRAINTES_MAISON: Contraintes = { tenue: 'sport', bruit: 'normal', espace: 'un_peu', sol: true };
+
+// Les contextes ne servent plus qu'à relire les anciennes entrées du journal.
 
 export const CONTEXTES: Contexte[] = [
   {
@@ -16,7 +21,7 @@ export const CONTEXTES: Contexte[] = [
     emoji: '🏠',
     premium: false,
     ordre: 2,
-    contraintes: { tenue: 'sport', bruit: 'normal', espace: 'un_peu', sol: true },
+    contraintes: CONTRAINTES_MAISON,
   },
   {
     id: 'bureau',

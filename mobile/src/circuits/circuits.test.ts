@@ -105,14 +105,14 @@ describe('CIRCUITS', () => {
     expect(postesAvecMeuble).toBeGreaterThan(0);
   });
 
-  it('fait 3 tours en Doux, 4 en Tonique et en Costaud (le cardio athlétique en fait 3)', () => {
+  it('fait 3 tours en Léger, 4 en Moyen et en Lourd (le cardio athlétique en fait 3)', () => {
     for (const circuit of CIRCUITS) {
       const attendu = circuit.id === 'cardio-athletique' ? 3 : circuit.niveau === 1 ? 3 : 4;
       expect([circuit.id, circuit.tours]).toEqual([circuit.id, attendu]);
     }
   });
 
-  it('propose le 5e tour seulement aux 4 circuits Costaud', () => {
+  it('propose le 5e tour seulement aux 4 circuits Lourd', () => {
     expect(CIRCUITS.filter((c) => c.tourFacultatif).map((c) => c.id)).toEqual([
       'full-body-costaud',
       'poussee-costaud',

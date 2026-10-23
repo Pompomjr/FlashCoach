@@ -4,11 +4,9 @@ import { lireParametresCircuit, lireParametresSeance } from './parametres';
 describe('lireParametresSeance', () => {
   it('reconstruit les paramètres de la séance depuis l’URL', () => {
     expect(
-      lireParametresSeance({ contexte: 'maison', ressenti: 'mou', duree: '5', graine: '42', exclure: 'planche,squat-lent' }),
+      lireParametresSeance({ objectif: 'calories', duree: '5', graine: '42', exclure: 'planche,squat-lent' }),
     ).toEqual({
-      contexteId: 'maison',
-      contraintes: { tenue: 'sport', bruit: 'normal', espace: 'un_peu', sol: true },
-      ressenti: 'mou',
+      objectif: 'calories',
       duree: 5,
       graine: 42,
       exclure: ['planche', 'squat-lent'],
@@ -16,8 +14,16 @@ describe('lireParametresSeance', () => {
     });
   });
 
+  it('accepte les deux objectifs générés et les durées 5, 10, 15 et 30', () => {
+    for (const objectif of ['calories', 'etirements']) {
+      for (const duree of ['5', '10', '15', '30']) {
+        expect(lireParametresSeance({ objectif, duree, graine: '1' })).toMatchObject({ objectif, duree: Number(duree) });
+      }
+    }
+  });
+
   it('lit le niveau de l’URL : absent ou invalide → 1, sans invalider la séance', () => {
-    const base = { contexte: 'maison', ressenti: 'mou', duree: '5', graine: '1' };
+    const base = { objectif: 'calories', duree: '5', graine: '1' };
     expect(lireParametresSeance(base)?.niveau).toBe(1);
     expect(lireParametresSeance({ ...base, niveau: '3' })?.niveau).toBe(3);
     expect(lireParametresSeance({ ...base, niveau: '9' })?.niveau).toBe(1);
@@ -25,20 +31,27 @@ describe('lireParametresSeance', () => {
   });
 
   it('accepte une liste d’exercices à éviter vide ou absente', () => {
-    expect(lireParametresSeance({ contexte: 'reveil', ressenti: 'raide', duree: '3', graine: '1' })?.exclure).toEqual([]);
-    expect(lireParametresSeance({ contexte: 'reveil', ressenti: 'raide', duree: '3', graine: '1', exclure: '' })?.exclure).toEqual([]);
+    expect(lireParametresSeance({ objectif: 'etirements', duree: '10', graine: '1' })?.exclure).toEqual([]);
+    expect(lireParametresSeance({ objectif: 'etirements', duree: '10', graine: '1', exclure: '' })?.exclure).toEqual([]);
   });
 
   it('prend la première valeur quand un paramètre est répété', () => {
-    expect(lireParametresSeance({ contexte: ['maison', 'reveil'], ressenti: 'mou', duree: '5', graine: '1' })?.contexteId).toBe('maison');
+    expect(lireParametresSeance({ objectif: ['etirements', 'calories'], duree: '5', graine: '1' })?.objectif).toBe('etirements');
   });
 
-  it('refuse des paramètres invalides ou un contexte Premium', () => {
-    expect(lireParametresSeance({ contexte: 'bureau', ressenti: 'mou', duree: '5', graine: '1' })).toBeNull();
-    expect(lireParametresSeance({ contexte: 'lune', ressenti: 'mou', duree: '5', graine: '1' })).toBeNull();
-    expect(lireParametresSeance({ contexte: 'maison', ressenti: 'fatigue', duree: '5', graine: '1' })).toBeNull();
-    expect(lireParametresSeance({ contexte: 'maison', ressenti: 'mou', duree: '7', graine: '1' })).toBeNull();
-    expect(lireParametresSeance({ contexte: 'maison', ressenti: 'mou', duree: '5' })).toBeNull();
+  it('refuse des paramètres invalides', () => {
+    expect(lireParametresSeance({ objectif: 'lune', duree: '5', graine: '1' })).toBeNull();
+    expect(lireParametresSeance({ objectif: 'calories', duree: '7', graine: '1' })).toBeNull();
+    expect(lireParametresSeance({ objectif: 'calories', duree: '5' })).toBeNull();
+  });
+
+  it('refuse la durée 3, supprimée, et la prise de masse (jouée par un circuit)', () => {
+    expect(lireParametresSeance({ objectif: 'calories', duree: '3', graine: '1' })).toBeNull();
+    expect(lireParametresSeance({ objectif: 'masse', duree: '5', graine: '1' })).toBeNull();
+  });
+
+  it('refuse un ancien lien par contexte et ressenti, sans objectif', () => {
+    expect(lireParametresSeance({ contexte: 'maison', ressenti: 'mou', duree: '5', graine: '1' })).toBeNull();
   });
 });
 

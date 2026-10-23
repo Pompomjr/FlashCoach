@@ -35,9 +35,8 @@ const PADDING_CARTE = 16;
 const ZONE_PAR_DEFAUT = { largeur: 240, hauteur: 240 };
 
 export default function EcranSeance() {
-  const { contexte, ressenti, duree, graine, exclure, niveau, circuit, sansMateriel, tourEnPlus } = useLocalSearchParams<{
-    contexte: string;
-    ressenti: string;
+  const { objectif, duree, graine, exclure, niveau, circuit, sansMateriel, tourEnPlus } = useLocalSearchParams<{
+    objectif: string;
     duree: string;
     graine: string;
     exclure: string;
@@ -55,9 +54,9 @@ export default function EcranSeance() {
         ? null
         : construireSeanceCircuit(lus.circuit, { sansMateriel: lus.sansMateriel, tourEnPlus: lus.tourEnPlus, graine: lus.graine });
     }
-    const parametres = lireParametresSeance({ contexte, ressenti, duree, graine, exclure, niveau });
+    const parametres = lireParametresSeance({ objectif, duree, graine, exclure, niveau });
     return parametres === null ? null : genererSeance(parametres, EXERCICES);
-  }, [contexte, ressenti, duree, graine, exclure, niveau, circuit, sansMateriel, tourEnPlus]);
+  }, [objectif, duree, graine, exclure, niveau, circuit, sansMateriel, tourEnPlus]);
   if (seance === null) return <Redirect href="/" />;
   return <LecteurSeance seance={seance} />;
 }
@@ -111,9 +110,11 @@ function LecteurSeance({ seance }: { seance: Seance }) {
     ajouterEntree(stockageTelephone, {
       id: idJournal,
       debut: new Date().toISOString(),
-      contexteId: seance.contexteId,
-      ressenti: seance.ressenti,
-      // 3, 5 ou 10 minutes pour une séance flash ; la durée du circuit, arrondie à la minute, sinon.
+      // Provisoire jusqu'au journal par objectif (lot 2) : toute séance se fait à la maison, et l'objectif
+      // tient lieu de ressenti (étirements → raide ; calories et circuits → en forme, comme les circuits jusqu'ici).
+      contexteId: 'maison',
+      ressenti: seance.objectif === 'etirements' ? 'raide' : 'en_forme',
+      // 5, 10, 15 ou 30 minutes pour une séance générée ; la durée du circuit, arrondie à la minute, sinon.
       duree: seance.duree,
       graine: seance.graine,
       exercices: ids,

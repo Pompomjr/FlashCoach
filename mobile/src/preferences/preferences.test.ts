@@ -29,8 +29,8 @@ describe('choix', () => {
 
   it('retrouve les derniers choix', async () => {
     const stockage = creerStockageMemoire();
-    await ecrireChoix(stockage, { contexteId: 'reveil', ressenti: 'raide', duree: 3 });
-    expect(await lireChoix(stockage)).toEqual({ contexteId: 'reveil', ressenti: 'raide', duree: 3 });
+    await ecrireChoix(stockage, { contexteId: 'reveil', ressenti: 'raide', duree: 15 });
+    expect(await lireChoix(stockage)).toEqual({ contexteId: 'reveil', ressenti: 'raide', duree: 15 });
   });
 
   it('revient aux choix par défaut si les données sont abîmées', async () => {
@@ -38,6 +38,8 @@ describe('choix', () => {
     expect(await abime('{pas du json')).toEqual(CHOIX_PAR_DEFAUT);
     expect(await abime(JSON.stringify({ contexteId: 'maison', ressenti: 'fatigue', duree: 5 }))).toEqual(CHOIX_PAR_DEFAUT);
     expect(await abime(JSON.stringify({ contexteId: 'maison', ressenti: 'mou', duree: 7 }))).toEqual(CHOIX_PAR_DEFAUT);
+    // 3 min n'est plus proposée : un ancien choix de 3 min revient aux choix par défaut.
+    expect(await abime(JSON.stringify({ contexteId: 'maison', ressenti: 'mou', duree: 3 }))).toEqual(CHOIX_PAR_DEFAUT);
     expect(await abime(JSON.stringify(null))).toEqual(CHOIX_PAR_DEFAUT);
   });
 

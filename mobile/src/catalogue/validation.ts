@@ -1,4 +1,4 @@
-import { NIVEAUX, type Contexte, type Exercice } from './types';
+import { NIVEAUX, OBJECTIFS, type Contexte, type Exercice } from './types';
 
 // Contrôle d'intégrité, utile dès que le catalogue grossit (jalon 7) ou vient de Supabase (jalon 4).
 export function validerCatalogue(exercices: Exercice[], contextes: Contexte[]): string[] {
@@ -12,6 +12,8 @@ export function validerCatalogue(exercices: Exercice[], contextes: Contexte[]): 
     if (!ex.animation.endsWith('.json')) erreurs.push(`Animation invalide : ${ex.id}`);
     if (ex.consigne.trim() === '') erreurs.push(`Consigne vide : ${ex.id}`);
     if (!NIVEAUX.includes(ex.niveau)) erreurs.push(`Niveau invalide : ${ex.id}`);
+    if (ex.objectifs.length === 0) erreurs.push(`Exercice sans objectif : ${ex.id}`);
+    if (ex.objectifs.some((objectif) => !OBJECTIFS.includes(objectif))) erreurs.push(`Objectif invalide : ${ex.id}`);
   }
 
   const idsContextes = new Set<string>();

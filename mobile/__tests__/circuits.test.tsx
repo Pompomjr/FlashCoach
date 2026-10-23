@@ -98,7 +98,7 @@ describe('départ : accès aux séances prêtes', () => {
 });
 
 describe('liste des séances prêtes', () => {
-  const NOM_CARTE = /, (Doux|Tonique|Costaud), \d tours, \d+ minutes$/;
+  const NOM_CARTE = /, (Léger|Moyen|Lourd), \d tours, \d+ minutes$/;
   const cartes = () => screen.getAllByRole('button', { name: NOM_CARTE }).map((carte) => carte.props.accessibilityLabel as string);
 
   it('s’appelle « Séances prêtes » et finit par le conseil', async () => {
@@ -107,55 +107,55 @@ describe('liste des séances prêtes', () => {
     expect(screen.getByText(CONSEIL)).toBeTruthy();
   });
 
-  it('présélectionne le niveau enregistré, « Doux » par défaut, avec ses quatre circuits', async () => {
+  it('présélectionne le niveau enregistré, « Léger » par défaut, avec ses quatre circuits', async () => {
     await renderRouter(ROUTES, { initialUrl: '/circuits' });
-    expect(await screen.findByRole('button', { name: 'Doux' })).toBeSelected();
-    expect(screen.getByRole('button', { name: 'Tonique' })).not.toBeSelected();
-    expect(screen.getByRole('button', { name: 'Costaud' })).not.toBeSelected();
+    expect(await screen.findByRole('button', { name: 'Léger' })).toBeSelected();
+    expect(screen.getByRole('button', { name: 'Moyen' })).not.toBeSelected();
+    expect(screen.getByRole('button', { name: 'Lourd' })).not.toBeSelected();
     expect(cartes()).toEqual([
-      'Full body, Doux, 3 tours, 16 minutes',
-      'Poussée, Doux, 3 tours, 16 minutes',
-      'Jambes, Doux, 3 tours, 16 minutes',
-      'Dos et tronc, Doux, 3 tours, 16 minutes',
+      'Full body, Léger, 3 tours, 16 minutes',
+      'Poussée, Léger, 3 tours, 16 minutes',
+      'Jambes, Léger, 3 tours, 16 minutes',
+      'Dos et tronc, Léger, 3 tours, 16 minutes',
     ]);
   });
 
-  it('présélectionne « Tonique » quand c’est le niveau enregistré : cinq circuits, le cardio avec', async () => {
+  it('présélectionne « Moyen » quand c’est le niveau enregistré : cinq circuits, le cardio avec', async () => {
     memoire.contenu['flashcoach.niveau'] = '2';
     await renderRouter(ROUTES, { initialUrl: '/circuits' });
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Tonique' })).toBeSelected());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Moyen' })).toBeSelected());
     expect(cartes()).toEqual([
-      'Full body, Tonique, 4 tours, 21 minutes',
-      'Poussée, Tonique, 4 tours, 21 minutes',
-      'Jambes, Tonique, 4 tours, 21 minutes',
-      'Dos, Tonique, 4 tours, 21 minutes',
-      'Cardio athlétique, Tonique, 3 tours, 16 minutes',
+      'Full body, Moyen, 4 tours, 21 minutes',
+      'Poussée, Moyen, 4 tours, 21 minutes',
+      'Jambes, Moyen, 4 tours, 21 minutes',
+      'Dos, Moyen, 4 tours, 21 minutes',
+      'Cardio athlétique, Moyen, 3 tours, 16 minutes',
     ]);
   });
 
-  it('montre les quatre circuits « Costaud » quand c’est le niveau enregistré', async () => {
+  it('montre les quatre circuits « Lourd » quand c’est le niveau enregistré', async () => {
     memoire.contenu['flashcoach.niveau'] = '3';
     await renderRouter(ROUTES, { initialUrl: '/circuits' });
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Costaud' })).toBeSelected());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Lourd' })).toBeSelected());
     expect(cartes()).toEqual([
-      'Full body, Costaud, 4 tours, 21 minutes',
-      'Poussée, Costaud, 4 tours, 21 minutes',
-      'Jambes, Costaud, 4 tours, 21 minutes',
-      'Dos, Costaud, 4 tours, 21 minutes',
+      'Full body, Lourd, 4 tours, 21 minutes',
+      'Poussée, Lourd, 4 tours, 21 minutes',
+      'Jambes, Lourd, 4 tours, 21 minutes',
+      'Dos, Lourd, 4 tours, 21 minutes',
     ]);
   });
 
   it('change de liste avec les puces, sans toucher au niveau enregistré', async () => {
     memoire.contenu['flashcoach.niveau'] = '2';
     await renderRouter(ROUTES, { initialUrl: '/circuits' });
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Tonique' })).toBeSelected());
-    await fireEvent.press(screen.getByRole('button', { name: 'Costaud' }));
-    expect(screen.getByRole('button', { name: 'Costaud' })).toBeSelected();
-    expect(screen.getByRole('button', { name: 'Tonique' })).not.toBeSelected();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Moyen' })).toBeSelected());
+    await fireEvent.press(screen.getByRole('button', { name: 'Lourd' }));
+    expect(screen.getByRole('button', { name: 'Lourd' })).toBeSelected();
+    expect(screen.getByRole('button', { name: 'Moyen' })).not.toBeSelected();
     expect(cartes()).toHaveLength(4);
-    expect(cartes().every((nom) => nom.includes('Costaud'))).toBe(true);
-    await fireEvent.press(screen.getByRole('button', { name: 'Doux' }));
-    expect(cartes()[0]).toBe('Full body, Doux, 3 tours, 16 minutes');
+    expect(cartes().every((nom) => nom.includes('Lourd'))).toBe(true);
+    await fireEvent.press(screen.getByRole('button', { name: 'Léger' }));
+    expect(cartes()[0]).toBe('Full body, Léger, 3 tours, 16 minutes');
     expect(memoire.contenu['flashcoach.niveau']).toBe('2');
   });
 
@@ -173,12 +173,12 @@ describe('liste des séances prêtes', () => {
     };
     try {
       await renderRouter(ROUTES, { initialUrl: '/circuits' });
-      await fireEvent.press(await screen.findByRole('button', { name: 'Costaud' }));
+      await fireEvent.press(await screen.findByRole('button', { name: 'Lourd' }));
       await act(async () => {
         liberer();
         await porte;
       });
-      expect(screen.getByRole('button', { name: 'Costaud' })).toBeSelected();
+      expect(screen.getByRole('button', { name: 'Lourd' })).toBeSelected();
     } finally {
       stockage.lire = lireOrigine;
     }
@@ -188,53 +188,53 @@ describe('liste des séances prêtes', () => {
     memoire.contenu['flashcoach.niveau'] = '2';
     await renderRouter(ROUTES, { initialUrl: '/circuits' });
     const carte = async (nom: string) => within(await screen.findByRole('button', { name: nom }));
-    const fullBody = await carte('Full body, Tonique, 4 tours, 21 minutes');
+    const fullBody = await carte('Full body, Moyen, 4 tours, 21 minutes');
     expect(fullBody.getByText('Full body')).toBeTruthy(); // famille et nom : une seule ligne
     expect(fullBody.getByText('4 tours · 21 min')).toBeTruthy();
     expect(fullBody.getByText('table')).toBeTruthy();
-    expect((await carte('Poussée, Tonique, 4 tours, 21 minutes')).getByText('chaise')).toBeTruthy();
-    const cardio = await carte('Cardio athlétique, Tonique, 3 tours, 16 minutes');
+    expect((await carte('Poussée, Moyen, 4 tours, 21 minutes')).getByText('chaise')).toBeTruthy();
+    const cardio = await carte('Cardio athlétique, Moyen, 3 tours, 16 minutes');
     expect(cardio.getByText('3 tours · 16 min')).toBeTruthy();
     expect(cardio.getByText('sans matériel')).toBeTruthy();
-    await fireEvent.press(screen.getByRole('button', { name: 'Costaud' }));
-    expect((await carte('Full body, Costaud, 4 tours, 21 minutes')).getByText('chaise et table')).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: 'Lourd' }));
+    expect((await carte('Full body, Lourd, 4 tours, 21 minutes')).getByText('chaise et table')).toBeTruthy();
   });
 
   it('montre la famille de chaque carte, sans répéter le nom qui la dit déjà', async () => {
     memoire.contenu['flashcoach.niveau'] = '2';
     await renderRouter(ROUTES, { initialUrl: '/circuits' });
     const carte = async (nom: string) => within(await screen.findByRole('button', { name: nom }));
-    expect((await carte('Dos, Tonique, 4 tours, 21 minutes')).getAllByText('Dos')).toHaveLength(1);
-    expect((await carte('Cardio athlétique, Tonique, 3 tours, 16 minutes')).getByText('Cardio')).toBeTruthy();
-    await fireEvent.press(screen.getByRole('button', { name: 'Doux' }));
-    expect((await carte('Dos et tronc, Doux, 3 tours, 16 minutes')).getByText('Dos')).toBeTruthy();
+    expect((await carte('Dos, Moyen, 4 tours, 21 minutes')).getAllByText('Dos')).toHaveLength(1);
+    expect((await carte('Cardio athlétique, Moyen, 3 tours, 16 minutes')).getByText('Cardio')).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: 'Léger' }));
+    expect((await carte('Dos et tronc, Léger, 3 tours, 16 minutes')).getByText('Dos')).toBeTruthy();
     for (const [nom, famille] of [['Full body', 'Full body'], ['Poussée', 'Poussée'], ['Jambes', 'Jambes']]) {
-      expect((await carte(`${nom}, Doux, 3 tours, 16 minutes`)).getAllByText(famille)).toHaveLength(1);
+      expect((await carte(`${nom}, Léger, 3 tours, 16 minutes`)).getAllByText(famille)).toHaveLength(1);
     }
   });
 
   it('dessine l’icône « circuit » sur chaque carte', async () => {
     await renderRouter(ROUTES, { initialUrl: '/circuits' });
-    await screen.findByRole('button', { name: 'Full body, Doux, 3 tours, 16 minutes' });
+    await screen.findByRole('button', { name: 'Full body, Léger, 3 tours, 16 minutes' });
     expect(screen.getAllByTestId('icone-circuit', TOUTES)).toHaveLength(4);
   });
 
   it('garde cartes et puces à 48 dp au moins', async () => {
     await renderRouter(ROUTES, { initialUrl: '/circuits' });
-    const carte = await screen.findByRole('button', { name: 'Full body, Doux, 3 tours, 16 minutes' });
+    const carte = await screen.findByRole('button', { name: 'Full body, Léger, 3 tours, 16 minutes' });
     expect(carte).toHaveStyle({ minHeight: 48, borderRadius: 16 });
-    expect(screen.getByRole('button', { name: 'Doux' })).toHaveStyle({ minHeight: 48 });
+    expect(screen.getByRole('button', { name: 'Léger' })).toHaveStyle({ minHeight: 48 });
   });
 
   it('ouvre le détail du circuit touché', async () => {
     await renderRouter(ROUTES, { initialUrl: '/circuits' });
-    await fireEvent.press(await screen.findByRole('button', { name: 'Poussée, Doux, 3 tours, 16 minutes' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Poussée, Léger, 3 tours, 16 minutes' }));
     await waitFor(() => expect(screen).toHavePathname('/circuit/poussee-doux'));
   });
 
   it('n’ouvre qu’un seul détail malgré un double appui sur une carte', async () => {
     await renderRouter(ROUTES, { initialUrl: '/circuits' });
-    const carte = await screen.findByRole('button', { name: 'Jambes, Doux, 3 tours, 16 minutes' });
+    const carte = await screen.findByRole('button', { name: 'Jambes, Léger, 3 tours, 16 minutes' });
     await fireEvent.press(carte);
     await fireEvent.press(carte);
     await waitFor(() => expect(screen).toHavePathname('/circuit/jambes-doux'));
@@ -260,7 +260,7 @@ describe('détail d’un circuit', () => {
   it('montre le nom, le niveau, la durée et les cinq postes numérotés, côtés compris', async () => {
     await renderRouter(ROUTES, { initialUrl: '/circuit/dos-tonique' });
     expect(await screen.findByRole('header', { name: 'Dos' })).toBeTruthy();
-    expect(screen.getByText('Tonique')).toBeTruthy();
+    expect(screen.getByText('Moyen')).toBeTruthy();
     expect(screen.getByText('4 tours · 21 min')).toBeTruthy();
     expect(postes()).toEqual([
       '1, Tractions sous la table',
@@ -273,7 +273,7 @@ describe('détail d’un circuit', () => {
 
   it('revient à la liste avec « Retour »', async () => {
     await renderRouter(ROUTES, { initialUrl: '/circuits' });
-    await fireEvent.press(await screen.findByRole('button', { name: 'Full body, Doux, 3 tours, 16 minutes' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Full body, Léger, 3 tours, 16 minutes' }));
     await fireEvent.press(await screen.findByRole('button', { name: 'Retour' }));
     await waitFor(() => expect(screen).toHavePathname('/circuits'));
   });
@@ -341,7 +341,7 @@ describe('détail d’un circuit', () => {
     expect(screen.queryByText('Matériel : table')).toBeNull();
   });
 
-  it('annonce chaise et table pour un circuit Costaud', async () => {
+  it('annonce chaise et table pour un circuit Lourd', async () => {
     await renderRouter(ROUTES, { initialUrl: '/circuit/full-body-costaud' });
     expect(await screen.findByText('Matériel : chaise et table')).toBeTruthy();
   });
@@ -403,7 +403,7 @@ describe('détail d’un circuit', () => {
     expect(screen.queryByRole('switch', { name: 'Ajouter un 5e tour' })).toBeNull();
   });
 
-  it('propose le 5e tour aux circuits Costaud, met la durée à jour et ne le retient pas', async () => {
+  it('propose le 5e tour aux circuits Lourd, met la durée à jour et ne le retient pas', async () => {
     await renderRouter(ROUTES, { initialUrl: '/circuit/jambes-costaud' });
     expect(await screen.findByText('4 tours · 21 min')).toBeTruthy();
     const interrupteur = screen.getByRole('switch', { name: 'Ajouter un 5e tour' });
@@ -576,7 +576,7 @@ describe('séance d’un circuit', () => {
     expect(screen.getByText('Tour 1 / 4 · ')).toBeTruthy();
   });
 
-  it('ajoute un 5e tour sur demande, pour les circuits Costaud', async () => {
+  it('ajoute un 5e tour sur demande, pour les circuits Lourd', async () => {
     await renderRouter(ROUTES, { initialUrl: circuitUrl('full-body-costaud').replace('tourEnPlus=0', 'tourEnPlus=1') });
     expect(await screen.findByText('1 / 31')).toBeTruthy();
     await passer(4);
@@ -641,7 +641,7 @@ describe('journal : séances en circuit', () => {
   it('affiche le nom du circuit et son niveau à la place du contexte', async () => {
     memoire.contenu[CLE_JOURNAL] = JSON.stringify([circuit({ apres: 'mieux' }), fabriquerEntree({ id: 'f' })]);
     await renderRouter(ROUTES, { initialUrl: '/journal' });
-    expect(await screen.findByText('Dos · Tonique → Mieux')).toBeTruthy();
+    expect(await screen.findByText('Dos · Moyen → Mieux')).toBeTruthy();
     expect(screen.getByText('21 min · 26 exercices')).toBeTruthy();
     // La séance flash garde son contexte et son ressenti.
     expect(screen.getByText('À la maison · Mou')).toBeTruthy();
@@ -650,7 +650,7 @@ describe('journal : séances en circuit', () => {
   it('marque la ligne de l’icône « circuit », sans celle du contexte', async () => {
     memoire.contenu[CLE_JOURNAL] = JSON.stringify([circuit()]);
     await renderRouter(ROUTES, { initialUrl: '/journal' });
-    await screen.findByText('Dos · Tonique');
+    await screen.findByText('Dos · Moyen');
     expect(screen.getAllByTestId('icone-circuit', TOUTES)).toHaveLength(1);
     expect(screen.queryByTestId('icone-maison', TOUTES)).toBeNull();
     expect(screen.queryByText('À la maison')).toBeNull();
@@ -667,12 +667,12 @@ describe('journal : séances en circuit', () => {
   it('se lit d’un seul bloc, avec le nom du circuit et son niveau', async () => {
     memoire.contenu[CLE_JOURNAL] = JSON.stringify([circuit({ apres: 'mieux' })]);
     await renderRouter(ROUTES, { initialUrl: '/journal' });
-    expect(await screen.findByLabelText('dim. 18 oct. à 7h05, Dos, niveau Tonique, puis Mieux, 21 min, 26 exercices')).toBeTruthy();
+    expect(await screen.findByLabelText('dim. 18 oct. à 7h05, Dos, niveau Moyen, puis Mieux, 21 min, 26 exercices')).toBeTruthy();
   });
 
   it('garde un nom neutre pour un circuit que cette version ne connaît pas', async () => {
     memoire.contenu[CLE_JOURNAL] = JSON.stringify([circuit({ circuitId: 'circuit-du-futur' })]);
     await renderRouter(ROUTES, { initialUrl: '/journal' });
-    expect(await screen.findByText('Séance prête · Tonique')).toBeTruthy();
+    expect(await screen.findByText('Séance prête · Moyen')).toBeTruthy();
   });
 });

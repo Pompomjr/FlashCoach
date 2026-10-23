@@ -1,9 +1,10 @@
+import { CONTRAINTES_MAISON } from '../catalogue/contextes';
 import type { Exercice } from '../catalogue/types';
 import { choisirAuHasard, creerAleatoire } from './aleatoire';
 import { tailleAppariement } from './appariement';
 import { cibleDePhase, correspond, type Cible } from './cibles';
-import { filtrerCatalogue } from './filtres';
-import { STRUCTURE_PAR_DUREE } from './structure';
+import { exercicesPossibles } from './filtres';
+import { STRUCTURE_PAR_DUREE, type PlanPhase } from './structure';
 import type { Bloc, NiveauAssouplissement, ParametresSeance, Seance } from './types';
 
 const PALIERS: NiveauAssouplissement[] = [0, 1, 2, 3, 4];
@@ -70,30 +71,49 @@ function departager(candidats: Exercice[], situation: Situation, alea: () => num
   );
 }
 
+// Déplie les exercices choisis pour une phase : un bloc chacun, ou, en tours, le même enchaînement rejoué
+// à chaque tour, le repos entre deux tours étant porté par la transition du premier poste.
+function deplier(plan: PlanPhase, exercices: Exercice[]): Bloc[] {
+  const { phase, transitionS, effortS } = plan;
+  if (plan.tours === undefined) return exercices.map((exercice) => ({ exercice, phase, transitionS, effortS }));
+  const total = plan.tours;
+  return Array.from({ length: total }, (_, i) => i + 1).flatMap((numero) =>
+    exercices.map((exercice, index) => ({
+      exercice,
+      phase,
+      transitionS: index === 0 && numero > 1 ? (plan.reposEntreToursS ?? 0) + transitionS : transitionS,
+      effortS,
+      tour: { numero, total },
+    })),
+  );
+}
+
 export function genererSeance(params: ParametresSeance, catalogue: Exercice[]): Seance {
-  // 1. Filtrer : les contraintes sont strictes et ne sont jamais assouplies.
+  // 1. Filtrer : les contraintes « maison », le plafond de niveau et l'objectif étirements ne sont jamais assouplis.
   const niveau = params.niveau ?? 1;
-  const compatibles = filtrerCatalogue(catalogue, params.contraintes).filter((e) => e.niveau <= niveau);
+  const compatibles = exercicesPossibles(catalogue, params.objectif, niveau);
   if (compatibles.length === 0) {
-    throw new Error(`Aucun exercice compatible avec le contexte ${params.contexteId}`);
+    throw new Error(`Aucun exercice compatible avec l’objectif ${params.objectif} au niveau ${niveau}`);
   }
 
   const alea = creerAleatoire(params.graine);
   const recents = new Set(params.exclure ?? []);
   const utilises = new Set<string>();
+  // Un exercice par place ; les tours rejouent ensuite les places du cœur.
+  const choisis: Exercice[] = [];
   const blocs: Bloc[] = [];
   let assouplissement: NiveauAssouplissement = 0;
   const structure = STRUCTURE_PAR_DUREE[params.duree];
-  const places = structure.flatMap((plan) =>
-    Array.from({ length: plan.nombre }, () => cibleDePhase(plan.phase, params.ressenti)),
-  );
+  const cibleDuPlan = (plan: PlanPhase) => cibleDePhase(plan.phase, params.objectif, niveau);
+  const places = structure.flatMap((plan) => Array.from({ length: plan.nombre }, () => cibleDuPlan(plan)));
 
   structure.forEach((plan, indexPhase) => {
-    const cible = cibleDePhase(plan.phase, params.ressenti);
-    const ciblesAVenir = structure.slice(indexPhase + 1).map((suivant) => cibleDePhase(suivant.phase, params.ressenti));
+    const cible = cibleDuPlan(plan);
+    const ciblesAVenir = structure.slice(indexPhase + 1).map(cibleDuPlan);
+    const choisisDuPlan: Exercice[] = [];
     for (let i = 0; i < plan.nombre; i++) {
-      const precedent = blocs.length > 0 ? blocs[blocs.length - 1].exercice : undefined;
-      const placesAVenir = places.slice(blocs.length + 1);
+      const precedent = choisis.length > 0 ? choisis[choisis.length - 1] : undefined;
+      const placesAVenir = places.slice(choisis.length + 1);
       const libres = compatibles.filter((exercice) => !utilises.has(exercice.id));
       let place = false;
       // 2-3. Classer selon la cible et choisir, en assouplissant niveau par niveau.
@@ -108,7 +128,8 @@ export function genererSeance(params: ParametresSeance, catalogue: Exercice[]): 
           alea,
         );
         utilises.add(exercice.id);
-        blocs.push({ exercice, phase: plan.phase, transitionS: plan.transitionS, effortS: plan.effortS });
+        choisis.push(exercice);
+        choisisDuPlan.push(exercice);
         if (palier > assouplissement) assouplissement = palier;
         place = true;
         break;
@@ -116,12 +137,12 @@ export function genererSeance(params: ParametresSeance, catalogue: Exercice[]): 
       // Au niveau 4, tout exercice compatible est candidat : on n'arrive ici que si cet invariant est cassé.
       if (!place) throw new Error('Invariant cassé : aucun exercice placé alors que le catalogue est compatible');
     }
+    blocs.push(...deplier(plan, choisisDuPlan));
   });
 
   return {
-    contexteId: params.contexteId,
-    contraintes: params.contraintes,
-    ressenti: params.ressenti,
+    objectif: params.objectif,
+    contraintes: CONTRAINTES_MAISON,
     duree: params.duree,
     graine: params.graine,
     niveau,

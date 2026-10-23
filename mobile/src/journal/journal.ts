@@ -14,7 +14,8 @@ export interface EntreeJournal {
   debut: string;
   contexteId: string;
   ressenti: Ressenti;
-  // Minutes : 3, 5 ou 10 pour une séance flash ; un entier de 1 à 60 pour un circuit (circuitId présent).
+  // Minutes : 5, 10, 15 ou 30 (3 pour les anciennes) pour une séance générée ; un entier de 1 à 60 pour un circuit
+  // (circuitId présent).
   duree: number;
   graine: number;
   exercices: string[];
@@ -37,12 +38,16 @@ export const TAILLE_MAX_JOURNAL = 500;
 const DUREE_CIRCUIT_MIN = 1;
 const DUREE_CIRCUIT_MAX = 60;
 
-// Une séance de circuit dure un nombre libre de minutes (16, 21, 26…) ; une séance flash, 3, 5 ou 10.
+// 3 min n'est plus proposée, mais les anciennes entrées restent lisibles.
+const DUREES_ANCIENNES: readonly number[] = [3];
+
+// Une séance de circuit dure un nombre libre de minutes (16, 21, 26…) ; une séance générée, 5, 10, 15 ou 30
+// (3 pour les anciennes).
 function dureeValide(duree: unknown, circuitId: unknown): boolean {
   if (typeof circuitId === 'string' && circuitId !== '') {
     return Number.isInteger(duree) && (duree as number) >= DUREE_CIRCUIT_MIN && (duree as number) <= DUREE_CIRCUIT_MAX;
   }
-  return DUREES.includes(duree as Duree);
+  return DUREES.includes(duree as Duree) || DUREES_ANCIENNES.includes(duree as number);
 }
 
 export function creerIdentifiant(): string {

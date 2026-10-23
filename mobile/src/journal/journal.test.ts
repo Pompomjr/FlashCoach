@@ -279,7 +279,9 @@ describe('séances en circuit', () => {
   });
 
   it('garde les durées 3, 5 et 10 pour une séance sans circuit', () => {
-    for (const duree of [3, 5, 10]) expect(estEntreeJournal(fabriquerEntree({ duree }))).toBe(true);
+    for (const duree of [5, 10, 15, 30]) expect(estEntreeJournal(fabriquerEntree({ duree }))).toBe(true);
+    // 3 min n'est plus proposée : les anciennes entrées de 3 min restent lisibles.
+    expect(estEntreeJournal(fabriquerEntree({ duree: 3 }))).toBe(true);
     for (const duree of [1, 7, 21, 60]) expect(estEntreeJournal(fabriquerEntree({ duree: duree as never }))).toBe(false);
   });
 

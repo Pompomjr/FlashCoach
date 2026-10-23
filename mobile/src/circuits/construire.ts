@@ -1,3 +1,4 @@
+import { CONTRAINTES_MAISON } from '../catalogue/contextes';
 import { EXERCICES } from '../catalogue/exercices';
 import type { Exercice } from '../catalogue/types';
 import type { Bloc, Seance } from '../generateur/types';
@@ -24,16 +25,24 @@ export function nombreDeTours(circuit: Circuit, tourEnPlus: boolean): number {
   return circuit.tours + (tourEnPlus && circuit.tourFacultatif ? 1 : 0);
 }
 
-// Vrai pour le premier poste d'un tour 2 ou suivant : sa transition est le repos de 1 min 30, suivi de l'aperçu habituel.
+// Vrai pour le premier poste d'un tour 2 ou suivant : sa transition est le repos (1 min 30 en circuit, 1 min dans
+// le cœur d'une séance générée de 15 ou 30 min), suivi de l'aperçu habituel de 10 s.
 export function estPosteApresRepos(bloc: Bloc): boolean {
-  return bloc.tour !== undefined && bloc.transitionS >= REPOS_ENTRE_TOURS_S;
+  return bloc.tour !== undefined && bloc.tour.numero > 1 && bloc.transitionS > TRANSITION_S;
 }
 
+// « tours » impose le nombre de tours (prise de masse, selon la durée choisie) ; sinon, celui du circuit,
+// plus le tour facultatif des circuits Lourd si « tourEnPlus ».
 export function construireSeanceCircuit(
   circuit: Circuit,
-  { sansMateriel, tourEnPlus, graine }: { sansMateriel: boolean; tourEnPlus: boolean; graine: number },
+  {
+    sansMateriel,
+    tourEnPlus = false,
+    tours,
+    graine,
+  }: { sansMateriel: boolean; tourEnPlus?: boolean; tours?: number; graine: number },
 ): Seance {
-  const total = nombreDeTours(circuit, tourEnPlus);
+  const total = tours ?? nombreDeTours(circuit, tourEnPlus);
   const blocs: Bloc[] = ECHAUFFEMENT.map((id) => ({ exercice: exercice(id), phase: 'mise_en_route', transitionS: 5, effortS: 25 }));
   for (let numero = 1; numero <= total; numero++) {
     circuit.postes.forEach((poste, index) => {
@@ -52,9 +61,8 @@ export function construireSeanceCircuit(
   blocs.push(...RETOUR_AU_CALME.map((id) => ({ exercice: exercice(id), phase: 'retour_au_calme' as const, transitionS: 5, effortS: 25 })));
   const dureeTotaleS = blocs.reduce((somme, bloc) => somme + bloc.transitionS + bloc.effortS, 0);
   return {
-    contexteId: 'maison',
-    contraintes: { tenue: 'sport', bruit: 'normal', espace: 'un_peu', sol: true },
-    ressenti: 'en_forme',
+    objectif: 'masse',
+    contraintes: CONTRAINTES_MAISON,
     duree: Math.round(dureeTotaleS / 60),
     graine,
     blocs,

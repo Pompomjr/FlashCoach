@@ -1,6 +1,6 @@
 import type { Contraintes } from '../catalogue/types';
 import { fabriquerExercice, SANS_CONTRAINTE } from '../test-utils/fabrique';
-import { filtrerCatalogue, respecteContraintes } from './filtres';
+import { exercicesPossibles, filtrerCatalogue, respecteContraintes } from './filtres';
 
 describe('respecteContraintes', () => {
   it('accepte tout quand rien ne limite', () => {
@@ -45,5 +45,22 @@ describe('filtrerCatalogue', () => {
     const deboutBis = fabriquerExercice({ id: 'debout-bis', sol: false });
     const resultat = filtrerCatalogue([debout, auSol, deboutBis], { ...SANS_CONTRAINTE, sol: false });
     expect(resultat.map((ex) => ex.id)).toEqual(['debout', 'debout-bis']);
+  });
+});
+
+describe('exercicesPossibles', () => {
+  const cardio = fabriquerExercice({ id: 'cardio', effets: ['energie'], objectifs: ['calories'] });
+  const birdDog = fabriquerExercice({ id: 'bird-dog', effets: ['mobilite', 'energie'], objectifs: ['masse', 'etirements'] });
+  const etirement = fabriquerExercice({ id: 'etirement', effets: ['mobilite'], objectifs: ['etirements'] });
+  const costaud = fabriquerExercice({ id: 'costaud', effets: ['energie'], objectifs: ['calories'], niveau: 3 });
+  const catalogue = [cardio, birdDog, etirement, costaud];
+
+  it('garde tout le catalogue pour les calories, sous le plafond de niveau', () => {
+    expect(exercicesPossibles(catalogue, 'calories', 1).map((e) => e.id)).toEqual(['cardio', 'bird-dog', 'etirement']);
+    expect(exercicesPossibles(catalogue, 'calories', 3).map((e) => e.id)).toEqual(['cardio', 'bird-dog', 'etirement', 'costaud']);
+  });
+
+  it('ne garde que les exercices d’étirement pour les étirements', () => {
+    expect(exercicesPossibles(catalogue, 'etirements', 3).map((e) => e.id)).toEqual(['bird-dog', 'etirement']);
   });
 });

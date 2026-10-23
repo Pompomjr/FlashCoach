@@ -1,4 +1,6 @@
+import { EXERCICES } from '../catalogue/exercices';
 import { respecteContraintes } from '../generateur/filtres';
+import { genererSeance } from '../generateur/generer';
 import { creerEtatInitial, lecteur } from '../seance/lecteur';
 import { CIRCUITS, circuitParId } from './circuits';
 import {
@@ -18,7 +20,7 @@ function circuit(id: string) {
 }
 
 const BASE = { sansMateriel: false, tourEnPlus: false, graine: 7 };
-const construire = (id: string, options: Partial<typeof BASE> = {}) =>
+const construire = (id: string, options: Partial<typeof BASE & { tours: number }> = {}) =>
   construireSeanceCircuit(circuit(id), { ...BASE, ...options });
 const ids = (blocs: { exercice: { id: string } }[]) => blocs.map((b) => b.exercice.id);
 
@@ -67,14 +69,14 @@ describe('durées', () => {
 });
 
 describe('tours', () => {
-  it('compte 3 tours en Doux, 4 en Tonique et en Costaud, 5 avec le tour en plus des Costaud', () => {
+  it('compte 3 tours en Léger, 4 en Moyen et en Lourd, 5 avec le tour en plus des Lourd', () => {
     expect(nombreDeTours(circuit('poussee-doux'), false)).toBe(3);
     expect(nombreDeTours(circuit('poussee-tonique'), false)).toBe(4);
     expect(nombreDeTours(circuit('poussee-costaud'), false)).toBe(4);
     expect(nombreDeTours(circuit('poussee-costaud'), true)).toBe(5);
   });
 
-  it('ignore le tour en plus hors des circuits Costaud', () => {
+  it('ignore le tour en plus hors des circuits Lourd', () => {
     for (const c of CIRCUITS.filter((x) => !x.tourFacultatif)) {
       expect(nombreDeTours(c, true)).toBe(c.tours);
       expect(construireSeanceCircuit(c, { ...BASE, tourEnPlus: true })).toEqual(construireSeanceCircuit(c, BASE));
@@ -88,6 +90,22 @@ describe('tours', () => {
     coeur.forEach((bloc, i) => {
       expect(bloc.tour).toEqual({ numero: Math.floor(i / 5) + 1, total: 5 });
     });
+  });
+
+  it('impose un nombre de tours (prise de masse), qui prime sur le tour en plus', () => {
+    const six = construire('poussee-costaud', { tours: 6, tourEnPlus: true }).blocs.filter((b) => b.phase === 'coeur');
+    expect(six).toHaveLength(30);
+    expect(six.every((b) => b.tour?.total === 6)).toBe(true);
+    const un = construire('poussee-doux', { tours: 1 });
+    expect(un.blocs.filter((b) => b.phase === 'coeur').map((b) => b.tour)).toEqual(Array(5).fill({ numero: 1, total: 1 }));
+    expect(un.blocs.some((b) => b.transitionS >= REPOS_ENTRE_TOURS_S)).toBe(false);
+    expect(un.dureeTotaleS).toBe(380);
+  });
+
+  it('sans tours imposés ni tour en plus, garde le nombre de tours du circuit', () => {
+    expect(construireSeanceCircuit(circuit('jambes-doux'), { sansMateriel: false, graine: 1 })).toEqual(
+      construire('jambes-doux', { graine: 1 }),
+    );
   });
 
   it('rejoue les 5 mêmes postes dans le même ordre à chaque tour', () => {
@@ -148,6 +166,13 @@ describe('format des blocs', () => {
     const blocs = construire('full-body-tonique').blocs;
     expect(blocs.filter(estPosteApresRepos).map((b) => b.tour?.numero)).toEqual([2, 3, 4]);
     expect(blocs.filter(estPosteApresRepos).every((b) => b.exercice.id === 'pompe-classique')).toBe(true);
+  });
+
+  it('reconnaît aussi le poste qui suit le repos d’1 min d’une séance générée de 30 min', () => {
+    const seance = genererSeance({ objectif: 'calories', duree: 30, graine: 3 }, EXERCICES);
+    const premiers = seance.blocs.filter(estPosteApresRepos);
+    expect(premiers.map((b) => b.tour?.numero)).toEqual([2, 3, 4]);
+    expect(premiers.every((b) => b.transitionS === 70)).toBe(true);
   });
 });
 
@@ -223,8 +248,7 @@ describe('séance produite', () => {
     expect(seance).toMatchObject({
       circuitId: 'dos-tonique',
       niveau: 2,
-      contexteId: 'maison',
-      ressenti: 'en_forme',
+      objectif: 'masse',
       graine: 42,
       assouplissement: 0,
       contraintes: { tenue: 'sport', bruit: 'normal', espace: 'un_peu', sol: true },

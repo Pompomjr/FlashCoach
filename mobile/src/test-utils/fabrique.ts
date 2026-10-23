@@ -1,7 +1,9 @@
 import type { Contraintes, Exercice } from '../catalogue/types';
 
 // Exercice neutre pour les tests : chaque test surcharge seulement ce qui l’intéresse.
+// Sans objectif précisé : « calories » pour un exercice d'énergie, « étirements » sinon.
 export function fabriquerExercice(surcharge: Partial<Exercice> = {}): Exercice {
+  const effets = surcharge.effets ?? ['energie'];
   return {
     id: 'exercice-test',
     nom: 'Exercice test',
@@ -16,6 +18,7 @@ export function fabriquerExercice(surcharge: Partial<Exercice> = {}): Exercice {
     zone: 'global',
     bilateral: false,
     niveau: 1,
+    objectifs: effets.includes('energie') ? ['calories'] : ['etirements'],
     ...surcharge,
   };
 }

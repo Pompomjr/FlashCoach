@@ -1,7 +1,8 @@
 import { fabriquerExercice } from '../test-utils/fabrique';
 import { respecteContraintes } from '../generateur/filtres';
-import { CONTEXTES } from './contextes';
+import { CONTEXTES, CONTRAINTES_MAISON } from './contextes';
 import { EXERCICES } from './exercices';
+import { OBJECTIFS } from './types';
 import { validerCatalogue } from './validation';
 
 describe('validerCatalogue', () => {
@@ -31,6 +32,15 @@ describe('validerCatalogue', () => {
     expect(validerCatalogue([ex], [])).toContain('Niveau invalide : d');
   });
 
+  it('signale un exercice sans objectif', () => {
+    expect(validerCatalogue([fabriquerExercice({ id: 'e', objectifs: [] })], [])).toContain('Exercice sans objectif : e');
+  });
+
+  it('signale un objectif inconnu', () => {
+    const ex = fabriquerExercice({ id: 'f', objectifs: ['souplesse' as never] });
+    expect(validerCatalogue([ex], [])).toContain('Objectif invalide : f');
+  });
+
   it('signale un contexte en double', () => {
     const ctx = CONTEXTES[0];
     expect(validerCatalogue([], [ctx, ctx])).toContain(`Contexte en double : ${ctx.id}`);
@@ -42,7 +52,7 @@ describe('catalogue embarqué', () => {
     expect(EXERCICES).toHaveLength(76);
   });
 
-  it('compte 49 exercices Doux, 18 Tonique et 9 Costaud, ids exacts', () => {
+  it('compte 49 exercices Léger, 18 Moyen et 9 Lourd, ids exacts', () => {
     const ids = (niveau: number) => EXERCICES.filter((e) => e.niveau === niveau).map((e) => e.id).sort();
     expect(ids(2)).toEqual([
       'burpee-sans-saut', 'dips-chaise', 'grimpeur', 'hollow-hold', 'pike-pushup', 'planche', 'planche-epaules',
@@ -56,38 +66,76 @@ describe('catalogue embarqué', () => {
     expect(EXERCICES.filter((e) => e.niveau === 1)).toHaveLength(49);
   });
 
+  // Étiquetage par objectif (spec 2026-10-23 §2) : étirements = tout ce qui n'est pas d'énergie, plus le bird-dog ;
+  // calories = le cardio ; prise de masse = le reste de l'énergie, plus le cardio musculaire, le bird-dog et le Y-T.
+  it('répartit les 76 exercices entre les objectifs, ids exacts', () => {
+    const ids = (objectif: string) =>
+      EXERCICES.filter((e) => (e.objectifs as string[]).includes(objectif)).map((e) => e.id).sort();
+    expect(ids('etirements')).toEqual([
+      'ancrage-pieds', 'balancement-bras', 'balancier-jambe', 'bird-dog', 'bras-respiration', 'cercles-bras',
+      'cercles-chevilles', 'cercles-hanches', 'chat-vache', 'enroule-deroule', 'epaules-lourdes', 'etirement-ciel',
+      'etirement-cou', 'etirement-mollet', 'grand-soupir', 'haussement-epaules', 'inclinaison-laterale', 'massage-nuque',
+      'ouverture-poitrine', 'respiration-allongee', 'respiration-carree', 'respiration-ventre', 'rotation-buste',
+      'rotation-cou', 'rotation-epaules', 'rotation-poignets', 'secouer-bras',
+    ]);
+    expect(ids('calories')).toEqual([
+      'boxe-air', 'burpee-complet', 'burpee-sans-saut', 'fentes-sautees', 'genou-coude', 'grimpeur', 'jumping-jacks',
+      'marche-genoux-hauts', 'marche-sur-place', 'pas-chasses', 'patineur', 'squats-sautes', 'talons-fesses',
+    ]);
+    expect(ids('masse')).toEqual([
+      'assis-debout', 'bird-dog', 'burpee-complet', 'burpee-sans-saut', 'chaise-murale', 'crunch-velo', 'dips-chaise',
+      'fentes-arriere', 'fentes-sautees', 'gainage-commando', 'gainage-debout', 'grimpeur', 'hollow-hold', 'jambe-arriere',
+      'montees-pointes', 'pike-pushup', 'planche', 'planche-epaules', 'planche-laterale', 'planche-penchee', 'pompe-archer',
+      'pompe-classique', 'pompe-diamant', 'pompe-genoux', 'pompe-hindoue', 'pompe-inclinee', 'pompe-large',
+      'pompe-pieds-sureleves', 'pompe-spiderman', 'pompe-tempo', 'pompes-mur', 'pont-fessier', 'pont-une-jambe',
+      'releves-jambes', 'squat-bulgare', 'squat-lent', 'squat-pause', 'squats-sautes', 'superman', 'superman-tirage',
+      'tirage-yt', 'tractions-australiennes',
+    ]);
+  });
+
+  it('range les objectifs de chaque exercice dans l’ordre calories, masse, étirements, sans doublon', () => {
+    for (const e of EXERCICES) {
+      expect([e.id, e.objectifs]).toEqual([e.id, OBJECTIFS.filter((o) => e.objectifs.includes(o))]);
+    }
+  });
+
+  it('ne met aucun exercice d’énergie dans les étirements, sauf le bird-dog', () => {
+    const energie = EXERCICES.filter((e) => e.objectifs.includes('etirements') && e.effets.includes('energie'));
+    expect(energie.map((e) => e.id)).toEqual(['bird-dog']);
+  });
+
   it('ajoute les 6 exercices des séances en circuit, valeurs exactes', () => {
     const base = { sauts: false, espace: 'sur_place' } as const;
     const attendus = [
       {
         ...base, id: 'pompe-inclinee', nom: 'Pompes inclinées', animation: 'pompe-inclinee.json',
         consigne: 'Mains sur le bord d’une chaise stable ou d’une table, corps gainé, tu descends la poitrine et tu pousses.',
-        niveau: 1, intensite: 2, sol: false, zone: 'haut', bilateral: false, effets: ['energie'], transpiration: 'moyenne',
+        niveau: 1, intensite: 2, sol: false, zone: 'haut', bilateral: false, effets: ['energie'], transpiration: 'moyenne', objectifs: ['masse'],
       },
       {
         ...base, id: 'pompe-genoux', nom: 'Pompes sur les genoux', animation: 'pompe-genoux.json',
         consigne: 'Genoux au sol, corps droit des genoux à la tête, tu descends la poitrine entre les mains.',
-        niveau: 1, intensite: 2, sol: true, zone: 'haut', bilateral: false, effets: ['energie'], transpiration: 'moyenne',
+        niveau: 1, intensite: 2, sol: true, zone: 'haut', bilateral: false, effets: ['energie'], transpiration: 'moyenne', objectifs: ['masse'],
       },
       {
         ...base, id: 'pompe-classique', nom: 'Pompes', animation: 'pompe-classique.json',
         consigne: 'Mains sous les épaules, corps gainé de la tête aux pieds, la poitrine frôle le sol.',
-        niveau: 2, intensite: 3, sol: true, zone: 'haut', bilateral: false, effets: ['energie'], transpiration: 'moyenne',
+        niveau: 2, intensite: 3, sol: true, zone: 'haut', bilateral: false, effets: ['energie'], transpiration: 'moyenne', objectifs: ['masse'],
       },
       {
         ...base, id: 'tirage-yt', nom: 'Y-T au sol', animation: 'tirage-yt.json',
         consigne: 'À plat ventre, tu décolles les bras en Y, puis en T, en serrant les omoplates.',
-        niveau: 1, intensite: 2, sol: true, zone: 'tronc', bilateral: false, effets: ['energie', 'mobilite'], transpiration: 'faible',
+        niveau: 1, intensite: 2, sol: true, zone: 'tronc', bilateral: false, effets: ['energie', 'mobilite'], transpiration: 'faible', objectifs: ['masse'],
       },
       {
         ...base, id: 'bird-dog', nom: 'Bird-dog', animation: 'bird-dog.json',
         consigne: 'À quatre pattes, tu tends le bras et la jambe opposés, dos plat, puis tu changes.',
-        niveau: 1, intensite: 1, sol: true, zone: 'tronc', bilateral: false, effets: ['mobilite', 'energie'], transpiration: 'faible',
+        niveau: 1, intensite: 1, sol: true, zone: 'tronc', bilateral: false, effets: ['mobilite', 'energie'], transpiration: 'faible', objectifs: ['masse', 'etirements'],
       },
       {
         ...base, id: 'pont-une-jambe', nom: 'Pont fessier sur une jambe', animation: 'pont-une-jambe.json',
         consigne: 'Sur le dos, une jambe tendue en l’air, tu montes le bassin avec l’autre et tu serres.',
-        niveau: 2, intensite: 3, sol: true, zone: 'bas', bilateral: true, effets: ['energie'], transpiration: 'moyenne',
+        niveau: 2, intensite: 3, sol: true, zone: 'bas', bilateral: true, effets: ['energie'], transpiration: 'moyenne', objectifs: ['masse'],
       },
     ];
     for (const attendu of attendus) {
@@ -118,6 +166,11 @@ describe('catalogue embarqué', () => {
       if (exercice.espace !== 'sur_place') expect(compatible).toBe(false);
     },
   );
+
+  it('fixe les contraintes « maison » de toute séance : tenue de sport, bruit normal, un peu de place, sol', () => {
+    expect(CONTRAINTES_MAISON).toEqual({ tenue: 'sport', bruit: 'normal', espace: 'un_peu', sol: true });
+    expect(CONTEXTES.find((c) => c.id === 'maison')?.contraintes).toEqual(CONTRAINTES_MAISON);
+  });
 
   it('propose 5 contextes, dans l’ordre d’affichage', () => {
     expect(CONTEXTES.map((c) => c.id)).toEqual(['reveil', 'maison', 'bureau', 'voyage', 'dehors']);

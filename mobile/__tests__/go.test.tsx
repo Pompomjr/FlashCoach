@@ -39,7 +39,7 @@ describe('lien direct go', () => {
     memoire.contenu['flashcoach.derniers-exercices'] = JSON.stringify(['a', 'b']);
     const { getSearchParams } = await renderRouter(ROUTES, { initialUrl: '/go?contexte=reveil' });
     await waitFor(() => expect(screen).toHavePathname('/seance'));
-    expect(getSearchParams()).toMatchObject({ contexte: 'reveil', ressenti: 'mou', duree: '5', graine: '123456', exclure: 'a,b' });
+    expect(getSearchParams()).toMatchObject({ objectif: 'calories', contexte: 'reveil', ressenti: 'mou', duree: '5', graine: '123456', exclure: 'a,b' });
     expect(router.canGoBack()).toBe(true);
     await act(() => router.back());
     await waitFor(() => expect(screen).toHavePathname('/'));
@@ -97,9 +97,15 @@ describe('lien direct go', () => {
     expect(memoire.contenu['flashcoach.choix']).toBeUndefined();
   });
 
-  it.each([3, 10])('autorise la durée %s comme le départ', async (duree) => {
+  it.each([10, 15, 30])('autorise la durée %s comme le départ', async (duree) => {
     const { getSearchParams } = await renderRouter(ROUTES, { initialUrl: `/go?duree=${duree}` });
     await waitFor(() => expect(screen).toHavePathname('/seance'));
     expect(getSearchParams().duree).toBe(String(duree));
+  });
+
+  it('ramène la durée 3, supprimée, aux derniers choix', async () => {
+    const { getSearchParams } = await renderRouter(ROUTES, { initialUrl: '/go?duree=3' });
+    await waitFor(() => expect(screen).toHavePathname('/seance'));
+    expect(getSearchParams().duree).toBe('5');
   });
 });

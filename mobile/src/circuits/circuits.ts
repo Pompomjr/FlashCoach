@@ -8,10 +8,16 @@ const SANS_MATERIEL: Record<string, string> = {
   'pompe-pieds-sureleves': 'pompe-classique',
   // Le côté du poste est conservé : squat bulgare G -> fentes arrière G.
   'squat-bulgare': 'fentes-arriere',
+  'assis-debout': 'squat-lent',
 };
 
+// La variante sans meuble d'un exercice, proposée aussi dans l'aperçu de la séance.
+export function varianteSansMeuble(exerciceId: string): string | undefined {
+  return Object.hasOwn(SANS_MATERIEL, exerciceId) ? SANS_MATERIEL[exerciceId] : undefined;
+}
+
 function poste(exerciceId: string, cote?: 'gauche' | 'droite'): Poste {
-  const sansMateriel = Object.hasOwn(SANS_MATERIEL, exerciceId) ? SANS_MATERIEL[exerciceId] : undefined;
+  const sansMateriel = varianteSansMeuble(exerciceId);
   return { exerciceId, ...(cote ? { cote } : {}), ...(sansMateriel ? { sansMateriel } : {}) };
 }
 

@@ -596,6 +596,28 @@ describe('séance d’un circuit', () => {
     expect(screen.getByText('Tour 1 / 5 · ')).toBeTruthy();
   });
 
+  it('propose dans l’aperçu une variante sans meuble, gardée pendant l’effort et aux tours suivants', async () => {
+    await renderRouter(ROUTES, { initialUrl: circuitUrl('full-body-doux') });
+    await screen.findByText('Échauffement · ');
+    // Rien à remplacer pendant l'échauffement.
+    expect(screen.queryByRole('button', { name: /^Variante/ })).toBeNull();
+    await passer(4);
+    expect(screen.getByText('À suivre : Pompes inclinées')).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: 'Variante sans chaise' }));
+    expect(screen.getByText('À suivre : Pompes contre le mur')).toBeTruthy();
+    // Un second appui rend l'exercice d'origine.
+    await fireEvent.press(screen.getByRole('button', { name: 'Revenir à : Pompes inclinées' }));
+    expect(screen.getByText('À suivre : Pompes inclinées')).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: 'Variante sans chaise' }));
+    // Pendant l'effort, la variante reste et le bouton disparaît.
+    await avancer(10_000);
+    expect(screen.getByText('Pompes contre le mur')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /^Revenir à/ })).toBeNull();
+    // Au tour suivant, le même poste reprend la variante choisie.
+    await passer(5);
+    expect(screen.getByText('Repos · À suivre : Pompes contre le mur')).toBeTruthy();
+  });
+
   it('renvoie au départ pour un circuit inconnu', async () => {
     await renderRouter(ROUTES, { initialUrl: '/seance?circuit=lune&sansMateriel=0&tourEnPlus=0&graine=7' });
     await waitFor(() => expect(screen).toHavePathname('/'));

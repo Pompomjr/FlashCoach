@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "mobile", "run", "web", "--", "--port", "8081"],
       "port": 8081
+    },
+    {
+      "name": "flashcoach-web-verif",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "mobile", "run", "web", "--", "--port", "8090"],
+      "port": 8090
     }
   ]
 }

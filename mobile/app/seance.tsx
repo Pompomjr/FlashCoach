@@ -5,10 +5,12 @@ import { AccessibilityInfo, Platform, Pressable, ScrollView, StyleSheet, Text, V
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EXERCICES } from '../src/catalogue/exercices';
+import { varianteSansMeuble } from '../src/circuits/circuits';
 import { construireSeanceCircuit } from '../src/circuits/construire';
+import { materielDe } from '../src/circuits/materiel';
 import { genererSeance } from '../src/generateur/generer';
 import { Figurine } from '../src/illustrations/Figurine';
-import type { Seance } from '../src/generateur/types';
+import type { Bloc, Seance } from '../src/generateur/types';
 import { ajouterEntree, creerIdentifiant, mettreAJourEntree } from '../src/journal/journal';
 import { ecrireDerniersExercices } from '../src/preferences/preferences';
 import { stockageTelephone } from '../src/preferences/stockage';
@@ -71,7 +73,17 @@ export default function EcranSeance() {
 function LecteurSeance({ seance }: { seance: Seance }) {
   useEcranAllume();
   const { etat, passer, basculerPause, terminer } = useLecteurSeance(seance.blocs);
-  const bloc = etat.blocs[etat.index];
+  // Exercices remplacés par leur variante sans meuble, choisie dans l'aperçu : gardée pour toute la séance.
+  const [variantes, setVariantes] = useState<ReadonlySet<string>>(new Set());
+  const blocPrevu = etat.blocs[etat.index];
+  const bloc = blocJoue(blocPrevu, variantes);
+  const idVariante = varianteSansMeuble(blocPrevu.exercice.id);
+  const basculerVariante = () =>
+    setVariantes((actuelles) => {
+      const suivantes = new Set(actuelles);
+      if (!suivantes.delete(blocPrevu.exercice.id)) suivantes.add(blocPrevu.exercice.id);
+      return suivantes;
+    });
   const cote = coteCourant(etat);
   const circuit = seance.circuitId !== undefined;
   // Au début du dernier tour d'un circuit seulement.
@@ -221,6 +233,21 @@ function LecteurSeance({ seance }: { seance: Seance }) {
           {dernierTour !== null && <Text style={styles.dernierTour}>{dernierTour}</Text>}
           {cote !== null && <Text style={styles.cote}>{cote === 'gauche' ? 'Côté gauche' : 'Côté droit'}</Text>}
           <Text style={styles.consigne}>{bloc.exercice.consigne}</Text>
+          {/* Dans l'aperçu seulement : pas de chaise ou de table assez solide ? on voit la variante avant de s'y mettre. */}
+          {enTransition && idVariante !== undefined && (
+            <Pressable
+              accessibilityRole="button"
+              onPress={basculerVariante}
+              android_ripple={ondulation(COULEURS.texteSombre)}
+              style={styles.variante}
+            >
+              <Text style={styles.texteVariante}>
+                {variantes.has(blocPrevu.exercice.id)
+                  ? `Revenir à : ${blocPrevu.exercice.nom}`
+                  : `Variante sans ${materielDe(blocPrevu.exercice.id) ?? 'meuble'}`}
+              </Text>
+            </Pressable>
+          )}
         </View>
 
         <View>
@@ -249,6 +276,14 @@ function LecteurSeance({ seance }: { seance: Seance }) {
   );
 }
 
+// Le bloc tel qu'il se joue : l'exercice prévu, ou sa variante sans meuble si on l'a choisie.
+function blocJoue(bloc: Bloc, variantes: ReadonlySet<string>): Bloc {
+  const id = varianteSansMeuble(bloc.exercice.id);
+  if (id === undefined || !variantes.has(bloc.exercice.id)) return bloc;
+  const variante = EXERCICES.find((e) => e.id === id);
+  return variante === undefined ? bloc : { ...bloc, exercice: variante };
+}
+
 const styles = StyleSheet.create({
   ecran: { flex: 1, backgroundColor: COULEURS.fond },
   contenu: { flexGrow: 1, padding: ESPACE, paddingTop: 8, gap: 12 },
@@ -265,6 +300,16 @@ const styles = StyleSheet.create({
   cote: { ...TYPO.titleMedium, color: COULEURS.texteSombre },
   dernierTour: { ...TYPO.titleMedium, color: COULEURS.texteSombre },
   consigne: { ...TYPO.bodyLarge, color: COULEURS.texteSombre },
+  variante: {
+    alignSelf: 'flex-start',
+    minHeight: CIBLE_MIN,
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    borderRadius: CIBLE_MIN / 2,
+    borderWidth: 1.5,
+    borderColor: COULEURS.texteSombre,
+  },
+  texteVariante: { ...TYPO.labelLarge, color: COULEURS.texteSombre },
   minuteur: { ...TYPO.displayLarge, color: COULEURS.texte, textAlign: 'center', fontVariant: ['tabular-nums'] },
   zonePause: { minHeight: TYPO.bodyLarge.lineHeight, alignItems: 'center' },
   pause: { ...TYPO.bodyLarge, color: COULEURS.texteDiscret, textAlign: 'center' },

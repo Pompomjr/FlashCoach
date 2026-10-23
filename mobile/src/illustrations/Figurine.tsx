@@ -30,11 +30,12 @@ function cadreDe(animation: AnimationFigurine): Cadre {
 /** `taille` : largeur de la vue ; `hauteur` (par défaut égale à `taille`) permet une zone non carrée,
  * dans laquelle le dessin est agrandi au maximum et centré. */
 export type FigurineProps = {
+  cote?: 'gauche' | 'droite';
   exerciceId: string; anime?: boolean; enPause?: boolean; taille?: number; hauteur?: number; libelle: string;
 };
 
-export function Figurine({ exerciceId, anime = true, enPause = false, taille = 240, hauteur = taille, libelle }: FigurineProps) {
-  const animation = posesPour(exerciceId);
+export function Figurine({ exerciceId, cote, anime = true, enPause = false, taille = 240, hauteur = taille, libelle }: FigurineProps) {
+  const animation = posesPour(exerciceId, cote);
   // Aucune frame avant la réponse système : pas de flash animé en mode réduit.
   const [reduire, setReduire] = useState(true);
   const [frame, setFrame] = useState({ animation, t: 0 });

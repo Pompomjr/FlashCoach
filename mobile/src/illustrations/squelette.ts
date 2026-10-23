@@ -13,6 +13,8 @@ export type Pose = {
   /** Courbure du dos en unités du cadre (flèche au milieu du tronc), sans modifier les longueurs des
    * membres : positive, le dos s'arrondit (chat) ; négative, il se creuse (vache). */
   dos?: number;
+  /** Position verticale des hanches sous la colonne en quadrupédie. */
+  decalageHanches?: { gauche: number; droite: number };
   /** Ouverture de la poitrine, de 0 (repos) à 1 (inspiration pleine) : seul le dessin du tronc change. */
   poitrine?: number;
   /** Élévation de la ceinture scapulaire pour les haussements (unités du cadre). */
@@ -51,8 +53,8 @@ export function calculerPoints(pose: Pose) {
   const epauleGauche = pose.vue === 'profil' ? { x: epaules.x - largeur, y: epaules.y } : avancer(epaules, -largeur, 90 - pose.tronc);
   const epauleDroite = pose.vue === 'profil' ? { x: epaules.x + largeur, y: epaules.y } : avancer(epaules, largeur, 90 - pose.tronc);
   const h = pose.vue === 'face' ? l.demiBassin : 3;
-  const hancheGauche = { x: bassin.x - h, y: bassin.y };
-  const hancheDroite = { x: bassin.x + h, y: bassin.y };
+  const hancheGauche = { x: bassin.x - h, y: bassin.y + (pose.decalageHanches?.gauche ?? 0) };
+  const hancheDroite = { x: bassin.x + h, y: bassin.y + (pose.decalageHanches?.droite ?? 0) };
   // L'axe bas du tronc tourne à l'opposé de son inclinaison depuis l'axe haut.
   const bras = (origine: Point, b: Bras, gauche: boolean) => {
     const cible = gauche ? pose.mains?.gauche : pose.mains?.droite;
@@ -106,6 +108,9 @@ export function interpolerPose(a: Pose, b: Pose, t: number): Pose {
     tronc: angle(a.tronc, b.tronc, t), tete: angle(a.tete, b.tete, t),
     brasGauche: bras(a.brasGauche, b.brasGauche), brasDroit: bras(a.brasDroit, b.brasDroit),
     jambeGauche: jambe(a.jambeGauche, b.jambeGauche), jambeDroite: jambe(a.jambeDroite, b.jambeDroite),
+    ...(a.decalageHanches !== undefined || b.decalageHanches !== undefined
+      ? { decalageHanches: { gauche: melanger(a.decalageHanches?.gauche ?? 0, b.decalageHanches?.gauche ?? 0, t),
+        droite: melanger(a.decalageHanches?.droite ?? 0, b.decalageHanches?.droite ?? 0, t) } } : {}),
     ...(a.dos !== undefined || b.dos !== undefined ? { dos: melanger(a.dos ?? 0, b.dos ?? 0, t) } : {}),
     ...(a.poitrine !== undefined || b.poitrine !== undefined
       ? { poitrine: melanger(a.poitrine ?? 0, b.poitrine ?? 0, t) } : {}),

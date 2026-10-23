@@ -89,3 +89,10 @@ test('pompe inclinée : dossier à droite, à distance du visage', async () => {
   await render(<Figurine exerciceId="pompe-inclinee" libelle="Pompe inclinée" anime={false} />);
   expect(screen.getByTestId('accessoire-chaise').props.x).toBe(posesPour('pompe-inclinee').chaiseX! + 42 - 6);
 });
+
+test('le côté imposé change le dessin du pont, même sans animation', async () => {
+  await render(<Figurine exerciceId="pont-une-jambe" cote="gauche" libelle="Pont" anime={false} />);
+  const gauche = screen.toJSON();
+  await screen.rerender(<Figurine exerciceId="pont-une-jambe" cote="droite" libelle="Pont" anime={false} />);
+  expect(screen.toJSON()).not.toEqual(gauche);
+});

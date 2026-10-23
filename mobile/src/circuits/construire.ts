@@ -61,7 +61,7 @@ export function construireSeanceCircuit(
   blocs.push(...RETOUR_AU_CALME.map((id) => ({ exercice: exercice(id), phase: 'retour_au_calme' as const, transitionS: 5, effortS: 25 })));
   const dureeTotaleS = blocs.reduce((somme, bloc) => somme + bloc.transitionS + bloc.effortS, 0);
   return {
-    objectif: 'masse',
+    objectif: circuit.famille === 'cardio' ? 'calories' : 'masse',
     contraintes: CONTRAINTES_MAISON,
     duree: Math.round(dureeTotaleS / 60),
     graine,

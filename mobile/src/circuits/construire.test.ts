@@ -258,6 +258,11 @@ describe('séance produite', () => {
     expect(construire('cardio-athletique').niveau).toBe(2);
   });
 
+  it('inscrit le circuit cardio en « Brûler des calories » et les autres en « Prise de masse »', () => {
+    expect(construire('cardio-athletique').objectif).toBe('calories');
+    expect(construire('jambes-costaud').objectif).toBe('masse');
+  });
+
   it('ne contient que des exercices compatibles avec ses propres contraintes', () => {
     for (const c of CIRCUITS) {
       for (const sansMateriel of [false, true]) {

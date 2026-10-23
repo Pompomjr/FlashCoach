@@ -4,7 +4,7 @@ Rédigé le 2026-10-22 par Claude pour que Codex reprenne le projet avec Mattia.
 
 ## 1. Le produit en une minute
 
-Flash Coach : app mobile (Android d'abord) de séances de sport express **au poids du corps**, 3 à 10 minutes, adaptées au **contexte** (réveil, maison, bureau, voyage, dehors), au **ressenti** (raide, stressé, mou, en forme) et au **niveau** (Doux, Tonique, Costaud). Promesse : « Où que tu sois, 5 minutes pour te sentir mieux. » Plus des **séances prêtes en circuit** (15-26 min) pour les sportifs.
+Flash Coach : app mobile (Android d'abord) de séances de sport **au poids du corps**, à la maison. Depuis le 2026-10-23, **l'objectif d'abord** : **Brûler des calories / Prise de masse / Étirements**, intensité **Léger / Moyen / Lourd** (= niveaux 1-3, clé `flashcoach.niveau`), durée **5 · 10 · 15 · 30 min** (15 et 30 en tours). Contextes et ressenti ont été retirés de l'interface. Prise de masse joue un des **13 circuits** (familles en rotation d'après le journal, tours 1/2/3/6) ; la page « Séances prêtes » reste pour choisir un circuit précis.
 
 Règles produit non négociables (voir `PRODUCT.md`) :
 - **Zéro configuration** : aucune question avant la 1re séance ; écran de départ unique, tout présélectionné, **un tap** pour lancer ; l'écran de départ tient **sans défilement** à 375 × 812 et 360 × 740, en-tête **empilé** (logo au-dessus, « Flash Coach » dessous) — choix explicite de Mattia.
@@ -19,10 +19,10 @@ Documents de référence : `PRODUCT.md`, `DESIGN.md` (+ `.impeccable/design.json
 
 - Expo SDK 58, Expo Router 58 (routes dans `mobile/app/`, **jamais** `src/app`), React Native 0.88, React 19.3, TypeScript strict, Jest via jest-expo, React Native Testing Library 14 (**`render`/`fireEvent`/`renderRouter` asynchrones : toujours `await`**), react-native-svg, AsyncStorage, `@supabase/supabase-js` 2.118.
 - Depuis `mobile/` :
-  - `npx jest` — suite complète (1300 tests au 2026-10-22, tous verts sur la branche `circuits`)
+  - `npx jest` — suite complète (1258 tests au 2026-10-23, branche `objectifs`)
   - `npm run typecheck`
   - `npm run lint` (sous Windows, le wrapper `expo lint` peut ne jamais rendre la main : utiliser alors `node node_modules/eslint/bin/eslint.js .` et le signaler)
-  - `npm run couverture` — rapport de couverture du catalogue : le niveau 1 doit afficher « Catalogue complet : toutes les combinaisons sont idéales. »
+  - `npm run couverture` — rapport de couverture du catalogue : par objectif × intensité × durée ; manques connus et acceptés : cœur calories 10 min en Léger (7 cardios doux sur 8) et Lourd (6/8) — le générateur répète alors un cardio, jamais d'intensité au-dessus du choix
   - `npx expo start` — serveur pour Expo Go (Mattia teste sur son Android : `exp://192.168.1.2:8081`). **Expo Go du Play Store est trop ancien pour le SDK 58** : APK officielle 58.0.4 sur le GitHub d'Expo (`expo-go-releases`).
 - Aperçu web pour vérifier une mise en page : `npx expo start --web --port 8090` (laisser le 8081 à Mattia).
 
@@ -37,11 +37,11 @@ Documents de référence : `PRODUCT.md`, `DESIGN.md` (+ `.impeccable/design.json
 | `journal/` | journal local (clé `flashcoach.journal.v1`, 500 max, opérations en série), fusion |
 | `synchro/` | file d'envoi, moteur à vol unique, serveur Supabase / mémoire, instance, `useSynchro` |
 | `compte/` | session anonyme Supabase, liaison par code e-mail |
-| `preferences/` | choix, niveau (`flashcoach.niveau`), sans meuble (`flashcoach.sansMateriel`) |
+| `preferences/` | choix (`flashcoach.choix.v2` : objectif, durée), niveau (`flashcoach.niveau`), sans meuble (`flashcoach.sansMateriel`) |
 | `illustrations/` | figurine : squelette 2D, `poses.ts` (une entrée par exercice), dessin SVG, accessoires mur / chaise / table |
 | `ui/` | thème (`COULEURS`, `TYPO`, `ELEVATION`, `CIBLE_MIN`), boutons, icônes dessinées, logo |
 
-Écrans (`mobile/app/`) : `index` (départ), `seance`, `bravo`, `journal`, `sauvegarde`, `go` (lien direct `flashcoach://go?contexte=…&niveau=…`), `circuits` (liste), `circuit/[id]` (détail). Supabase : `supabase/migrations/` (3 migrations, à appliquer dans l'ordre) et le guide `docs/supabase.md`.
+Écrans (`mobile/app/`) : `index` (départ), `seance`, `bravo`, `journal`, `sauvegarde`, `go` (lien direct `flashcoach://go?objectif=…&intensite=…&duree=…`), `circuits` (liste), `circuit/[id]` (détail). Supabase : `supabase/migrations/` (4 migrations, à appliquer dans l'ordre ; la 4e `20261023120000_seances_objectif.sql` ajoute `objectif`) et le guide `docs/supabase.md`.
 
 ## 4. Conventions
 
@@ -54,19 +54,21 @@ Documents de référence : `PRODUCT.md`, `DESIGN.md` (+ `.impeccable/design.json
 
 ## 5. État au moment de la passation
 
-- `main` (ff69cdd, poussée sur GitHub `origin` = https://github.com/Pompomjr/FlashCoach) : jalons 1 à 4 (générateur, écrans, journal, Supabase), design, contenu réel (50 exercices), **niveaux** Doux/Tonique/Costaud (pastille au départ, « L'effort ? » sur Bravo), lien direct.
+- `main` (poussée sur GitHub `origin` = https://github.com/Pompomjr/FlashCoach) : jalons 1 à 4 (générateur, écrans, journal, Supabase), design, contenu réel (50 exercices), **niveaux** Doux/Tonique/Costaud (pastille au départ, « L'effort ? » sur Bravo), lien direct.
 - **Séances prêtes en circuit** (fusionnées dans `main` le 2026-10-22, d234a36) : 13 circuits, 6 nouveaux exercices et leurs poses, écrans liste/détail, séance de circuit, journal et Supabase ; trois lots revus, revue finale et ses corrections validées (1315 tests verts). Branches et worktree supprimés.
 - Le registre de ce chantier (décisions, mineurs différés, revues) : `.superpowers/sdd/2026-10-22-circuits/progress.md`.
 
 ## 6. Prochaines étapes (dans l'ordre)
 
-1. **Refonte « objectif · intensité · durée »** (décidée par Mattia le 2026-10-22, spec validable : `docs/superpowers/specs/2026-10-23-objectifs-design.md`). Écran de départ : Brûler des calories / Prise de masse / Étirements, Léger / Moyen / Lourd, 5 · 10 · 15 · 30 min ; contextes et ressenti **supprimés** ; Prise de masse joue les circuits (familles en rotation, tours selon la durée). Si Mattia a validé la spec : écrire le plan (~3 lots) dans `docs/superpowers/plans/`, puis exécuter avec une revue par lot et une revue finale. Sinon, lui demander de la relire d'abord. Diagnostic d'origine : en « Costaud » avec le ressenti « Mou » présélectionné, le cœur ne visait que l'intensité 1-2, donc Costaud ne paraissait pas plus dur.
-2. **Retouches de la figurine en cours** : le worktree `.worktrees/figurine` (branche `figurine-retouches`) contient des changements **non commités** de Codex, interrompu par sa limite (pont sur une jambe qui suit le côté imposé, bird-dog jambe/bras alignés, pompes large/tempo distinctes, pompes sur les genoux bras tendus en haut ; brief : `.superpowers/sdd/figurine-retouches-brief.md`). Faire `git status` / `git diff`, relancer `npx jest`, finir, committer, fusionner dans `main`, supprimer le worktree.
+1. **Refonte par objectif** : faite sur la branche `objectifs` (lots revus, revue finale « prête avec corrections », corrections faites). À fusionner dans `main` et pousser sur accord de Mattia. Avant d'installer cette version avec Supabase branché : appliquer la migration `20261023120000_seances_objectif.sql`, sinon l'envoi échoue (les séances restent en file, rien n'est perdu). Petites choses à faire valider par Mattia : icône « muscle », slogan « 5 minutes » encore présent, ajout de 1-2 exercices cardio pour combler la couverture.
+2. **Nettoyage** : code mort `ICONE_RESSENTI`, variante `verrouille` de `CarteOption`, `acces.ts` ; cycle d'import `journal.ts ↔ fusion.ts` (avertissement Metro) ; la rotation des familles avance même après une séance de masse abandonnée tout de suite.
 3. **Nouvel habillage de la figurine** (demande de Mattia, référence : illustration plate d'une sportive — peau, brassière, legging, baskets, queue de cheval, visage simple, volumes arrondis en deux tons, sur carte crème). Garder le squelette, les poses et l'animation ; changer seulement le rendu (`mobile/src/illustrations/dessin.ts`, `Figurine.tsx`) : formes vêtements/peau par segment, couleurs dans le thème, épaules fondues, aucune « boule » aux articulations. Montrer d'abord une galerie avant/après à Mattia avant de généraliser aux 76 exercices.
-4. **Petit nettoyage** : supprimer le cycle d'import `journal.ts ↔ fusion.ts` (avertissement Metro).
-5. **Brancher le vrai Supabase** avec Mattia (`docs/supabase.md`, migrations dans l'ordre, `mobile/.env.local`), puis vérifier sur téléphone sauvegarde, liaison par code e-mail et restauration.
-6. Jalons suivants : **5** RevenueCat (le découpage gratuit / Premium est à redéfinir avec la refonte par objectif), **6** PostHog + RGPD, **7** contenu final et test fermé Play Store (12 testeurs × 14 jours).
-7. **Idées en attente** (seulement si Mattia le demande) : phrases de motivation de grands sportifs sur l'écran de fin ; variantes lestées ; suivi des répétitions ; programme sur plusieurs semaines.
+4. **Brancher le vrai Supabase** avec Mattia (`docs/supabase.md`, 4 migrations dans l'ordre, `mobile/.env.local`), puis vérifier sur téléphone sauvegarde, liaison par code e-mail et restauration.
+5. Jalons suivants : **5** RevenueCat (découpage gratuit / Premium à redéfinir autour des objectifs), **6** PostHog + RGPD, **7** contenu final et test fermé Play Store (12 testeurs × 14 jours).
+6. **Idées en attente** (seulement si Mattia le demande) : phrases de motivation de grands sportifs sur l'écran de fin ; variantes lestées ; suivi des répétitions ; programme sur plusieurs semaines.
+
+Retouches de la figurine (pont sur une jambe selon le côté, bird-dog, pompes large/tempo, pompes sur les genoux) : faites et fusionnées le 2026-10-23.
+Revues : Mattia les trouve coûteuses — Sonnet par défaut, diff sans tests, points ciblés, une revue finale.
 
 ## 7. Décisions déjà tranchées (à ne pas rouvrir sans Mattia)
 
@@ -80,5 +82,5 @@ Documents de référence : `PRODUCT.md`, `DESIGN.md` (+ `.impeccable/design.json
 
 - La clé Supabase est `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (pas `…_ANON_KEY`) ; sans elle, l'app est 100 % locale et le lien de sauvegarde est masqué.
 - Le client envoie `niveau`, `effort` et `circuit_id` : la synchro échoue tant que les migrations correspondantes ne sont pas appliquées (comportement attendu, documenté).
-- Mineurs différés notables : bird-dog (avant-bras qui croise le visage entre deux clés, jambe tendue un peu basse) ; pompe-large et pompe-tempo se ressemblent de profil ; pas de test automatique de « pas de défilement » de l'écran de départ (vérification manuelle au navigateur).
+- Mineur différé : pas de test automatique de « pas de défilement » de l'écran de départ (vérification manuelle au navigateur).
 - Décisions en attente de Mattia : garder ou non `mobile/LICENSE` (MIT d'Expo) et `mobile/.claude/settings.json`.

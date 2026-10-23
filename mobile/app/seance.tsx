@@ -200,6 +200,7 @@ function LecteurSeance({ seance }: { seance: Seance }) {
             <View style={[StyleSheet.absoluteFill, styles.figurine]}>
               <Figurine
                 exerciceId={bloc.exercice.id}
+                cote={bloc.cote}
                 libelle={bloc.exercice.nom}
                 anime={!enTransition}
                 enPause={etat.enPause}

@@ -544,6 +544,19 @@ describe('séance d’un circuit', () => {
     expect(annonce).toHaveBeenLastCalledWith('Squat lent');
   });
 
+  it('dessine le côté du pont imposé par le circuit, dès l’aperçu', async () => {
+    jest.spyOn(AccessibilityInfo, 'isReduceMotionEnabled').mockResolvedValue(true);
+    await renderRouter(ROUTES, { initialUrl: circuitUrl('jambes-costaud') });
+    await screen.findByText('Échauffement · ');
+    await passer(5);
+    const chemins = () => screen.getByRole('image', { name: /Illustration : Pont/ }).props.children.props.children
+      .flat(Infinity).filter((p: { props?: { d?: string } } | false) => p && p.props?.d)
+      .map((p: { props: { d: string } }) => p.props.d);
+    const gauche = chemins();
+    await passer(2);
+    expect(chemins()).not.toEqual(gauche);
+  });
+
   it('impose le côté du poste pendant l’effort : gauche, puis droite', async () => {
     await renderRouter(ROUTES, { initialUrl: circuitUrl('jambes-tonique') });
     await screen.findByText('Échauffement · ');

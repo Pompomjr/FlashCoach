@@ -200,7 +200,8 @@ const pompeClassique = pompes(CHEVILLE_POMPE, 132, 150, 10);
 // Mains en losange sous le sternum : les coudes longent les côtes.
 const pompeDiamant = pompes(CHEVILLE_POMPE, 132, 156, -9);
 // Mains larges, un peu devant les épaules : la poitrine descend plus bas entre les mains.
-const pompeLarge = pompes(CHEVILLE_POMPE, 134, 152, 17);
+const pompeLarge = pompes(CHEVILLE_POMPE, 135, 152, 20).map(pose =>
+  appuiMains(pose, pose.mains!.droite.x, SOL_Y, 18));
 // Pieds sur l'assise : orteils posés sur le dessus de la chaise.
 const CHAISE_DECLINEE = 26;
 const chevilleDeclinee = { x: CHAISE_DECLINEE + 28, y: 140 };
@@ -353,8 +354,8 @@ const burpeeSaut: Pose = fixerChevilles({ ...debout(), racine: { x: 104, y: 100 
 
 const NIVEAUX_SUPERIEURS: Record<string, AnimationFigurine> = {
   'pompe-large': { cles: pompeLarge, dureeCycleMs: 1800 },
-  // Quatre secondes pour descendre, quatre pour remonter.
-  'pompe-tempo': { cles: pompeClassique, dureeCycleMs: 8000 },
+  // Cycle lent : descente, maintien en bas et remontée occupent chacun un tiers.
+  'pompe-tempo': { cles: [pompeClassique[0], pompeClassique[1], pompeClassique[1]], dureeCycleMs: 8000 },
   'pike-pushup': { cles: [vHaut, vBas], dureeCycleMs: 1800 },
   'dips-chaise': { cles: [dips({ x: 102, y: 100.6 }, 0), dips({ x: 104, y: 120 }, 6)], dureeCycleMs: 1800,
     accessoire: 'chaise', chaiseX: CHAISE_DIPS },
@@ -401,27 +402,29 @@ const CHAISE_INCLINEE = 143;
 const pompeInclinee = [106, 124].map(y => appuiMains(
   gaine(CHEVILLE_POMPE, epaulesA(CHEVILLE_POMPE, y), piedSol(CHEVILLE_POMPE.y)),
   155, CHAISE.assise - RAYONS.main));
-const pompeGenoux = [60, 77].map(inclinaison => {
+const pompeGenoux = [50, 77].map(inclinaison => {
   // Pivot autour des genoux ; tibias horizontaux posés derrière eux.
   const pose: Pose = { ...debout(), tronc: inclinaison,
     racine: { x: 68 + 34 * Math.sin(rad(inclinaison)), y: SOL_Y - 34 * Math.cos(rad(inclinaison)) },
     jambeGauche: jambe(-inclinaison, inclinaison - 90, -90),
     jambeDroite: jambe(-inclinaison, inclinaison - 90, -90) };
-  return appuiMains(pose, 145);
+  return appuiMains(pose, 130);
 });
-// Les cuisses sont plus courtes que les bras : un dos plat incliné de 20°
-// laisse les mains sous les épaules et le coude porteur presque tendu.
-const birdBase: Pose = { ...quatrePattes, racine: { x: 88, y: SOL_Y - LONGUEURS.cuisse }, tete: 55, dos: 0 };
+// En quadrupédie, l’articulation de la hanche porteuse est sous la colonne.
+// Ce décalage garde le dos presque horizontal sans raccourcir les bras ni allonger les cuisses.
+const birdBase: Pose = { ...quatrePattes, racine: { x: 93, y: SOL_Y - LONGUEURS.cuisse - 12 },
+  decalageHanches: { gauche: 12, droite: 12 }, tronc: 87, tete: 55, dos: 0 };
 const birdPoints = calculerPoints(birdBase);
 const birdRepos = appuiMains(birdBase, birdPoints.epauleDroite.x);
 const birdExtension = (gauche: boolean): Pose => {
-  // Bras complètement allongé, légèrement au-dessus du dos ; regard au sol
+  // Bras complètement allongé dans l’axe du dos ; regard au sol
   // pour dégager le visage. La jambe opposée prolonge exactement le tronc.
   const epaule = gauche ? birdPoints.epauleGauche : birdPoints.epauleDroite;
   const longueur = LONGUEURS.bras + LONGUEURS.avantBras;
-  const main = { x: epaule.x + longueur * Math.cos(rad(40)), y: epaule.y - longueur * Math.sin(rad(40)) };
+  const main = { x: epaule.x + longueur * Math.cos(rad(3)), y: epaule.y - longueur * Math.sin(rad(3)) };
   const jambeLevee = jambe(-birdBase.tronc, 0, birdBase.tronc - 180);
   return { ...birdRepos,
+    decalageHanches: { gauche: gauche ? 12 : 0, droite: gauche ? 0 : 12 },
     mains: { gauche: gauche ? main : birdRepos.mains!.gauche,
       droite: gauche ? birdRepos.mains!.droite : main },
     jambeGauche: gauche ? birdRepos.jambeGauche : jambeLevee,
@@ -545,6 +548,16 @@ export const POSES_PAR_EXERCICE: Record<string, AnimationFigurine> = {
   ...NIVEAUX_SUPERIEURS,
 };
 
-export function posesPour(exerciceId: string): AnimationFigurine {
+const pontJambeDroite: AnimationFigurine = {
+  ...POSES_PAR_EXERCICE['pont-une-jambe'],
+  cles: pontUneJambe.map(pose => ({ ...pose,
+    jambeGauche: pose.jambeDroite, jambeDroite: pose.jambeGauche,
+    chevilles: { gauche: { ...pose.chevilles!.droite, x: pose.chevilles!.droite.x - 6 },
+      droite: { ...pose.chevilles!.gauche, x: pose.chevilles!.gauche.x + 6 } },
+  })),
+};
+
+export function posesPour(exerciceId: string, cote?: 'gauche' | 'droite'): AnimationFigurine {
+  if (exerciceId === 'pont-une-jambe' && cote === 'droite') return pontJambeDroite;
   return Object.prototype.hasOwnProperty.call(POSES_PAR_EXERCICE, exerciceId) ? POSES_PAR_EXERCICE[exerciceId] : REPLI;
 }

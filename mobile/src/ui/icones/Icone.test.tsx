@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/react-native';
 
 import { CONTEXTES } from '../../catalogue/contextes';
-import { RESSENTIS } from '../../catalogue/types';
-import { ICONE_APRES, ICONE_CONTEXTE, ICONE_RESSENTI, Icone, NOMS_ICONES, type NomIcone } from './index';
+import { OBJECTIFS, RESSENTIS } from '../../catalogue/types';
+import { ICONE_APRES, ICONE_CONTEXTE, ICONE_OBJECTIF, ICONE_RESSENTI, Icone, NOMS_ICONES, type NomIcone } from './index';
 import { TRACES } from './traces';
 
 describe('Icone', () => {
@@ -14,7 +14,7 @@ describe('Icone', () => {
   it('propose au moins les icônes du brief', () => {
     const attendues: NomIcone[] = [
       'reveil', 'maison', 'bureau', 'voyage', 'dehors', 'raide', 'stresse', 'mou', 'en_forme',
-      'cadenas', 'retour', 'journal', 'mieux', 'pareil',
+      'cadenas', 'retour', 'journal', 'mieux', 'pareil', 'flamme', 'muscle', 'etirement',
     ];
     for (const nom of attendues) expect(NOMS_ICONES).toContain(nom);
   });
@@ -47,6 +47,11 @@ describe('Icone', () => {
 describe('tables d’icônes', () => {
   it('associent une icône connue à chaque contexte du catalogue', () => {
     for (const contexte of CONTEXTES) expect(NOMS_ICONES).toContain(ICONE_CONTEXTE[contexte.id]);
+  });
+
+  it('associent une icône dessinée à chaque objectif : flamme, biceps, silhouette qui s’étire', () => {
+    expect(ICONE_OBJECTIF).toEqual({ calories: 'flamme', masse: 'muscle', etirements: 'etirement' });
+    for (const objectif of OBJECTIFS) expect(NOMS_ICONES).toContain(ICONE_OBJECTIF[objectif]);
   });
 
   it('associent une icône connue à chaque ressenti et à chaque réponse « après »', () => {

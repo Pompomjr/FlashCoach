@@ -1,43 +1,37 @@
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { useCallback, useRef, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { CONTEXTES } from '../src/catalogue/contextes';
-import { DUREES, RESSENTIS, type Niveau } from '../src/catalogue/types';
-import {
-  ecrireChoix,
-  lireChoix,
-  lireDerniersExercices,
-  type Choix,
-} from '../src/preferences/preferences';
-import { ecrireNiveau, lireNiveau } from '../src/preferences/niveau';
+import { DUREES, NIVEAUX, NOMS_NIVEAU, NOMS_OBJECTIF, OBJECTIFS, type Niveau } from '../src/catalogue/types';
+import { CHOIX_PAR_DEFAUT, ecrireChoix, type Choix } from '../src/preferences/preferences';
+import { ecrireNiveau } from '../src/preferences/niveau';
 import { stockageTelephone } from '../src/preferences/stockage';
-import { choisirLancement, lancementDisponible, parametresLancement } from '../src/seance/lancement';
+import { lireDonneesLancement, parametresLancement, type DonneesLancement } from '../src/seance/lancement';
 import { Bouton } from '../src/ui/Bouton';
 import { CarteOption } from '../src/ui/CarteOption';
-import { ICONE_CONTEXTE, ICONE_RESSENTI, Icone } from '../src/ui/icones';
-import { LIBELLES_RESSENTI } from '../src/ui/libelles';
+import { ICONE_OBJECTIF, Icone } from '../src/ui/icones';
 import { Marque } from '../src/ui/Logo';
-import { PastilleNiveau } from '../src/ui/PastilleNiveau';
 import { CIBLE_MIN, COULEURS, ESPACE, TYPO } from '../src/ui/theme';
 import { enfoncement, ondulation } from '../src/ui/toucher';
 
-const MESSAGE_PREMIUM = 'Bientôt avec Premium';
 // En dessous de cette hauteur (dp), l'en-tête rétrécit pour que tout tienne sans défilement.
 const HAUTEUR_COMPACTE = 880;
 
-// Zéro configuration : tout est présélectionné, un seul tap suffit pour lancer la séance.
+// Ce que le départ relit à chaque retour : la séance qui vient d'avoir lieu change les derniers exercices et la
+// dernière famille de masse ; la page d'un circuit peut changer « sans meuble ».
+type Memoire = Pick<DonneesLancement, 'derniersExercices' | 'derniereFamille' | 'sansMateriel'>;
+
+// Zéro configuration : objectif, intensité et durée sont présélectionnés, un seul tap suffit pour lancer.
 export default function Depart() {
-  const [choix, setChoix] = useState<Choix>(() => choisirLancement({}));
-  const [derniersExercices, setDerniersExercices] = useState<string[]>([]);
+  const [choix, setChoix] = useState<Choix>(CHOIX_PAR_DEFAUT);
   const [niveau, setNiveau] = useState<Niveau>(1);
-  const [message, setMessage] = useState<string | null>(null);
+  const [memoire, setMemoire] = useState<Memoire>({ derniersExercices: [], derniereFamille: null, sansMateriel: false });
   const compacte = useWindowDimensions().height < HAUTEUR_COMPACTE;
 
   // Nombre de choix faits par l'utilisateur : une lecture démarrée avant ne doit pas écraser sa sélection.
   const choixUtilisateur = useRef(0);
-  // Même garde pour le niveau : un choix fait pendant la lecture ne doit pas être écrasé par elle.
+  // Même garde pour l'intensité : un choix fait pendant la lecture ne doit pas être écrasé par elle.
   const niveauUtilisateur = useRef(0);
   // Premier retour de focus = le montage : seuls les retours suivants ne relisent pas les choix.
   const premierFocus = useRef(true);
@@ -48,11 +42,8 @@ export default function Depart() {
   // Même garde pour « Séances prêtes ».
   const ouvertureCircuits = useRef(false);
 
-  const contextes = useMemo(() => [...CONTEXTES].sort((a, b) => a.ordre - b.ordre), []);
-
-  // Au montage on lit les choix retenus et les derniers exercices. À chaque retour sur l'écran
-  // (après une séance), on relit seulement les derniers exercices, qui doivent être ceux de la
-  // séance qui vient d'avoir lieu, et on efface le message Premium devenu périmé.
+  // Au montage on lit les choix retenus ; à chaque retour sur l'écran (après une séance), on relit le reste :
+  // l'intensité (Bravo a pu l'ajuster), les derniers exercices, la dernière famille de masse et « sans meuble ».
   useFocusEffect(
     useCallback(() => {
       lancement.current = false;
@@ -63,17 +54,11 @@ export default function Depart() {
       const niveauDejaChoisi = niveauUtilisateur.current;
       const lireLesChoix = premierFocus.current;
       premierFocus.current = false;
-      if (!lireLesChoix) setMessage(null);
-      Promise.all([
-        lireLesChoix ? lireChoix(stockageTelephone) : Promise.resolve(null),
-        lireDerniersExercices(stockageTelephone),
-        // Relu à chaque retour : Bravo a pu monter ou descendre le niveau pendant la séance.
-        lireNiveau(stockageTelephone),
-      ]).then(([lus, ids, niveauLu]) => {
+      lireDonneesLancement(stockageTelephone).then((lues) => {
         if (!actif) return;
-        if (lus !== null && choixUtilisateur.current === dejaChoisi) setChoix(lus);
-        if (niveauUtilisateur.current === niveauDejaChoisi) setNiveau(niveauLu);
-        setDerniersExercices(ids);
+        if (lireLesChoix && choixUtilisateur.current === dejaChoisi) setChoix(lues.choix);
+        if (niveauUtilisateur.current === niveauDejaChoisi) setNiveau(lues.niveau);
+        setMemoire({ derniersExercices: lues.derniersExercices, derniereFamille: lues.derniereFamille, sansMateriel: lues.sansMateriel });
       });
       return () => {
         actif = false;
@@ -83,19 +68,7 @@ export default function Depart() {
 
   const modifier = (changement: Partial<Choix>) => {
     choixUtilisateur.current += 1;
-    setMessage(null);
     setChoix((actuel) => ({ ...actuel, ...changement }));
-  };
-
-  const choisirContexte = (contexteId: string) => {
-    if (!lancementDisponible({ ...choix, contexteId })) {
-      const texte = MESSAGE_PREMIUM;
-      setMessage(texte);
-      // accessibilityLiveRegion ne couvre qu'Android : sur iOS, on annonce explicitement.
-      if (Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(texte);
-      return;
-    }
-    modifier({ contexteId });
   };
 
   const changerNiveau = (choisi: Niveau) => {
@@ -120,11 +93,10 @@ export default function Depart() {
     if (lancement.current) return;
     lancement.current = true;
     ecrireChoix(stockageTelephone, choix).catch(() => undefined);
-    router.push({
-      pathname: '/seance',
-      params: parametresLancement(choix, derniersExercices, Date.now(), niveau),
-    });
+    router.push({ pathname: '/seance', params: parametresLancement({ choix, niveau, ...memoire }, Date.now()) });
   };
+
+  const titre = [styles.section, compacte && styles.sectionCompacte];
 
   return (
     <SafeAreaView style={styles.ecran}>
@@ -155,49 +127,38 @@ export default function Depart() {
           </Pressable>
         </View>
 
-        <Text style={[styles.section, compacte && styles.sectionCompacte]} accessibilityRole="header">
-          Où es-tu ?
+        <Text style={titre} accessibilityRole="header">
+          Ton objectif
         </Text>
-        <View style={styles.grille}>
-          {contextes.map((contexte) => (
+        <View style={styles.colonne}>
+          {OBJECTIFS.map((objectif) => (
             <CarteOption
-              key={contexte.id}
-              libelle={contexte.nom}
-              icone={ICONE_CONTEXTE[contexte.id]}
-              selectionne={choix.contexteId === contexte.id}
-              verrouille={!lancementDisponible({ ...choix, contexteId: contexte.id })}
-              onPress={() => choisirContexte(contexte.id)}
-              style={styles.demiLargeur}
-            />
-          ))}
-        </View>
-        {message !== null && (
-          <View style={styles.message}>
-            <Icone nom="cadenas" taille={20} couleur={COULEURS.texteDiscret} />
-            <Text style={styles.texteMessage} accessibilityLiveRegion="polite">
-              {message}
-            </Text>
-          </View>
-        )}
-
-        <Text style={[styles.section, compacte && styles.sectionCompacte]} accessibilityRole="header">
-          Comment tu te sens ?
-        </Text>
-        <View style={styles.grille}>
-          {RESSENTIS.map((ressenti) => (
-            <CarteOption
-              key={ressenti}
-              libelle={LIBELLES_RESSENTI[ressenti].libelle}
-              icone={ICONE_RESSENTI[ressenti]}
-              selectionne={choix.ressenti === ressenti}
-              onPress={() => modifier({ ressenti })}
-              style={styles.demiLargeur}
+              key={objectif}
+              libelle={NOMS_OBJECTIF[objectif]}
+              icone={ICONE_OBJECTIF[objectif]}
+              selectionne={choix.objectif === objectif}
+              onPress={() => modifier({ objectif })}
             />
           ))}
         </View>
 
-        <Text style={[styles.section, compacte && styles.sectionCompacte]} accessibilityRole="header">
-          Combien de temps ?
+        <Text style={titre} accessibilityRole="header">
+          Intensité
+        </Text>
+        <View style={styles.ligne}>
+          {NIVEAUX.map((choisi) => (
+            <CarteOption
+              key={choisi}
+              libelle={NOMS_NIVEAU[choisi]}
+              selectionne={niveau === choisi}
+              onPress={() => changerNiveau(choisi)}
+              style={styles.bouton}
+            />
+          ))}
+        </View>
+
+        <Text style={titre} accessibilityRole="header">
+          Temps disponible
         </Text>
         <View style={styles.ligne}>
           {DUREES.map((duree) => (
@@ -206,13 +167,12 @@ export default function Depart() {
               libelle={`${duree} min`}
               selectionne={choix.duree === duree}
               onPress={() => modifier({ duree })}
-              style={styles.tiers}
+              style={styles.bouton}
             />
           ))}
         </View>
       </ScrollView>
       <View style={styles.pied}>
-        <PastilleNiveau niveau={niveau} onChange={changerNiveau} />
         <Bouton libelle="Lancer ma séance" onPress={lancer} />
       </View>
     </SafeAreaView>
@@ -241,12 +201,10 @@ const styles = StyleSheet.create({
   sloganCompact: TYPO.bodyMedium,
   section: { ...TYPO.headlineSmall, color: COULEURS.texte, marginTop: 8 },
   sectionCompacte: { marginTop: 4 },
-  grille: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  ligne: { flexDirection: 'row', gap: 10 },
-  demiLargeur: { flexBasis: '47%', flexGrow: 1 },
-  tiers: { flex: 1, justifyContent: 'center' },
-  message: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  texteMessage: { ...TYPO.bodyLarge, color: COULEURS.texteDiscret, flexShrink: 1 },
-  // Pastille et bouton serrés : le départ doit tenir sans défilement sur un petit écran (360 × 740).
-  pied: { paddingHorizontal: ESPACE, paddingBottom: ESPACE, paddingTop: 8, gap: 8 },
+  // Les trois objectifs empilés, en pleine largeur.
+  colonne: { gap: 8 },
+  ligne: { flexDirection: 'row', gap: 8 },
+  // Quatre durées de front sur 360 dp : peu de marge latérale pour que « 30 min » tienne sur une ligne.
+  bouton: { flex: 1, justifyContent: 'center', paddingHorizontal: 4 },
+  pied: { paddingHorizontal: ESPACE, paddingBottom: ESPACE, paddingTop: 8 },
 });

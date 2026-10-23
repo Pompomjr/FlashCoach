@@ -611,7 +611,10 @@ describe('séance d’un circuit', () => {
     await waitFor(() => expect(journalEnMemoire()).toHaveLength(1));
     expect(journalEnMemoire()[0]).toMatchObject({
       circuitId: 'full-body-costaud',
-      contexteId: 'maison',
+      // Un circuit de « Séances prêtes » compte en prise de masse, sans contexte ni ressenti.
+      objectif: 'masse',
+      contexteId: null,
+      ressenti: null,
       duree: 21,
       niveau: 3,
       graine: 7,

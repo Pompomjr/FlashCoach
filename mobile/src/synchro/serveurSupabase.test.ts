@@ -36,6 +36,27 @@ describe('conversion séance ↔ ligne', () => {
     expect(depuisLigne({ ...versLigne(circuit), circuit_id: null })).toBeNull();
   });
 
+  it('fait l’aller-retour d’une séance par objectif : objectif rempli, contexte et ressenti nuls', () => {
+    const entree = fabriquerEntree({ objectif: 'etirements', contexteId: null, ressenti: null, duree: 15, niveau: 2 });
+    expect(versLigne(entree)).toMatchObject({ objectif: 'etirements', contexte_id: null, ressenti: null, duree: 15 });
+    expect(depuisLigne(versLigne(entree))).toEqual(entree);
+    const masse = fabriquerEntree({ objectif: 'masse', contexteId: null, ressenti: null, circuitId: 'jambes-tonique', duree: 16, niveau: 2 });
+    expect(depuisLigne(versLigne(masse))).toEqual(masse);
+  });
+
+  it('lit une ligne d’avant les objectifs : colonne absente ou nulle, contexte et ressenti gardés', () => {
+    const { objectif, ...ancienne } = versLigne(fabriquerEntree());
+    expect(depuisLigne(ancienne)).toEqual(fabriquerEntree());
+    expect(depuisLigne({ ...ancienne, objectif: null })).toEqual(fabriquerEntree());
+    expect(versLigne(fabriquerEntree())).toHaveProperty('objectif', null);
+  });
+
+  it('ignore une ligne sans objectif ni contexte, ou à l’objectif inconnu', () => {
+    expect(depuisLigne({ ...versLigne(fabriquerEntree()), contexte_id: null })).toBeNull();
+    const entree = fabriquerEntree({ objectif: 'calories', contexteId: null, ressenti: null });
+    expect(depuisLigne({ ...versLigne(entree), objectif: 'lune' })).toBeNull();
+  });
+
   it('lit une ligne sans les colonnes niveau et effort', () => {
     const { niveau, effort, ...ancienne } = versLigne(fabriquerEntree());
     expect(depuisLigne(ancienne)).toMatchObject({ niveau: 1, effort: null });
@@ -89,7 +110,7 @@ describe('ServeurSupabase', () => {
     const lue = { ...versLigne(bonne), debut: bonne.debut.replace('Z', '+00:00') };
     const { client, select, order, limit } = clientDeLecture({ data: [lue, { ...versLigne(fabriquerEntree({ id: 'b' })), duree: 7 }, null], error: null });
     expect(await new ServeurSupabase(client).recuperer()).toEqual([bonne]);
-    expect(select).toHaveBeenCalledWith('id,debut,contexte_id,ressenti,duree,graine,exercices,ecoule_ms,exercices_faits,terminee,apres,niveau,effort,circuit_id');
+    expect(select).toHaveBeenCalledWith('id,debut,contexte_id,ressenti,duree,graine,exercices,ecoule_ms,exercices_faits,terminee,apres,niveau,effort,circuit_id,objectif');
     expect(order).toHaveBeenCalledWith('debut', { ascending: false });
     expect(limit).toHaveBeenCalledWith(500);
   });

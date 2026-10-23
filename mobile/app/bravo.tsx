@@ -42,14 +42,14 @@ export default function Bravo() {
     setRepondu(true);
   };
 
-  // Indépendante de « Tu te sens mieux ? » : l'effort ajuste le niveau de la prochaine séance.
+  // Indépendante de « Tu te sens mieux ? » : l'effort ajuste l'intensité présélectionnée au départ (Léger ↔ Moyen ↔ Lourd).
   const repondreEffort = (effort: Effort) => {
     // Un double appui ne doit pas ajuster le niveau deux fois.
     if (effortEnvoye.current) return;
     effortEnvoye.current = true;
     if (params.seance) mettreAJourEntree(stockageTelephone, params.seance, { effort }).then(demanderSynchro);
     ajustement.current = ajusterNiveau(stockageTelephone, effort).then(({ avant, apres }) => {
-      setSuiteEffort(apres !== avant ? `Prochaine séance : niveau ${NOMS_NIVEAU[apres]}` : 'Noté !');
+      setSuiteEffort(apres !== avant ? `Prochaine séance : intensité ${NOMS_NIVEAU[apres]}` : 'Noté !');
     }).catch(() => undefined);
   };
 

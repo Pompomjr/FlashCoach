@@ -4,6 +4,8 @@ export function fabriquerEntree(surcharge: Partial<EntreeJournal> = {}): EntreeJ
   return {
     id: 'entree-test',
     debut: new Date(2026, 9, 18, 7, 5).toISOString(),
+    // Par défaut, une ancienne entrée (contexte et ressenti) : les entrées par objectif le surchargent.
+    objectif: null,
     contexteId: 'maison',
     ressenti: 'mou',
     duree: 5,

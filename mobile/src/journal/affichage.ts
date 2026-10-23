@@ -1,5 +1,8 @@
+import { CONTEXTES } from '../catalogue/contextes';
+import { NOMS_NIVEAU, NOMS_OBJECTIF } from '../catalogue/types';
 import { circuitParId } from '../circuits/circuits';
 import { minutesEffectuees } from '../seance/affichage';
+import { LIBELLES_RESSENTI } from '../ui/libelles';
 import type { EntreeJournal } from './journal';
 
 const JOURS = ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'];
@@ -40,4 +43,25 @@ export function estEntreeCircuit(entree: EntreeJournal): entree is EntreeJournal
 // Un circuit absent de cette version de l'app (synchronisé depuis une version plus récente) garde un nom neutre.
 export function nomCircuit(circuitId: string): string {
   return circuitParId(circuitId)?.nom ?? 'Séance prête';
+}
+
+// Texte principal d'une ligne du journal : « sujet · état ». Un circuit (prise de masse comprise) s'affiche par son
+// nom et son intensité ; une entrée par objectif par l'objectif, l'intensité et la durée choisie ; une ancienne
+// entrée par son contexte et son ressenti, comme avant. `etatLu` est la version lue par les lecteurs d'écran.
+export function sujetEtEtat(entree: EntreeJournal): { sujet: string; etat: string; etatLu: string } {
+  if (estEntreeCircuit(entree)) {
+    const intensite = NOMS_NIVEAU[entree.niveau];
+    return { sujet: nomCircuit(entree.circuitId), etat: intensite, etatLu: `niveau ${intensite}` };
+  }
+  if (entree.objectif !== null) {
+    const intensite = NOMS_NIVEAU[entree.niveau];
+    return {
+      sujet: NOMS_OBJECTIF[entree.objectif],
+      etat: `${intensite} · ${entree.duree} min`,
+      etatLu: `${intensite}, ${entree.duree} min`,
+    };
+  }
+  const contexteId = entree.contexteId ?? '';
+  const ressenti = entree.ressenti === null ? '' : LIBELLES_RESSENTI[entree.ressenti].libelle;
+  return { sujet: CONTEXTES.find((c) => c.id === contexteId)?.nom ?? contexteId, etat: ressenti, etatLu: ressenti };
 }

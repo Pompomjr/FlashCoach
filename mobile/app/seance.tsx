@@ -35,7 +35,7 @@ const PADDING_CARTE = 16;
 const ZONE_PAR_DEFAUT = { largeur: 240, hauteur: 240 };
 
 export default function EcranSeance() {
-  const { objectif, duree, graine, exclure, niveau, circuit, sansMateriel, tourEnPlus } = useLocalSearchParams<{
+  const { objectif, duree, graine, exclure, niveau, circuit, sansMateriel, tourEnPlus, tours } = useLocalSearchParams<{
     objectif: string;
     duree: string;
     graine: string;
@@ -44,19 +44,26 @@ export default function EcranSeance() {
     circuit?: string;
     sansMateriel?: string;
     tourEnPlus?: string;
+    tours?: string;
   }>();
-  // La séance se reconstruit depuis l'URL : même lien, même séance. Un paramètre « circuit » désigne une
-  // séance prête ; sans lui, c'est une séance flash. Un lien invalide renvoie au départ.
+  // La séance se reconstruit depuis l'URL : même lien, même séance. Un paramètre « circuit » désigne un circuit
+  // (séance prête, ou prise de masse avec son nombre de tours) ; sans lui, c'est une séance générée (Brûler des
+  // calories ou Étirements). Un lien invalide, ancien lien sans objectif compris, renvoie au départ.
   const seance = useMemo(() => {
     if (circuit !== undefined) {
-      const lus = lireParametresCircuit({ circuit, sansMateriel, tourEnPlus, graine });
+      const lus = lireParametresCircuit({ circuit, sansMateriel, tourEnPlus, tours, graine });
       return lus === null
         ? null
-        : construireSeanceCircuit(lus.circuit, { sansMateriel: lus.sansMateriel, tourEnPlus: lus.tourEnPlus, graine: lus.graine });
+        : construireSeanceCircuit(lus.circuit, {
+            sansMateriel: lus.sansMateriel,
+            tourEnPlus: lus.tourEnPlus,
+            tours: lus.tours,
+            graine: lus.graine,
+          });
     }
     const parametres = lireParametresSeance({ objectif, duree, graine, exclure, niveau });
     return parametres === null ? null : genererSeance(parametres, EXERCICES);
-  }, [objectif, duree, graine, exclure, niveau, circuit, sansMateriel, tourEnPlus]);
+  }, [objectif, duree, graine, exclure, niveau, circuit, sansMateriel, tourEnPlus, tours]);
   if (seance === null) return <Redirect href="/" />;
   return <LecteurSeance seance={seance} />;
 }
@@ -110,10 +117,11 @@ function LecteurSeance({ seance }: { seance: Seance }) {
     ajouterEntree(stockageTelephone, {
       id: idJournal,
       debut: new Date().toISOString(),
-      // Provisoire jusqu'au journal par objectif (lot 2) : toute séance se fait à la maison, et l'objectif
-      // tient lieu de ressenti (étirements → raide ; calories et circuits → en forme, comme les circuits jusqu'ici).
-      contexteId: 'maison',
-      ressenti: seance.objectif === 'etirements' ? 'raide' : 'en_forme',
+      // Un circuit, qu'il vienne de « Prise de masse » ou de « Séances prêtes », compte en prise de masse.
+      objectif: seance.objectif,
+      // Contexte et ressenti ne sont plus choisis : ils ne restent que dans les anciennes entrées.
+      contexteId: null,
+      ressenti: null,
       // 5, 10, 15 ou 30 minutes pour une séance générée ; la durée du circuit, arrondie à la minute, sinon.
       duree: seance.duree,
       graine: seance.graine,

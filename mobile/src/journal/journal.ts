@@ -1,4 +1,4 @@
-import { DUREES, NIVEAUX, RESSENTIS, type Duree, type Niveau, type Ressenti } from '../catalogue/types';
+import { DUREES, NIVEAUX, OBJECTIFS, RESSENTIS, type Duree, type Niveau, type Objectif, type Ressenti } from '../catalogue/types';
 import { enSerie } from '../preferences/serie';
 import type { Stockage } from '../preferences/stockage';
 import { marquerAEnvoyer } from '../synchro/fileEnvoi';
@@ -12,10 +12,14 @@ export interface EntreeJournal {
   id: string;
   // Date ISO du lancement.
   debut: string;
-  contexteId: string;
-  ressenti: Ressenti;
-  // Minutes : 5, 10, 15 ou 30 (3 pour les anciennes) pour une séance générée ; un entier de 1 à 60 pour un circuit
-  // (circuitId présent).
+  // Objectif choisi au départ (un circuit lancé depuis « Séances prêtes » compte en prise de masse).
+  // Nul pour les anciennes entrées, faites par contexte et ressenti.
+  objectif: Objectif | null;
+  // Anciennes entrées seulement (objectif nul) : contexte et ressenti choisis au départ ; nuls sinon.
+  contexteId: string | null;
+  ressenti: Ressenti | null;
+  // Minutes : 5, 10, 15 ou 30 pour une séance générée (3 aussi pour les anciennes) ; un entier de 1 à 60 pour un
+  // circuit (circuitId présent).
   duree: number;
   graine: number;
   exercices: string[];
@@ -42,12 +46,18 @@ const DUREE_CIRCUIT_MAX = 60;
 const DUREES_ANCIENNES: readonly number[] = [3];
 
 // Une séance de circuit dure un nombre libre de minutes (16, 21, 26…) ; une séance générée, 5, 10, 15 ou 30
-// (3 pour les anciennes).
-function dureeValide(duree: unknown, circuitId: unknown): boolean {
+// (3 aussi pour les anciennes, sans objectif).
+function dureeValide(duree: unknown, circuitId: unknown, ancienne: boolean): boolean {
   if (typeof circuitId === 'string' && circuitId !== '') {
     return Number.isInteger(duree) && (duree as number) >= DUREE_CIRCUIT_MIN && (duree as number) <= DUREE_CIRCUIT_MAX;
   }
-  return DUREES.includes(duree as Duree) || DUREES_ANCIENNES.includes(duree as number);
+  return DUREES.includes(duree as Duree) || (ancienne && DUREES_ANCIENNES.includes(duree as number));
+}
+
+// Une entrée par objectif n'a ni contexte ni ressenti ; une ancienne (objectif nul) a les deux.
+function sujetValide(v: Record<string, unknown>): boolean {
+  if (v.objectif === null) return typeof v.contexteId === 'string' && RESSENTIS.includes(v.ressenti as Ressenti);
+  return OBJECTIFS.includes(v.objectif as Objectif) && v.contexteId === null && v.ressenti === null;
 }
 
 export function creerIdentifiant(): string {
@@ -60,10 +70,9 @@ export function estEntreeJournal(valeur: unknown): valeur is EntreeJournal {
   return (
     typeof v.id === 'string' &&
     typeof v.debut === 'string' &&
-    typeof v.contexteId === 'string' &&
-    RESSENTIS.includes(v.ressenti as Ressenti) &&
+    sujetValide(v) &&
     (v.circuitId === null || typeof v.circuitId === 'string') &&
-    dureeValide(v.duree, v.circuitId) &&
+    dureeValide(v.duree, v.circuitId, v.objectif === null) &&
     Number.isFinite(v.graine) &&
     Array.isArray(v.exercices) &&
     v.exercices.every((id) => typeof id === 'string') &&
@@ -78,12 +87,21 @@ export function estEntreeJournal(valeur: unknown): valeur is EntreeJournal {
   );
 }
 
-// Les entrées d'avant les niveaux n'ont ni niveau ni effort, celles d'avant les circuits n'ont pas de circuitId :
-// elles restent valides (niveau 1, effort nul, pas de circuit).
+// Les entrées d'avant les niveaux n'ont ni niveau ni effort, celles d'avant les circuits n'ont pas de circuitId,
+// celles d'avant les objectifs n'ont pas d'objectif : elles restent valides (niveau 1, effort nul, pas de circuit,
+// objectif nul). Contexte et ressenti absents valent nul (entrée par objectif).
 export function normaliserEntree(valeur: unknown): EntreeJournal | null {
   if (typeof valeur !== 'object' || valeur === null) return null;
   const v = valeur as Record<string, unknown>;
-  const complete: unknown = { ...v, niveau: v.niveau ?? 1, effort: v.effort ?? null, circuitId: v.circuitId ?? null };
+  const complete: unknown = {
+    ...v,
+    objectif: v.objectif ?? null,
+    contexteId: v.contexteId ?? null,
+    ressenti: v.ressenti ?? null,
+    niveau: v.niveau ?? 1,
+    effort: v.effort ?? null,
+    circuitId: v.circuitId ?? null,
+  };
   return estEntreeJournal(complete) ? complete : null;
 }
 

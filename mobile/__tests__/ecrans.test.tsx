@@ -10,6 +10,8 @@ import Depart from '../app/index';
 import Bravo from '../app/bravo';
 import Journal from '../app/journal';
 import EcranSeance from '../app/seance';
+import { circuitParId } from '../src/circuits/circuits';
+import { construireSeanceCircuit } from '../src/circuits/construire';
 import { CLE_JOURNAL } from '../src/journal/journal';
 import { stockageTelephone } from '../src/preferences/stockage';
 import { demanderSynchro } from '../src/synchro/instance';
@@ -59,19 +61,50 @@ afterEach(() => {
 });
 
 describe('écran de départ', () => {
-  it('présélectionne À la maison, Mou et 5 min au premier lancement', async () => {
+  it('présélectionne Brûler des calories, Léger et 10 min au premier lancement', async () => {
     await renderRouter(ROUTES, { initialUrl: '/' });
-    expect(await screen.findByRole('button', { name: 'À la maison' })).toBeSelected();
-    expect(screen.getByRole('button', { name: 'Mou' })).toBeSelected();
-    expect(screen.getByRole('button', { name: '5 min' })).toBeSelected();
+    expect(await screen.findByRole('button', { name: 'Brûler des calories' })).toBeSelected();
+    expect(screen.getByRole('button', { name: 'Léger' })).toBeSelected();
+    expect(screen.getByRole('button', { name: '10 min' })).toBeSelected();
   });
 
-  it('reprend les derniers choix', async () => {
-    memoire.contenu['flashcoach.choix'] = JSON.stringify({ contexteId: 'reveil', ressenti: 'raide', duree: 15 });
+  it('propose les trois objectifs, les trois intensités et les quatre durées, sous leurs titres', async () => {
     await renderRouter(ROUTES, { initialUrl: '/' });
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Au réveil' })).toBeSelected());
-    expect(screen.getByRole('button', { name: 'Raide' })).toBeSelected();
+    await screen.findByRole('button', { name: 'Brûler des calories' });
+    for (const titre of ['Ton objectif', 'Intensité', 'Temps disponible']) {
+      expect(screen.getByRole('header', { name: titre })).toBeTruthy();
+    }
+    for (const nom of ['Brûler des calories', 'Prise de masse', 'Étirements', 'Léger', 'Moyen', 'Lourd', '5 min', '10 min', '15 min', '30 min']) {
+      expect(screen.getByRole('button', { name: nom })).toBeTruthy();
+    }
+    expect(screen.getByRole('button', { name: 'Lancer ma séance' })).toBeTruthy();
+  });
+
+  it('ne montre plus ni contexte, ni ressenti, ni pastille de niveau, ni Premium', async () => {
+    await renderRouter(ROUTES, { initialUrl: '/' });
+    await screen.findByRole('button', { name: 'Brûler des calories' });
+    for (const ancien of ['Où es-tu ?', 'Comment tu te sens ?', 'Combien de temps ?', 'À la maison', 'Mou', 'Niveau Léger']) {
+      expect(screen.queryByText(ancien)).toBeNull();
+    }
+    expect(screen.queryByRole('button', { name: /Premium|modifier$/ })).toBeNull();
+    expect(screen.queryByTestId('icone-cadenas', { includeHiddenElements: true })).toBeNull();
+  });
+
+  it('reprend les derniers choix et l’intensité enregistrée', async () => {
+    memoire.contenu['flashcoach.choix.v2'] = JSON.stringify({ objectif: 'etirements', duree: 15 });
+    memoire.contenu['flashcoach.niveau'] = '2';
+    await renderRouter(ROUTES, { initialUrl: '/' });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Étirements' })).toBeSelected());
+    expect(screen.getByRole('button', { name: 'Brûler des calories' })).not.toBeSelected();
+    expect(screen.getByRole('button', { name: 'Moyen' })).toBeSelected();
     expect(screen.getByRole('button', { name: '15 min' })).toBeSelected();
+  });
+
+  it('ignore les anciens choix par contexte et ressenti', async () => {
+    memoire.contenu['flashcoach.choix'] = JSON.stringify({ contexteId: 'reveil', ressenti: 'raide', duree: 5 });
+    await renderRouter(ROUTES, { initialUrl: '/' });
+    expect(await screen.findByRole('button', { name: 'Brûler des calories' })).toBeSelected();
+    expect(screen.getByRole('button', { name: '10 min' })).toBeSelected();
   });
 
   it('affiche la marque en titre, avec le slogan dessous', async () => {
@@ -80,7 +113,7 @@ describe('écran de départ', () => {
     expect(screen.getByText('Où que tu sois, 5 minutes pour te sentir mieux.')).toBeTruthy();
   });
 
-  it('centre le logo et le nom, avec « Mon journal » en bouton icône et des titres de section', async () => {
+  it('centre le logo et le nom, avec « Mon journal » en bouton icône', async () => {
     await renderRouter(ROUTES, { initialUrl: '/' });
     const marque = await screen.findByRole('header', { name: 'Flash Coach' });
     expect(within(marque).getByText('Flash Coach', { includeHiddenElements: true })).toBeTruthy();
@@ -88,41 +121,67 @@ describe('écran de départ', () => {
     expect(within(journal).getByTestId('icone-journal', { includeHiddenElements: true })).toBeTruthy();
     expect(journal).toHaveStyle({ width: 48, height: 48, position: 'absolute' });
     expect(screen.queryByText('Mon journal')).toBeNull();
-    for (const titre of ['Où es-tu ?', 'Comment tu te sens ?', 'Combien de temps ?']) {
-      expect(screen.getByRole('header', { name: titre })).toBeTruthy();
-    }
   });
 
-  it('dessine une icône sur chaque carte de contexte et de ressenti, sans emoji', async () => {
+  it('dessine l’icône de chaque objectif sur sa carte, sans emoji', async () => {
     await renderRouter(ROUTES, { initialUrl: '/' });
-    await screen.findByRole('button', { name: 'À la maison' });
-    for (const nom of ['reveil', 'maison', 'cadenas', 'raide', 'stresse', 'mou', 'en_forme', 'journal']) {
-      expect(screen.getAllByTestId(`icone-${nom}`, { includeHiddenElements: true }).length).toBeGreaterThan(0);
-    }
-    // Les trois contextes Premium montrent le cadenas, pas leur icône.
-    expect(screen.getAllByTestId('icone-cadenas', { includeHiddenElements: true })).toHaveLength(3);
-    for (const nom of ['bureau', 'voyage', 'dehors']) {
-      expect(screen.queryByTestId(`icone-${nom}`, { includeHiddenElements: true })).toBeNull();
-    }
+    await screen.findByRole('button', { name: 'Brûler des calories' });
+    const toutes = { includeHiddenElements: true };
+    expect(within(screen.getByRole('button', { name: 'Brûler des calories' })).getByTestId('icone-flamme', toutes)).toBeTruthy();
+    expect(within(screen.getByRole('button', { name: 'Prise de masse' })).getByTestId('icone-muscle', toutes)).toBeTruthy();
+    expect(within(screen.getByRole('button', { name: 'Étirements' })).getByTestId('icone-etirement', toutes)).toBeTruthy();
     expect(screen.queryAllByText(EMOJI)).toHaveLength(0);
   });
 
   it('lance la séance en un seul tap et retient les choix', async () => {
-    await renderRouter(ROUTES, { initialUrl: '/' });
+    jest.spyOn(Date, 'now').mockReturnValue(99);
+    const { getSearchParams } = await renderRouter(ROUTES, { initialUrl: '/' });
     await fireEvent.press(await screen.findByRole('button', { name: 'Lancer ma séance' }));
     await waitFor(() => expect(screen).toHavePathname('/seance'));
-    expect(JSON.parse(memoire.contenu['flashcoach.choix'])).toEqual({ contexteId: 'maison', ressenti: 'mou', duree: 5 });
+    expect(getSearchParams()).toEqual({ objectif: 'calories', duree: '10', graine: '99', exclure: '', niveau: '1' });
+    expect(JSON.parse(memoire.contenu['flashcoach.choix.v2'])).toEqual({ objectif: 'calories', duree: 10 });
   });
 
-  it('annonce Premium sans changer la sélection', async () => {
-    await renderRouter(ROUTES, { initialUrl: '/' });
-    await fireEvent.press(await screen.findByRole('button', { name: 'Au bureau, Premium' }));
-    expect(screen.getByText('Bientôt avec Premium')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'À la maison' })).toBeSelected();
+  it('lance des étirements de 30 min au niveau choisi', async () => {
+    const { getSearchParams } = await renderRouter(ROUTES, { initialUrl: '/' });
+    await fireEvent.press(await screen.findByRole('button', { name: 'Étirements' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Moyen' }));
+    await fireEvent.press(screen.getByRole('button', { name: '30 min' }));
+    expect(screen.getByRole('button', { name: 'Étirements' })).toBeSelected();
+    await fireEvent.press(screen.getByRole('button', { name: 'Lancer ma séance' }));
+    await waitFor(() => expect(screen).toHavePathname('/seance'));
+    expect(getSearchParams()).toMatchObject({ objectif: 'etirements', duree: '30', niveau: '2' });
+    expect(JSON.parse(memoire.contenu['flashcoach.choix.v2'])).toEqual({ objectif: 'etirements', duree: 30 });
+    expect(await screen.findByText('1 / 31')).toBeTruthy();
+  });
+
+  it('lance la prise de masse en circuit : Full body au premier lancement, tours selon la durée', async () => {
+    jest.spyOn(Date, 'now').mockReturnValue(5);
+    const { getSearchParams } = await renderRouter(ROUTES, { initialUrl: '/' });
+    await fireEvent.press(await screen.findByRole('button', { name: 'Prise de masse' }));
+    await fireEvent.press(screen.getByRole('button', { name: '5 min' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Lancer ma séance' }));
+    await waitFor(() => expect(screen).toHavePathname('/seance'));
+    expect(getSearchParams()).toEqual({ circuit: 'full-body-doux', tours: '1', sansMateriel: '0', graine: '5' });
+    // Un tour : échauffement, cinq postes, retour au calme ; l'en-tête dit « Échauffement » comme un circuit.
+    expect(await screen.findByText('Échauffement · ')).toBeTruthy();
+  });
+
+  it('fait tourner les familles de la prise de masse d’après le journal, avec « sans meuble »', async () => {
+    memoire.contenu[CLE_JOURNAL] = JSON.stringify([fabriquerEntree({ circuitId: 'jambes-tonique', duree: 21, niveau: 2 })]);
+    memoire.contenu['flashcoach.choix.v2'] = JSON.stringify({ objectif: 'masse', duree: 15 });
+    memoire.contenu['flashcoach.niveau'] = '2';
+    memoire.contenu['flashcoach.sansMateriel'] = 'true';
+    const { getSearchParams } = await renderRouter(ROUTES, { initialUrl: '/' });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Prise de masse' })).toBeSelected());
+    await fireEvent.press(screen.getByRole('button', { name: 'Lancer ma séance' }));
+    await waitFor(() => expect(screen).toHavePathname('/seance'));
+    expect(getSearchParams()).toMatchObject({ circuit: 'dos-tonique', tours: '3', sansMateriel: '1' });
   });
 
   it('ne laisse pas la lecture des préférences écraser un choix déjà fait', async () => {
-    memoire.contenu['flashcoach.choix'] = JSON.stringify({ contexteId: 'reveil', ressenti: 'raide', duree: 15 });
+    memoire.contenu['flashcoach.choix.v2'] = JSON.stringify({ objectif: 'masse', duree: 15 });
+    memoire.contenu['flashcoach.niveau'] = '3';
     const stockage = stockageTelephone as unknown as { lire: (cle: string) => Promise<string | null> };
     const lireOrigine = stockage.lire;
     let liberer: () => void = () => undefined;
@@ -135,51 +194,19 @@ describe('écran de départ', () => {
     };
     try {
       await renderRouter(ROUTES, { initialUrl: '/' });
-      await fireEvent.press(await screen.findByRole('button', { name: 'En forme' }));
+      await fireEvent.press(await screen.findByRole('button', { name: 'Étirements' }));
+      await fireEvent.press(screen.getByRole('button', { name: 'Moyen' }));
       await act(async () => {
         liberer();
         await porte;
       });
-      expect(screen.getByRole('button', { name: 'En forme' })).toBeSelected();
-      expect(screen.getByRole('button', { name: 'À la maison' })).toBeSelected();
+      expect(screen.getByRole('button', { name: 'Étirements' })).toBeSelected();
+      expect(screen.getByRole('button', { name: 'Moyen' })).toBeSelected();
+      // Les choix non touchés gardent la présélection : la lecture arrivée après ne les applique pas.
+      expect(screen.getByRole('button', { name: '10 min' })).toBeSelected();
     } finally {
       stockage.lire = lireOrigine;
     }
-  });
-
-  it('efface le message Premium dès qu’on fait un autre choix', async () => {
-    await renderRouter(ROUTES, { initialUrl: '/' });
-    await fireEvent.press(await screen.findByRole('button', { name: 'Au bureau, Premium' }));
-    expect(screen.getByText('Bientôt avec Premium')).toBeTruthy();
-    await fireEvent.press(screen.getByRole('button', { name: 'Raide' }));
-    expect(screen.queryByText('Bientôt avec Premium')).toBeNull();
-  });
-
-  it('accompagne « Bientôt avec Premium » du cadenas', async () => {
-    await renderRouter(ROUTES, { initialUrl: '/' });
-    expect(screen.queryByText('Bientôt avec Premium')).toBeNull();
-    await fireEvent.press(await screen.findByRole('button', { name: 'Au bureau, Premium' }));
-    const message = screen.getByText('Bientôt avec Premium');
-    expect(message).toBeTruthy();
-    // 3 cartes verrouillées + le cadenas du message.
-    expect(screen.getAllByTestId('icone-cadenas', { includeHiddenElements: true })).toHaveLength(4);
-  });
-
-  it('annonce le message Premium aux lecteurs d’écran (iOS)', async () => {
-    jest.replaceProperty(Platform, 'OS', 'ios');
-    const annonce = espionnerAnnonces();
-    await renderRouter(ROUTES, { initialUrl: '/' });
-    await fireEvent.press(await screen.findByRole('button', { name: 'Au bureau, Premium' }));
-    expect(annonce).toHaveBeenCalledWith('Bientôt avec Premium');
-  });
-
-  it('n’annonce pas deux fois le message Premium sur Android (zone live déjà en place)', async () => {
-    jest.replaceProperty(Platform, 'OS', 'android');
-    const annonce = espionnerAnnonces();
-    await renderRouter(ROUTES, { initialUrl: '/' });
-    await fireEvent.press(await screen.findByRole('button', { name: 'Au bureau, Premium' }));
-    expect(screen.getByText('Bientôt avec Premium')).toBeTruthy();
-    expect(annonce).not.toHaveBeenCalled();
   });
 
   it('ne lance qu’une séance malgré un double appui', async () => {
@@ -194,64 +221,34 @@ describe('écran de départ', () => {
   });
 });
 
-describe('niveau au départ', () => {
-  const NOM_PASTILLE = /^Niveau .*, modifier$/;
-
-  it('montre « Niveau Léger » par défaut', async () => {
+describe('intensité au départ', () => {
+  it('choisit « Lourd », l’enregistre et la passe au lancement', async () => {
     await renderRouter(ROUTES, { initialUrl: '/' });
-    expect(await screen.findByRole('button', { name: 'Niveau Léger, modifier' })).toBeTruthy();
-    expect(screen.getByText('Niveau Léger')).toBeTruthy();
-  });
-
-  it('ouvre la feuille des niveaux, avec le niveau courant marqué', async () => {
-    await renderRouter(ROUTES, { initialUrl: '/' });
-    await fireEvent.press(await screen.findByRole('button', { name: NOM_PASTILLE }));
-    expect(screen.getByRole('button', { name: 'Léger : on bouge sans forcer' })).toBeSelected();
-    expect(screen.getByRole('button', { name: 'Moyen : ça chauffe un peu' })).not.toBeSelected();
-    expect(screen.getByRole('button', { name: 'Lourd : pour celles et ceux qui s’entraînent déjà' })).not.toBeSelected();
-  });
-
-  it('ferme la feuille sans rien changer au tap extérieur', async () => {
-    await renderRouter(ROUTES, { initialUrl: '/' });
-    await fireEvent.press(await screen.findByRole('button', { name: NOM_PASTILLE }));
-    await fireEvent.press(screen.getByRole('button', { name: 'Fermer' }));
-    expect(screen.queryByRole('button', { name: 'Moyen : ça chauffe un peu' })).toBeNull();
-    expect(memoire.contenu['flashcoach.niveau']).toBeUndefined();
-  });
-
-  it('choisit « Lourd », l’enregistre et le passe au lancement', async () => {
-    await renderRouter(ROUTES, { initialUrl: '/' });
-    await fireEvent.press(await screen.findByRole('button', { name: NOM_PASTILLE }));
-    await fireEvent.press(screen.getByRole('button', { name: /^Lourd/ }));
-    expect(await screen.findByRole('button', { name: 'Niveau Lourd, modifier' })).toBeTruthy();
-    expect(screen.queryByRole('button', { name: /^Moyen/ })).toBeNull();
+    await fireEvent.press(await screen.findByRole('button', { name: 'Lourd' }));
+    expect(screen.getByRole('button', { name: 'Lourd' })).toBeSelected();
+    expect(screen.getByRole('button', { name: 'Léger' })).not.toBeSelected();
     await waitFor(() => expect(memoire.contenu['flashcoach.niveau']).toBe('3'));
     await fireEvent.press(screen.getByRole('button', { name: 'Lancer ma séance' }));
     await waitFor(() => expect(screen).toHavePathname('/seance'));
     expect(screen).toHaveSearchParams(expect.objectContaining({ niveau: '3' }));
   });
 
-  it('reprend le niveau enregistré', async () => {
-    memoire.contenu['flashcoach.niveau'] = '2';
+  it('affiche la nouvelle intensité au retour d’une séance où Bravo l’a modifiée', async () => {
     await renderRouter(ROUTES, { initialUrl: '/' });
-    expect(await screen.findByRole('button', { name: 'Niveau Moyen, modifier' })).toBeTruthy();
-  });
-
-  it('affiche le nouveau niveau au retour d’une séance où Bravo l’a modifié', async () => {
-    await renderRouter(ROUTES, { initialUrl: '/' });
-    await screen.findByRole('button', { name: 'Niveau Léger, modifier' });
+    expect(await screen.findByRole('button', { name: 'Léger' })).toBeSelected();
     await act(() => router.push('/bravo?minutes=5&exercices=8'));
     await fireEvent.press(await screen.findByRole('button', { name: 'Trop facile' }));
-    await screen.findByText('Prochaine séance : niveau Moyen');
+    await screen.findByText('Prochaine séance : intensité Moyen');
     await fireEvent.press(screen.getByRole('button', { name: 'Et on est repartis' }));
-    expect(await screen.findByRole('button', { name: 'Niveau Moyen, modifier' })).toBeTruthy();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Moyen' })).toBeSelected());
+    expect(screen.getByRole('button', { name: 'Léger' })).not.toBeSelected();
   });
 
-  it('attend que Bravo ait enregistré le niveau avant de repartir, même si on enchaîne vite', async () => {
+  it('attend que Bravo ait enregistré l’intensité avant de repartir, même si on enchaîne vite', async () => {
     await renderRouter(ROUTES, { initialUrl: '/' });
-    await screen.findByRole('button', { name: 'Niveau Léger, modifier' });
+    await screen.findByRole('button', { name: 'Léger' });
     await act(() => router.push('/bravo?minutes=5&exercices=8'));
-    // L'écriture du niveau est retenue : « Et on est repartis » tapé avant qu'elle n'aboutisse ne doit rien lancer.
+    // L'écriture de l'intensité est retenue : « Et on est repartis » tapé avant qu'elle n'aboutisse ne doit rien lancer.
     let enregistrer = () => {};
     const retenue = new Promise<void>((resoudre) => {
       enregistrer = resoudre;
@@ -272,7 +269,7 @@ describe('niveau au départ', () => {
 
     await act(async () => enregistrer());
     await waitFor(() => expect(screen).toHavePathname('/'));
-    expect(await screen.findByRole('button', { name: 'Niveau Moyen, modifier' })).toBeTruthy();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Moyen' })).toBeSelected());
     expect(memoire.contenu['flashcoach.niveau']).toBe('2');
   });
 });
@@ -310,6 +307,23 @@ describe('écran de séance', () => {
   it('joue une séance de 15 minutes en tours', async () => {
     await renderRouter(ROUTES, { initialUrl: '/seance?objectif=etirements&duree=15&graine=1' });
     expect(await screen.findByText('1 / 17')).toBeTruthy();
+  });
+
+  it('dit « Tour 1 / 2 » dans l’en-tête pendant les tours d’une séance de 15 minutes', async () => {
+    await renderRouter(ROUTES, { initialUrl: '/seance?objectif=calories&duree=15&graine=1' });
+    expect(await screen.findByText('Mise en route · ')).toBeTruthy();
+    // Quatre postes de mise en route, puis le premier tour du cœur.
+    for (let i = 0; i < 4; i += 1) await fireEvent.press(screen.getByRole('button', { name: 'Passer' }));
+    expect(await screen.findByText('Tour 1 / 2 · ')).toBeTruthy();
+    expect(screen.getByText('5 / 17')).toBeTruthy();
+  });
+
+  it('joue une prise de masse avec le nombre de tours de l’URL', async () => {
+    const circuit = circuitParId('jambes-doux')!;
+    const blocs = (tours?: number) => construireSeanceCircuit(circuit, { sansMateriel: false, tours, graine: 1 }).blocs.length;
+    await renderRouter(ROUTES, { initialUrl: '/seance?circuit=jambes-doux&tours=2&sansMateriel=0&graine=1' });
+    expect(await screen.findByText(`1 / ${blocs(2)}`)).toBeTruthy();
+    expect(blocs(2)).toBe(blocs() - 5);
   });
 
   it('termine la séance et affiche le bilan', async () => {
@@ -524,7 +538,7 @@ describe('Bravo : l’effort', () => {
   it('monte le niveau sur « Trop facile » et l’annonce', async () => {
     await renderRouter(ROUTES, { initialUrl: '/bravo?minutes=5&exercices=8' });
     await fireEvent.press(await screen.findByRole('button', { name: 'Trop facile' }));
-    expect(await screen.findByText('Prochaine séance : niveau Moyen')).toBeTruthy();
+    expect(await screen.findByText('Prochaine séance : intensité Moyen')).toBeTruthy();
     expect(niveauEnMemoire()).toBe('2');
     expect(screen.queryByRole('button', { name: 'Trop facile' })).toBeNull();
   });
@@ -540,7 +554,7 @@ describe('Bravo : l’effort', () => {
     memoire.contenu['flashcoach.niveau'] = '3';
     await renderRouter(ROUTES, { initialUrl: '/bravo?minutes=5&exercices=8' });
     await fireEvent.press(await screen.findByRole('button', { name: 'Trop dur' }));
-    expect(await screen.findByText('Prochaine séance : niveau Moyen')).toBeTruthy();
+    expect(await screen.findByText('Prochaine séance : intensité Moyen')).toBeTruthy();
     expect(niveauEnMemoire()).toBe('2');
   });
 
@@ -565,7 +579,7 @@ describe('Bravo : l’effort', () => {
     memoire.contenu[CLE_JOURNAL] = JSON.stringify([fabriquerEntree({ id: 'e1' })]);
     await renderRouter(ROUTES, { initialUrl: '/bravo?minutes=5&exercices=8&seance=e1' });
     await fireEvent.press(await screen.findByRole('button', { name: 'Trop facile' }));
-    await screen.findByText('Prochaine séance : niveau Moyen');
+    await screen.findByText('Prochaine séance : intensité Moyen');
     expect(screen.getByRole('button', { name: 'Mieux' })).toBeTruthy();
     await fireEvent.press(screen.getByRole('button', { name: 'Mieux' }));
     await waitFor(() => expect(journalEnMemoire()[0]).toMatchObject({ apres: 'mieux', effort: 'facile' }));
@@ -590,16 +604,32 @@ describe('retour au départ après une séance', () => {
     expect(router.canGoBack()).toBe(false);
   });
 
-  it('efface le message Premium au retour sur le départ', async () => {
+  it('garde les choix faits au retour sur le départ', async () => {
     await renderRouter(ROUTES, { initialUrl: '/' });
-    await fireEvent.press(await screen.findByRole('button', { name: 'Au bureau, Premium' }));
-    expect(screen.getByText('Bientôt avec Premium')).toBeTruthy();
+    await fireEvent.press(await screen.findByRole('button', { name: 'Étirements' }));
+    await fireEvent.press(screen.getByRole('button', { name: '5 min' }));
     await fireEvent.press(screen.getByRole('button', { name: 'Lancer ma séance' }));
     await fireEvent.press(await screen.findByRole('button', { name: 'Terminer la séance' }));
     await waitFor(() => expect(screen).toHavePathname('/bravo'));
     await fireEvent.press(screen.getByRole('button', { name: 'Et on est repartis' }));
     await waitFor(() => expect(screen).toHavePathname('/'));
-    expect(screen.queryByText('Bientôt avec Premium')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Étirements' })).toBeSelected();
+    expect(screen.getByRole('button', { name: '5 min' })).toBeSelected();
+  });
+
+  it('enchaîne les familles de la prise de masse d’une séance à l’autre', async () => {
+    const { getSearchParams } = await renderRouter(ROUTES, { initialUrl: '/' });
+    await fireEvent.press(await screen.findByRole('button', { name: 'Prise de masse' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Lancer ma séance' }));
+    await waitFor(() => expect(screen).toHavePathname('/seance'));
+    expect(getSearchParams().circuit).toBe('full-body-doux');
+    await fireEvent.press(await screen.findByRole('button', { name: 'Terminer la séance' }));
+    await waitFor(() => expect(screen).toHavePathname('/bravo'));
+    await fireEvent.press(screen.getByRole('button', { name: 'Et on est repartis' }));
+    await waitFor(() => expect(screen).toHavePathname('/'));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Lancer ma séance' }));
+    await waitFor(() => expect(screen).toHavePathname('/seance'));
+    expect(getSearchParams().circuit).toBe('poussee-doux');
   });
 
   it('relit les derniers exercices au retour : ceux de la séance qui vient d’avoir lieu', async () => {
@@ -623,9 +653,10 @@ describe('journal : enregistrement', () => {
     await renderRouter(ROUTES, { initialUrl: SEANCE });
     await waitFor(() => expect(journalEnMemoire()).toHaveLength(1));
     expect(journalEnMemoire()[0]).toMatchObject({
-      // Provisoire (lot 2 : entrée par objectif) : une séance « calories » s'inscrit « maison · en forme ».
-      contexteId: 'maison',
-      ressenti: 'en_forme',
+      // Entrée par objectif : ni contexte ni ressenti.
+      objectif: 'calories',
+      contexteId: null,
+      ressenti: null,
       duree: 5,
       graine: 1,
       terminee: false,
@@ -822,5 +853,48 @@ describe('écran Mon journal', () => {
     // « Mieux » : la ligne, plus l'icône forte de la carte de résumé.
     expect(screen.getAllByTestId('icone-mieux', toutes)).toHaveLength(2);
     expect(screen.queryAllByText(EMOJI)).toHaveLength(0);
+  });
+});
+
+describe('écran Mon journal : entrées par objectif', () => {
+  const parObjectif = (surcharge: Parameters<typeof fabriquerEntree>[0]) =>
+    fabriquerEntree({ contexteId: null, ressenti: null, objectif: 'calories', niveau: 2, duree: 10, ...surcharge });
+
+  it('affiche l’objectif, l’intensité et la durée, avec l’icône de l’objectif', async () => {
+    memoire.contenu[CLE_JOURNAL] = JSON.stringify([
+      parObjectif({ id: 'a', apres: 'mieux' }),
+      parObjectif({ id: 'b', objectif: 'etirements', niveau: 1, duree: 30 }),
+      fabriquerEntree({ id: 'c', apres: 'pareil', contexteId: 'reveil', ressenti: 'raide' }),
+    ]);
+    await renderRouter(ROUTES, { initialUrl: '/journal' });
+    expect(await screen.findByText('Brûler des calories · Moyen · 10 min → Mieux')).toBeTruthy();
+    expect(screen.getByText('Étirements · Léger · 30 min')).toBeTruthy();
+    // Les anciennes entrées restent affichées par contexte et ressenti.
+    expect(screen.getByText('Au réveil · Raide → Pareil')).toBeTruthy();
+    const toutes = { includeHiddenElements: true };
+    for (const nom of ['flamme', 'etirement', 'reveil']) expect(screen.getAllByTestId(`icone-${nom}`, toutes)).toHaveLength(1);
+  });
+
+  it('se lit d’un seul bloc par les lecteurs d’écran', async () => {
+    memoire.contenu[CLE_JOURNAL] = JSON.stringify([parObjectif({ id: 'a', apres: 'mieux' })]);
+    await renderRouter(ROUTES, { initialUrl: '/journal' });
+    expect(await screen.findByLabelText('dim. 18 oct. à 7h05, Brûler des calories, Moyen, 10 min, puis Mieux, 5 min, 8 exercices')).toBeTruthy();
+  });
+
+  it('affiche une prise de masse en circuit comme un circuit : nom et intensité', async () => {
+    memoire.contenu[CLE_JOURNAL] = JSON.stringify([
+      parObjectif({ id: 'm', objectif: 'masse', circuitId: 'jambes-tonique', duree: 16 }),
+    ]);
+    await renderRouter(ROUTES, { initialUrl: '/journal' });
+    expect(await screen.findByText('Jambes · Moyen')).toBeTruthy();
+    expect(screen.getAllByTestId('icone-circuit', { includeHiddenElements: true })).toHaveLength(1);
+  });
+
+  it('enregistre une prise de masse avec son objectif et la durée réelle du circuit', async () => {
+    await renderRouter(ROUTES, { initialUrl: '/seance?circuit=full-body-doux&tours=1&sansMateriel=0&graine=1' });
+    await waitFor(() => expect(journalEnMemoire()).toHaveLength(1));
+    expect(journalEnMemoire()[0]).toMatchObject({
+      objectif: 'masse', contexteId: null, ressenti: null, circuitId: 'full-body-doux', niveau: 1, duree: 6,
+    });
   });
 });

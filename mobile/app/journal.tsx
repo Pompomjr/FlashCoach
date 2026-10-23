@@ -4,15 +4,12 @@ import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { EtatCompte } from '../src/compte/auth';
-import { CONTEXTES } from '../src/catalogue/contextes';
-import { NOMS_NIVEAU } from '../src/catalogue/types';
 import { Figurine } from '../src/illustrations/Figurine';
-import { estEntreeCircuit, formaterBilan, formaterDate, nomCircuit, texteResume } from '../src/journal/affichage';
+import { estEntreeCircuit, formaterBilan, formaterDate, sujetEtEtat, texteResume } from '../src/journal/affichage';
 import { lireJournal, resumeJournal, type EntreeJournal } from '../src/journal/journal';
 import { stockageTelephone } from '../src/preferences/stockage';
 import { authApp } from '../src/synchro/instance';
-import { ICONE_APRES, ICONE_CONTEXTE, Icone } from '../src/ui/icones';
-import { LIBELLES_RESSENTI } from '../src/ui/libelles';
+import { ICONE_APRES, ICONE_CONTEXTE, ICONE_OBJECTIF, Icone, type NomIcone } from '../src/ui/icones';
 import { CIBLE_MIN, COULEURS, ELEVATION, ESPACE, RAYON, TYPO } from '../src/ui/theme';
 import { ondulation } from '../src/ui/toucher';
 
@@ -121,19 +118,17 @@ function PiedSauvegarde({ compte, lue }: { compte: EtatCompte | null; lue: boole
 }
 
 function LigneJournal({ entree }: { entree: EntreeJournal }) {
-  const contexte = CONTEXTES.find((c) => c.id === entree.contexteId);
-  const nomContexte = contexte?.nom ?? entree.contexteId;
-  const avant = LIBELLES_RESSENTI[entree.ressenti];
   const apres = entree.apres === null ? null : LIBELLES_APRES[entree.apres];
-  const circuit = estEntreeCircuit(entree);
-  // Une séance prête s'affiche par son circuit et son niveau, à la place du contexte et du ressenti
-  // (le ressenti d'un circuit n'est pas choisi par l'utilisateur).
-  const sujet = circuit ? nomCircuit(entree.circuitId) : nomContexte;
-  const etat = circuit ? NOMS_NIVEAU[entree.niveau] : avant.libelle;
-  const icone = circuit ? 'circuit' : ICONE_CONTEXTE[entree.contexteId];
+  // Un circuit s'affiche par son nom et son intensité ; une séance par objectif par l'objectif, l'intensité et la
+  // durée ; une ancienne séance par son contexte et son ressenti, comme avant.
+  const { sujet, etat, etatLu } = sujetEtEtat(entree);
+  const icone: NomIcone | undefined = estEntreeCircuit(entree)
+    ? 'circuit'
+    : entree.objectif !== null
+      ? ICONE_OBJECTIF[entree.objectif]
+      : ICONE_CONTEXTE[entree.contexteId ?? ''];
   const date = formaterDate(entree.debut);
   const bilan = formaterBilan(entree.ecouleMs, entree.exercicesFaits, entree.terminee);
-  const etatLu = circuit ? `niveau ${etat}` : etat;
   // Un seul élément accessible, lu en phrase : les icônes et la flèche ne sont pas prononcées.
   const lecture = [
     date.replace(' · ', ' à '),

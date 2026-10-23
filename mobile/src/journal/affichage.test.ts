@@ -1,5 +1,5 @@
 import { fabriquerEntree } from '../test-utils/journal';
-import { estEntreeCircuit, formaterBilan, formaterDate, nomCircuit, texteResume } from './affichage';
+import { estEntreeCircuit, formaterBilan, formaterDate, nomCircuit, sujetEtEtat, texteResume } from './affichage';
 
 describe('formaterDate', () => {
   it('donne le jour, la date et l’heure locale en français', () => {
@@ -56,5 +56,28 @@ describe('séances en circuit', () => {
     expect(nomCircuit('full-body-tonique')).toBe('Full body');
     expect(nomCircuit('dos-doux')).toBe('Dos et tronc');
     expect(nomCircuit('circuit-du-futur')).toBe('Séance prête');
+  });
+});
+
+describe('sujet et état d’une ligne du journal', () => {
+  it('affiche une entrée par objectif : objectif, intensité et durée', () => {
+    const entree = fabriquerEntree({ objectif: 'calories', contexteId: null, ressenti: null, niveau: 2, duree: 10 });
+    expect(sujetEtEtat(entree)).toEqual({ sujet: 'Brûler des calories', etat: 'Moyen · 10 min', etatLu: 'Moyen, 10 min' });
+    const etirements = fabriquerEntree({ objectif: 'etirements', contexteId: null, ressenti: null, niveau: 1, duree: 30 });
+    expect(sujetEtEtat(etirements).sujet).toBe('Étirements');
+    expect(sujetEtEtat(etirements).etat).toBe('Léger · 30 min');
+  });
+
+  it('affiche une ancienne entrée par contexte et ressenti, comme avant', () => {
+    expect(sujetEtEtat(fabriquerEntree())).toEqual({ sujet: 'À la maison', etat: 'Mou', etatLu: 'Mou' });
+    expect(sujetEtEtat(fabriquerEntree({ contexteId: 'reveil', ressenti: 'raide' })).sujet).toBe('Au réveil');
+    expect(sujetEtEtat(fabriquerEntree({ contexteId: 'inconnu' })).sujet).toBe('inconnu');
+  });
+
+  it('affiche un circuit par son nom et son intensité, qu’il ait un objectif ou non', () => {
+    const ancien = fabriquerEntree({ circuitId: 'dos-tonique', duree: 21, niveau: 2 });
+    expect(sujetEtEtat(ancien)).toEqual({ sujet: 'Dos', etat: 'Moyen', etatLu: 'niveau Moyen' });
+    const masse = fabriquerEntree({ objectif: 'masse', contexteId: null, ressenti: null, circuitId: 'jambes-doux', duree: 11, niveau: 1 });
+    expect(sujetEtEtat(masse)).toEqual({ sujet: 'Jambes', etat: 'Léger', etatLu: 'niveau Léger' });
   });
 });

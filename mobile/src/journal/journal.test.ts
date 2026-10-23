@@ -14,6 +14,7 @@ import {
   lireJournalSiLisible,
   mettreAJourEntree,
   resumeJournal,
+  type EntreeJournal,
 } from './journal';
 
 const enPanne: Stockage = {
@@ -299,5 +300,53 @@ describe('séances en circuit', () => {
     await ajouterEntree(stockage, circuit());
     await mettreAJourEntree(stockage, 'circuit', { terminee: true, apres: 'mieux' });
     expect((await lireJournal(stockage))[0]).toEqual(circuit({ terminee: true, apres: 'mieux' }));
+  });
+});
+
+describe('entrées par objectif', () => {
+  const parObjectif = (surcharge: Partial<EntreeJournal> = {}) =>
+    fabriquerEntree({ id: 'objectif', objectif: 'calories', contexteId: null, ressenti: null, duree: 10, niveau: 2, ...surcharge });
+
+  it('accepte une entrée à objectif, sans contexte ni ressenti, et la retrouve telle quelle', async () => {
+    for (const objectif of ['calories', 'masse', 'etirements'] as const) expect(estEntreeJournal(parObjectif({ objectif }))).toBe(true);
+    const stockage = creerStockageMemoire();
+    await ajouterEntree(stockage, parObjectif());
+    expect(await lireJournal(stockage)).toEqual([parObjectif()]);
+  });
+
+  it('accepte 5, 10, 15 et 30 min pour une entrée à objectif, plus jamais 3', () => {
+    for (const duree of [5, 10, 15, 30]) expect(estEntreeJournal(parObjectif({ duree }))).toBe(true);
+    for (const duree of [3, 1, 7, 16, 60]) expect(estEntreeJournal(parObjectif({ duree }))).toBe(false);
+  });
+
+  it('accepte une prise de masse en circuit à la durée réelle du circuit', () => {
+    for (const duree of [6, 11, 16, 31]) {
+      expect(estEntreeJournal(parObjectif({ objectif: 'masse', circuitId: 'jambes-moyen', duree }))).toBe(true);
+    }
+  });
+
+  it('refuse un objectif inconnu, ou un contexte et un ressenti à côté d’un objectif', () => {
+    expect(estEntreeJournal(parObjectif({ objectif: 'lune' as never }))).toBe(false);
+    expect(estEntreeJournal(parObjectif({ contexteId: 'maison' }))).toBe(false);
+    expect(estEntreeJournal(parObjectif({ ressenti: 'mou' }))).toBe(false);
+  });
+
+  it('refuse une entrée sans objectif à laquelle il manque le contexte ou le ressenti', () => {
+    expect(estEntreeJournal(fabriquerEntree({ contexteId: null }))).toBe(false);
+    expect(estEntreeJournal(fabriquerEntree({ ressenti: null }))).toBe(false);
+  });
+
+  it('lit une ancienne entrée (contexte et ressenti, sans champ objectif) : objectif nul', async () => {
+    const { objectif, ...ancienne } = fabriquerEntree({ id: 'vieille', duree: 3 });
+    expect(normaliserEntree(ancienne)).toEqual(fabriquerEntree({ id: 'vieille', duree: 3, objectif: null }));
+    const stockage = creerStockageMemoire({ [CLE_JOURNAL]: JSON.stringify([ancienne, parObjectif()]) });
+    expect((await lireJournal(stockage)).map((e) => e.objectif)).toEqual([null, 'calories']);
+  });
+
+  it('complète une entrée à objectif sans la rendre invalide', async () => {
+    const stockage = creerStockageMemoire();
+    await ajouterEntree(stockage, parObjectif());
+    await mettreAJourEntree(stockage, 'objectif', { terminee: true, apres: 'mieux', effort: 'dur' });
+    expect((await lireJournal(stockage))[0]).toEqual(parObjectif({ terminee: true, apres: 'mieux', effort: 'dur' }));
   });
 });

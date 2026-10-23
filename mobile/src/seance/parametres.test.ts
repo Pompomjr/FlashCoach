@@ -51,7 +51,9 @@ describe('lireParametresSeance', () => {
   });
 
   it('refuse un ancien lien par contexte et ressenti, sans objectif', () => {
-    expect(lireParametresSeance({ contexte: 'maison', ressenti: 'mou', duree: '5', graine: '1' })).toBeNull();
+    // Les anciens paramètres ne font plus partie des paramètres lus : un tel lien n'a pas d'objectif.
+    const ancienLien = { contexte: 'maison', ressenti: 'mou', duree: '5', graine: '1' };
+    expect(lireParametresSeance(ancienLien)).toBeNull();
   });
 });
 
@@ -66,6 +68,15 @@ describe('lireParametresCircuit', () => {
       graine: 42,
     });
     expect(lireParametresCircuit({ ...base, sansMateriel: '1', tourEnPlus: '1' })).toMatchObject({ sansMateriel: true, tourEnPlus: true });
+  });
+
+  it('lit le nombre de tours imposé par la prise de masse (1 à 6), sinon celui du circuit', () => {
+    for (const tours of ['1', '2', '3', '6']) expect(lireParametresCircuit({ ...base, tours })?.tours).toBe(Number(tours));
+    for (const tours of [undefined, '', '0', '7', '2.5', 'abc', '-1']) {
+      const lus = lireParametresCircuit({ ...base, tours });
+      expect(lus).not.toBeNull();
+      expect(lus?.tours).toBeUndefined();
+    }
   });
 
   it('prend « 0 » et « 1 » pour faux et vrai, tout le reste pour faux', () => {

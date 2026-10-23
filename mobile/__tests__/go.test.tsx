@@ -8,6 +8,7 @@ import Go from '../app/go';
 import EcranSeance from '../app/seance';
 import { stockageTelephone } from '../src/preferences/stockage';
 import { CLE_JOURNAL } from '../src/journal/journal';
+import { fabriquerEntree } from '../src/test-utils/journal';
 
 jest.mock('../src/synchro/instance', () => ({ authApp: null, moteurApp: null, demanderSynchro: jest.fn() }));
 jest.mock('../src/preferences/stockage', () => {
@@ -34,70 +35,70 @@ beforeEach(() => {
 afterEach(() => jest.restoreAllMocks());
 
 describe('lien direct go', () => {
-  it('lance le réveil avec les paramètres communs et revient à / sans repasser par go', async () => {
+  it('lance l’objectif du lien avec les paramètres communs et revient à / sans repasser par go', async () => {
     jest.spyOn(Date, 'now').mockReturnValue(123456);
     memoire.contenu['flashcoach.derniers-exercices'] = JSON.stringify(['a', 'b']);
-    const { getSearchParams } = await renderRouter(ROUTES, { initialUrl: '/go?contexte=reveil' });
+    const { getSearchParams } = await renderRouter(ROUTES, { initialUrl: '/go?objectif=etirements' });
     await waitFor(() => expect(screen).toHavePathname('/seance'));
-    expect(getSearchParams()).toMatchObject({ objectif: 'calories', contexte: 'reveil', ressenti: 'mou', duree: '5', graine: '123456', exclure: 'a,b' });
+    expect(getSearchParams()).toEqual({ objectif: 'etirements', duree: '10', graine: '123456', exclure: 'a,b', niveau: '1' });
     expect(router.canGoBack()).toBe(true);
     await act(() => router.back());
     await waitFor(() => expect(screen).toHavePathname('/'));
     expect(router.canGoBack()).toBe(false);
   });
 
-  it('lance au niveau enregistré, 1 par défaut', async () => {
-    const { getSearchParams } = await renderRouter(ROUTES, { initialUrl: '/go' });
-    await waitFor(() => expect(screen).toHavePathname('/seance'));
-    expect(getSearchParams()).toMatchObject({ niveau: '1' });
-  });
-
-  it('prend le niveau enregistré quand le lien n’en a pas ou qu’il est invalide', async () => {
+  it('lance à l’intensité enregistrée quand le lien n’en a pas ou qu’elle est invalide', async () => {
     memoire.contenu['flashcoach.niveau'] = '2';
-    const { getSearchParams } = await renderRouter(ROUTES, { initialUrl: '/go?niveau=9' });
+    const { getSearchParams } = await renderRouter(ROUTES, { initialUrl: '/go?intensite=9' });
     await waitFor(() => expect(screen).toHavePathname('/seance'));
     expect(getSearchParams()).toMatchObject({ niveau: '2' });
   });
 
-  it('lance au niveau du lien sans l’enregistrer', async () => {
-    const { getSearchParams } = await renderRouter(ROUTES, { initialUrl: '/go?niveau=2' });
+  it('lance à l’intensité du lien sans l’enregistrer', async () => {
+    const { getSearchParams } = await renderRouter(ROUTES, { initialUrl: '/go?intensite=3' });
     await waitFor(() => expect(screen).toHavePathname('/seance'));
-    expect(getSearchParams()).toMatchObject({ niveau: '2' });
+    expect(getSearchParams()).toMatchObject({ niveau: '3' });
     expect(memoire.contenu['flashcoach.niveau']).toBeUndefined();
   });
 
   it('reprend les derniers choix sans les modifier', async () => {
-    const sauvegarde = JSON.stringify({ contexteId: 'reveil', ressenti: 'raide', duree: 5 });
-    memoire.contenu['flashcoach.choix'] = sauvegarde;
+    const sauvegarde = JSON.stringify({ objectif: 'etirements', duree: 30 });
+    memoire.contenu['flashcoach.choix.v2'] = sauvegarde;
     const { getSearchParams } = await renderRouter(ROUTES, { initialUrl: '/go' });
     await waitFor(() => expect(screen).toHavePathname('/seance'));
-    expect(getSearchParams()).toMatchObject({ contexte: 'reveil', ressenti: 'raide', duree: '5' });
-    expect(memoire.contenu['flashcoach.choix']).toBe(sauvegarde);
+    expect(getSearchParams()).toMatchObject({ objectif: 'etirements', duree: '30' });
+    expect(memoire.contenu['flashcoach.choix.v2']).toBe(sauvegarde);
   });
 
   it('ne sauvegarde pas les choix explicites du lien', async () => {
-    const sauvegarde = JSON.stringify({ contexteId: 'maison', ressenti: 'raide', duree: 5 });
-    memoire.contenu['flashcoach.choix'] = sauvegarde;
-    await renderRouter(ROUTES, { initialUrl: '/go?contexte=reveil&ressenti=stresse' });
+    const sauvegarde = JSON.stringify({ objectif: 'etirements', duree: 5 });
+    memoire.contenu['flashcoach.choix.v2'] = sauvegarde;
+    await renderRouter(ROUTES, { initialUrl: '/go?objectif=calories&duree=15&intensite=2' });
     await waitFor(() => expect(screen).toHavePathname('/seance'));
-    expect(memoire.contenu['flashcoach.choix']).toBe(sauvegarde);
+    expect(memoire.contenu['flashcoach.choix.v2']).toBe(sauvegarde);
   });
 
-  it('renvoie un contexte Premium vers le départ sans erreur', async () => {
-    await renderRouter(ROUTES, { initialUrl: '/go?contexte=bureau' });
-    await waitFor(() => expect(screen).toHavePathname('/'));
-    expect(screen.queryByText('Bientôt avec Premium')).toBeNull();
-    expect(memoire.contenu[CLE_JOURNAL]).toBeUndefined();
-  });
-
-  it.each(['/go?duree=abc', '/go?contexte=inconnu&ressenti=inconnu', '/go'])('lance les valeurs par défaut pour %s', async (initialUrl) => {
-    const { getSearchParams } = await renderRouter(ROUTES, { initialUrl });
+  it('lance une prise de masse en circuit : famille suivante du journal, tours selon la durée', async () => {
+    jest.spyOn(Date, 'now').mockReturnValue(7);
+    memoire.contenu[CLE_JOURNAL] = JSON.stringify([fabriquerEntree({ circuitId: 'full-body-tonique', duree: 21, niveau: 2 })]);
+    const { getSearchParams } = await renderRouter(ROUTES, { initialUrl: '/go?objectif=masse&intensite=2&duree=15' });
     await waitFor(() => expect(screen).toHavePathname('/seance'));
-    expect(getSearchParams()).toMatchObject({ contexte: 'maison', ressenti: 'mou', duree: '5' });
-    expect(memoire.contenu['flashcoach.choix']).toBeUndefined();
+    expect(getSearchParams()).toEqual({ circuit: 'poussee-tonique', tours: '3', sansMateriel: '0', graine: '7' });
   });
 
-  it.each([10, 15, 30])('autorise la durée %s comme le départ', async (duree) => {
+  it.each(['/go?duree=abc', '/go?objectif=lune&intensite=x', '/go', '/go?contexte=bureau&ressenti=raide&niveau=3'])(
+    'lance les valeurs par défaut pour %s, anciens paramètres ignorés',
+    async (initialUrl) => {
+      const { getSearchParams } = await renderRouter(ROUTES, { initialUrl });
+      await waitFor(() => expect(screen).toHavePathname('/seance'));
+      expect(getSearchParams()).toMatchObject({ objectif: 'calories', duree: '10', niveau: '1' });
+      expect(getSearchParams()).not.toHaveProperty('contexte');
+      expect(getSearchParams()).not.toHaveProperty('ressenti');
+      expect(memoire.contenu['flashcoach.choix.v2']).toBeUndefined();
+    },
+  );
+
+  it.each([5, 10, 15, 30])('autorise la durée %s comme le départ', async (duree) => {
     const { getSearchParams } = await renderRouter(ROUTES, { initialUrl: `/go?duree=${duree}` });
     await waitFor(() => expect(screen).toHavePathname('/seance'));
     expect(getSearchParams().duree).toBe(String(duree));
@@ -106,6 +107,6 @@ describe('lien direct go', () => {
   it('ramène la durée 3, supprimée, aux derniers choix', async () => {
     const { getSearchParams } = await renderRouter(ROUTES, { initialUrl: '/go?duree=3' });
     await waitFor(() => expect(screen).toHavePathname('/seance'));
-    expect(getSearchParams().duree).toBe('5');
+    expect(getSearchParams().duree).toBe('10');
   });
 });

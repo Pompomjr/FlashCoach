@@ -12,9 +12,10 @@ export function libelleEtape(bloc: Bloc): string {
 }
 
 // En-tête de l'écran de séance. Un circuit dit « Échauffement » (au lieu de « Mise en route »), puis
-// « Tour 2 / 4 » pendant les tours, puis « Retour au calme » ; une séance flash garde ses libellés de phase.
+// « Tour 2 / 4 » pendant les tours, puis « Retour au calme » ; une séance flash garde ses libellés de phase, sauf
+// pendant les tours de son cœur (15 et 30 min) : « Tour 2 / 4 », comme un circuit.
 export function libelleEnTete(bloc: Bloc, circuit: boolean): string {
-  if (!circuit) return LIBELLES_PHASE[bloc.phase];
+  if (!circuit) return bloc.tour ? libelleEtape(bloc) : LIBELLES_PHASE[bloc.phase];
   return bloc.phase === 'mise_en_route' ? LIBELLE_ECHAUFFEMENT : libelleEtape(bloc);
 }
 

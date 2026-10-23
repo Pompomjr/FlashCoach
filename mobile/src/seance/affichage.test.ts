@@ -70,6 +70,13 @@ describe('libelleEnTete', () => {
     expect(libelleEnTete({ ...blocSimple, phase: 'retour_au_calme' }, false)).toBe('Retour au calme');
   });
 
+  it('dit « Tour n / N » pendant les tours d’une séance flash de 15 ou 30 min, comme pour un circuit', () => {
+    expect(libelleEnTete(blocDeTour(1, 2), false)).toBe('Tour 1 / 2');
+    expect(libelleEnTete(blocApresRepos(4, 4), false)).toBe('Tour 4 / 4');
+    // Mise en route et retour au calme gardent leurs libellés de séance flash.
+    expect(libelleEnTete({ ...blocSimple, phase: 'mise_en_route' }, false)).toBe('Mise en route');
+  });
+
   it('dit « Échauffement », « Tour n / N » puis « Retour au calme » pour un circuit', () => {
     expect(libelleEnTete({ ...blocSimple, phase: 'mise_en_route' }, true)).toBe('Échauffement');
     expect(libelleEnTete(blocDeTour(2, 4), true)).toBe('Tour 2 / 4');

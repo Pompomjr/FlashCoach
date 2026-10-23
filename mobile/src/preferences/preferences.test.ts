@@ -23,31 +23,40 @@ const ecritureEnPanne: Stockage = {
 };
 
 describe('choix', () => {
-  it('propose À la maison, Mou et 5 min au premier lancement', async () => {
-    expect(await lireChoix(creerStockageMemoire())).toEqual({ contexteId: 'maison', ressenti: 'mou', duree: 5 });
+  it('propose Brûler des calories et 10 min au premier lancement', async () => {
+    expect(await lireChoix(creerStockageMemoire())).toEqual({ objectif: 'calories', duree: 10 });
+    expect(CHOIX_PAR_DEFAUT).toEqual({ objectif: 'calories', duree: 10 });
   });
 
-  it('retrouve les derniers choix', async () => {
+  it('retrouve les derniers choix, sous la clé versionnée', async () => {
     const stockage = creerStockageMemoire();
-    await ecrireChoix(stockage, { contexteId: 'reveil', ressenti: 'raide', duree: 15 });
-    expect(await lireChoix(stockage)).toEqual({ contexteId: 'reveil', ressenti: 'raide', duree: 15 });
+    await ecrireChoix(stockage, { objectif: 'masse', duree: 15 });
+    expect(await lireChoix(stockage)).toEqual({ objectif: 'masse', duree: 15 });
+    expect(JSON.parse(stockage.contenu['flashcoach.choix.v2'])).toEqual({ objectif: 'masse', duree: 15 });
+  });
+
+  it('ignore l’ancienne clé des choix (contexte et ressenti)', async () => {
+    const stockage = creerStockageMemoire({
+      'flashcoach.choix': JSON.stringify({ contexteId: 'reveil', ressenti: 'raide', duree: 15 }),
+    });
+    expect(await lireChoix(stockage)).toEqual(CHOIX_PAR_DEFAUT);
   });
 
   it('revient aux choix par défaut si les données sont abîmées', async () => {
-    const abime = (texte: string) => lireChoix(creerStockageMemoire({ 'flashcoach.choix': texte }));
+    const abime = (texte: string) => lireChoix(creerStockageMemoire({ 'flashcoach.choix.v2': texte }));
     expect(await abime('{pas du json')).toEqual(CHOIX_PAR_DEFAUT);
-    expect(await abime(JSON.stringify({ contexteId: 'maison', ressenti: 'fatigue', duree: 5 }))).toEqual(CHOIX_PAR_DEFAUT);
-    expect(await abime(JSON.stringify({ contexteId: 'maison', ressenti: 'mou', duree: 7 }))).toEqual(CHOIX_PAR_DEFAUT);
-    // 3 min n'est plus proposée : un ancien choix de 3 min revient aux choix par défaut.
-    expect(await abime(JSON.stringify({ contexteId: 'maison', ressenti: 'mou', duree: 3 }))).toEqual(CHOIX_PAR_DEFAUT);
+    expect(await abime(JSON.stringify({ objectif: 'lune', duree: 5 }))).toEqual(CHOIX_PAR_DEFAUT);
+    expect(await abime(JSON.stringify({ objectif: 'etirements', duree: 7 }))).toEqual(CHOIX_PAR_DEFAUT);
+    // 3 min n'est plus proposée.
+    expect(await abime(JSON.stringify({ objectif: 'etirements', duree: 3 }))).toEqual(CHOIX_PAR_DEFAUT);
     expect(await abime(JSON.stringify(null))).toEqual(CHOIX_PAR_DEFAUT);
   });
 
-  it('ignore un contexte Premium enregistré', async () => {
+  it('ne garde que l’objectif et la durée', async () => {
     const stockage = creerStockageMemoire({
-      'flashcoach.choix': JSON.stringify({ contexteId: 'bureau', ressenti: 'mou', duree: 5 }),
+      'flashcoach.choix.v2': JSON.stringify({ objectif: 'etirements', duree: 30, contexteId: 'reveil' }),
     });
-    expect(await lireChoix(stockage)).toEqual(CHOIX_PAR_DEFAUT);
+    expect(await lireChoix(stockage)).toEqual({ objectif: 'etirements', duree: 30 });
   });
 
   it('revient aux choix par défaut si le stockage est en panne', async () => {

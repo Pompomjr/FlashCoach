@@ -1,17 +1,17 @@
-import { contexteDisponible } from '../abonnement/acces';
-import { DUREES, RESSENTIS, type Duree, type Ressenti } from '../catalogue/types';
+import { DUREES, OBJECTIFS, type Duree, type Objectif } from '../catalogue/types';
 import type { Stockage } from './stockage';
 
+// L'intensité a sa propre clé (niveau.ts) : Bravo l'ajuste sans toucher aux choix du départ.
 export interface Choix {
-  contexteId: string;
-  ressenti: Ressenti;
+  objectif: Objectif;
   duree: Duree;
 }
 
-// Zéro configuration : ce qui est présélectionné au tout premier lancement.
-export const CHOIX_PAR_DEFAUT: Choix = { contexteId: 'maison', ressenti: 'mou', duree: 5 };
+// Zéro configuration : ce qui est présélectionné au tout premier lancement (avec l'intensité Léger).
+export const CHOIX_PAR_DEFAUT: Choix = { objectif: 'calories', duree: 10 };
 
-const CLE_CHOIX = 'flashcoach.choix';
+// Clé versionnée : l'ancienne (« flashcoach.choix », contexte et ressenti) est ignorée.
+const CLE_CHOIX = 'flashcoach.choix.v2';
 const CLE_DERNIERS_EXERCICES = 'flashcoach.derniers-exercices';
 
 // Une préférence illisible ou un stockage en panne ne doit jamais empêcher de lancer une séance :
@@ -36,21 +36,16 @@ async function ecrireSansErreur(stockage: Stockage, cle: string, valeur: string)
 function estChoix(valeur: unknown): valeur is Choix {
   if (typeof valeur !== 'object' || valeur === null) return false;
   const v = valeur as Record<string, unknown>;
-  return (
-    typeof v.contexteId === 'string' &&
-    contexteDisponible(v.contexteId) &&
-    RESSENTIS.includes(v.ressenti as Ressenti) &&
-    DUREES.includes(v.duree as Duree)
-  );
+  return OBJECTIFS.includes(v.objectif as Objectif) && DUREES.includes(v.duree as Duree);
 }
 
 export async function lireChoix(stockage: Stockage): Promise<Choix> {
   const valeur = await lireSansErreur(stockage, CLE_CHOIX);
-  return estChoix(valeur) ? { contexteId: valeur.contexteId, ressenti: valeur.ressenti, duree: valeur.duree } : CHOIX_PAR_DEFAUT;
+  return estChoix(valeur) ? { objectif: valeur.objectif, duree: valeur.duree } : CHOIX_PAR_DEFAUT;
 }
 
 export async function ecrireChoix(stockage: Stockage, choix: Choix): Promise<void> {
-  await ecrireSansErreur(stockage, CLE_CHOIX, JSON.stringify(choix));
+  await ecrireSansErreur(stockage, CLE_CHOIX, JSON.stringify({ objectif: choix.objectif, duree: choix.duree }));
 }
 
 export async function lireDerniersExercices(stockage: Stockage): Promise<string[]> {

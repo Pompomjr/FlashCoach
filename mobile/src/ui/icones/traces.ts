@@ -39,6 +39,20 @@ export const TRACES = {
   mieux: [cercle(12, 12, 9), point(9, 9.5), point(15, 9.5), 'M8 14.5a5 5 0 0 0 8 0'],
   pareil: [cercle(12, 12, 9), point(9, 9.5), point(15, 9.5), 'M8.5 15h7'],
   coche: ['M5 12.5l4.5 4.5L19 7.5'],
+  // Objectifs du départ. Flamme (Brûler des calories) : une flamme et son cœur.
+  flamme: [
+    'M12 3c.5 3.5 5.5 6 5.5 11.5a5.5 5.5 0 0 1-11 0c0-2.6 1.3-4.4 2.6-5.6.2 1.8 1 3 2.2 3.4C11 9.2 11 6 12 3z',
+    'M12 20a2.3 2.3 0 0 1-2.3-2.3c0-1.4 1-2.4 2.3-3.5 1.3 1.1 2.3 2.1 2.3 3.5A2.3 2.3 0 0 1 12 20z',
+  ],
+  // Biceps (Prise de masse) : bras plié, poing levé, muscle gonflé.
+  muscle: [
+    'M3 19.5h12.5a4.5 4.5 0 0 0 4.5-4.5c0-3.2-1.8-6.2-3.6-9.3',
+    'M16.4 5.7c-.7-1.6-3.1-2.1-4.1-.6-.7 1 0 2.2 1.1 2.5',
+    'M13.4 7.6c-.4 2.4-.1 4.3 1 5.9',
+    'M3 14c2.6-2.3 7.6-2.8 11.4-.5',
+  ],
+  // Silhouette qui s'étire (Étirements) : un bras tendu vers le haut, le buste incliné.
+  etirement: [cercle(9.5, 4.5, 2), 'M10.5 8 12 14', 'M12 14l-3 7', 'M12 14l3.5 7', 'M11 10.5 17 4', 'M11 10.5 7 13'],
   // Deux flèches en boucle : un circuit qui se répète.
   circuit: ['M4 12a8 8 0 0 1 13.7-5.6', 'M18 3v4h-4', 'M20 12a8 8 0 0 1-13.7 5.6', 'M6 21v-4h4'],
 } as const satisfies Record<string, readonly string[]>;

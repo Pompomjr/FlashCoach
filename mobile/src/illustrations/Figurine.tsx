@@ -1,19 +1,22 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { AccessibilityInfo, View } from 'react-native';
-import Svg, { Ellipse, Path, Rect } from 'react-native-svg';
+import Svg, { ClipPath, Defs, Ellipse, Path, Rect } from 'react-native-svg';
 
 import { COULEURS } from '../ui/theme';
 import { cadrer, CHAISE, dessinerFigurine, MUR, TABLE, type Cadre, type Teinte } from './dessin';
 import { posesPour, type AnimationFigurine } from './poses';
 import { poseALinstant, SOL_Y } from './squelette';
 
-// Profondeur : membres éloignés en orange profond, proches en orange ; cheveux un ton plus sombre.
+// Palette de la sportive : peau, brassière orange, legging bleu et baskets claires.
 const TEINTES: Record<Teinte, string> = {
-  proche: COULEURS.orange, loin: COULEURS.orangeProfond, cheveux: COULEURS.cheveux, oeil: COULEURS.texteSombre,
-  separation: COULEURS.carteClaire,
+  proche: COULEURS.peau, loin: COULEURS.peauOmbre, cheveux: COULEURS.cheveux, oeil: COULEURS.texteSombre,
+  separation: COULEURS.peauOmbre,
+  brassiere: COULEURS.orange, brassiereLoin: COULEURS.orangeProfond,
+  legging: COULEURS.carte, leggingLoin: COULEURS.leggingOmbre,
+  chaussure: COULEURS.baskets, semelle: COULEURS.semelle,
 };
 // Épaisseur du liseré qui détache le bras proche du tronc.
-const LISERE = 3;
+const LISERE = 1;
 
 // Le cadre d'une animation ne change jamais : calculé une fois, à la première apparition.
 const CADRES = new WeakMap<AnimationFigurine, Cadre>();
@@ -35,6 +38,7 @@ export type FigurineProps = {
 };
 
 export function Figurine({ exerciceId, cote, anime = true, enPause = false, taille = 240, hauteur = taille, libelle }: FigurineProps) {
+  const identifiant = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const animation = posesPour(exerciceId, cote);
   // Aucune frame avant la réponse système : pas de flash animé en mode réduit.
   const [reduire, setReduire] = useState(true);
@@ -82,6 +86,11 @@ export function Figurine({ exerciceId, cote, anime = true, enPause = false, tail
       style={{ width: taille, height: hauteur }}>
       <Svg width={taille} height={hauteur} viewBox={`${cadre.x} ${cadre.y} ${cadre.largeur} ${cadre.hauteur}`}
         preserveAspectRatio="xMidYMid meet">
+        <Defs>
+          {dessin.formes.map((forme, i) => forme.decoupe && (
+            <ClipPath key={i} id={`${identifiant}-vetement-${i}`}><Path d={forme.decoupe} /></ClipPath>
+          ))}
+        </Defs>
         <Ellipse cx={dessin.ombre.cx} cy={dessin.ombre.cy} rx={dessin.ombre.rx} ry={dessin.ombre.ry}
           fill={COULEURS.fond} opacity={dessin.ombre.opacite} />
         {mur && <>
@@ -101,7 +110,8 @@ export function Figurine({ exerciceId, cote, anime = true, enPause = false, tail
         {dessin.formes.map((forme, i) => forme.teinte === 'separation'
           ? <Path key={i} d={forme.d} fill={TEINTES.separation} stroke={TEINTES.separation} strokeWidth={LISERE}
             strokeLinejoin="round" />
-          : <Path key={i} d={forme.d} fill={TEINTES[forme.teinte]} />)}
+          : <Path key={i} d={forme.d} fill={TEINTES[forme.teinte]}
+            clipPath={forme.decoupe ? `url(#${identifiant}-vetement-${i})` : undefined} />)}
       </Svg>
     </View>
   );

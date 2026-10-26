@@ -136,7 +136,7 @@ test('un visage : cheveux avec queue de cheval et un œil de profil, frange et d
   expect(profil.filter((t) => t === 'cheveux')).toHaveLength(3);
   expect(profil.filter((t) => t === 'oeil')).toHaveLength(1);
   const face = teintes(posesPour('inconnu').cles[0]);
-  expect(face.filter((t) => t === 'cheveux')).toHaveLength(1);
+  expect(face.filter((t) => t === 'cheveux')).toHaveLength(2); // Frange et queue de cheval.
   expect(face.filter((t) => t === 'oeil')).toHaveLength(2);
 });
 
@@ -170,21 +170,37 @@ test.each(Object.keys(POSES_PAR_EXERCICE))('%s : aucun disque ajouté aux articu
   }
 });
 
-// Échantillonne les deux Bézier et le demi-cercle du coude du contour réellement dessiné.
+// Échantillonne le contour complet, y compris l'avant-bras et le raccord du coude.
 function contourBras(d: string) {
-  const v = d.match(/-?\d+(?:\.\d+)?/g)!.map(Number);
-  const point = (i: number) => ({ x: v[i], y: v[i + 1] });
-  const a = point(0), c = point(6), b = point(19), e = point(13);
-  const points = [];
-  for (let i = 0; i <= 100; i++) {
-    const t = i / 100, u = 1 - t;
-    for (const [p, q, r, s] of [[a, point(2), point(4), c], [e, point(15), point(17), b]]) {
-      points.push({ x: u ** 3 * p.x + 3 * u * u * t * q.x + 3 * u * t * t * r.x + t ** 3 * s.x,
-        y: u ** 3 * p.y + 3 * u * u * t * q.y + 3 * u * t * t * r.y + t ** 3 * s.y });
+  const nombres = (s: string) => s.match(/-?\d+(?:\.\d+)?/g)!.map(Number);
+  const depart = nombres(d.split('C')[0]);
+  let p = { x: depart[0], y: depart[1] };
+  const points = [p];
+  for (const commande of d.matchAll(/([CAQ])([^A-Z]+)/g)) {
+    const v = nombres(commande[2]);
+    if (commande[1] === 'C') {
+      for (let i = 1; i <= 100; i++) {
+        const t = i / 100, u = 1 - t;
+        points.push({ x: u ** 3 * p.x + 3 * u * u * t * v[0] + 3 * u * t * t * v[2] + t ** 3 * v[4],
+          y: u ** 3 * p.y + 3 * u * u * t * v[1] + 3 * u * t * t * v[3] + t ** 3 * v[5] });
+      }
+      p = { x: v[4], y: v[5] };
+    } else if (commande[1] === 'Q') {
+      for (let i = 1; i <= 100; i++) {
+        const t = i / 100, u = 1 - t;
+        points.push({ x: u * u * p.x + 2 * u * t * v[0] + t * t * v[2],
+          y: u * u * p.y + 2 * u * t * v[1] + t * t * v[3] });
+      }
+      p = { x: v[2], y: v[3] };
+    } else {
+      const centre = { x: (p.x + v[5]) / 2, y: (p.y + v[6]) / 2 };
+      const angle = Math.atan2(p.y - centre.y, p.x - centre.x);
+      for (let i = 1; i <= 100; i++) {
+        const a = angle - Math.PI * i / 100;
+        points.push({ x: centre.x + v[0] * Math.cos(a), y: centre.y + v[1] * Math.sin(a) });
+      }
+      p = { x: v[5], y: v[6] };
     }
-    const angle = Math.atan2(c.y - e.y, c.x - e.x) - Math.PI * t;
-    points.push({ x: (c.x + e.x) / 2 + v[8] * Math.cos(angle), y: (c.y + e.y) / 2 + v[8] * Math.sin(angle) });
-    points.push({ x: a.x * u + b.x * t, y: a.y * u + b.y * t });
   }
   return points;
 }
@@ -192,7 +208,7 @@ function contourBras(d: string) {
 function verifierBras(pose: Pose) {
   const p = calculerPoints(pose);
   const haut = { x: (p.cou.x - p.epaules.x) / LONGUEURS.cou, y: (p.cou.y - p.epaules.y) / LONGUEURS.cou };
-  const contours = dessinerFigurine(pose).formes.filter(f => f.teinte === 'proche' && /^M[^C]+C[^A]+A[^C]+C[^C]+Z$/.test(f.d));
+  const contours = dessinerFigurine(pose).formes.filter(f => f.partie === 'bras');
   expect(contours).toHaveLength(2);
   // Zone interdite : la colonne du cou jusqu'au centre de la tête, et le bas du visage (mâchoire, menton).
   // Bras tendu à la verticale, longer l'oreille reste permis.
@@ -217,7 +233,7 @@ test.each(['jumping-jacks', 'inclinaison-laterale', 'etirement-ciel', 'bras-resp
     verifierBras(pose);
     // Sur ces gestes, le haut du bras ne passe même pas devant la tête.
     const p = calculerPoints(pose);
-    for (const forme of dessinerFigurine(pose).formes.filter(f => f.teinte === 'proche' && /^M[^C]+C[^A]+A[^C]+C[^C]+Z$/.test(f.d))) {
+    for (const forme of dessinerFigurine(pose).formes.filter(f => f.partie === 'bras')) {
       for (const q of contourBras(forme.d)) expect(Math.hypot(q.x - p.tete.x, q.y - p.tete.y)).toBeGreaterThan(LONGUEURS.rayonTete - .05);
     }
   }

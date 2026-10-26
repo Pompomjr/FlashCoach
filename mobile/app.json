@@ -34,7 +34,8 @@
           "backgroundColor": "#22344A"
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      "expo-video"
     ],
     "scheme": "flashcoach"
   }

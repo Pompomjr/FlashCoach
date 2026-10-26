@@ -1,13 +1,15 @@
+import { habillerTronc } from './habillage';
 import { calculerPoints, LONGUEURS, poseALinstant, SOL_Y, type Point, type Pose } from './squelette';
 
 /** Dessin de la figurine à partir d'une pose : données pures (chemins SVG), sans React.
  * Les membres sont des capsules effilées (épaisses à la racine, fines à l'extrémité), le tronc un
  * contour organique qui suit la courbure du dos, mains et pieds de petites formes arrondies. */
 
-/** `separation` : liseré de la couleur du fond de carte, posé sous le bras proche pour le détacher
- * du tronc quand il passe devant (même orange, il s'y fondrait). */
-export type Teinte = 'proche' | 'loin' | 'cheveux' | 'oeil' | 'separation';
-export type FormeFigurine = { d: string; teinte: Teinte };
+/** `separation` : ombre fine sous la partie du bras qui passe devant le buste.
+ * La racine des épaules est dessinée derrière le buste, sans liseré. */
+export type Teinte = 'proche' | 'loin' | 'cheveux' | 'oeil' | 'separation'
+  | 'brassiere' | 'brassiereLoin' | 'legging' | 'leggingLoin' | 'chaussure' | 'semelle';
+export type FormeFigurine = { d: string; teinte: Teinte; decoupe?: string; partie?: 'bras' | 'buste' };
 export type Ombre = { cx: number; cy: number; rx: number; ry: number; opacite: number };
 export type Bornes = { minX: number; minY: number; maxX: number; maxY: number };
 export type DessinFigurine = { formes: FormeFigurine[]; ombre: Ombre; bornes: Bornes };
@@ -21,7 +23,7 @@ export const TABLE = { x: 34, plateau: 112, epaisseur: 6, largeur: 124, pied: 5 
 // Rayons aux articulations (unités du cadre 200 × 200).
 export const RAYONS = {
   epaule: 5.6, coude: 4.2, poignet: 3.1, main: 4.4,
-  hancheFace: 6.6, hancheProfil: 7.6, genou: 5.2, cheville: 3.7, talon: 3.7, orteils: 2.9,
+  hancheFace: 8.5, hancheProfil: 10, genou: 6.1, cheville: 3.7, talon: 3.7, orteils: 2.9,
   cou: 4.4,
 } as const;
 
@@ -55,7 +57,7 @@ export function capsule(a: Point, ra: number, b: Point, rb: number): string {
   return `M${pt(a1)}L${pt(b1)}A${f(rb)} ${f(rb)} 0 ${grandB} 0 ${pt(b2)}L${pt(a2)}A${f(ra)} ${f(ra)} 0 ${grandA} 0 ${pt(a1)}Z`;
 }
 
-/** Portion [t0, t1] d'une Bézier cubique (de Casteljau), sous forme de quatre points de contrôle. */
+/** Portion d'une Bézier, pour ne remettre devant le buste que la partie distale du bras. */
 function couper(p0: Point, p1: Point, p2: Point, p3: Point, t0: number, t1: number): Point[] {
   const scinder = (q: Point[], t: number) => {
     const m = (a: Point, b: Point) => plus(a, fois(moins(b, a), t));
@@ -90,7 +92,7 @@ const TRONC_FACE = [
   { s: -0.14, l: 8 }, { s: 0.06, l: 12.5 }, { s: 0.42, l: 10 }, { s: 0.74, l: 13 }, { s: 0.95, l: 15.5 }, { s: 1.1, l: 9 },
 ];
 const TRONC_PROFIL = [
-  { s: -0.15, av: 3, ar: -5.5 }, { s: 0.06, av: 8.5, ar: -9.8 }, { s: 0.42, av: 7.5, ar: -8 },
+  { s: -0.15, av: 3, ar: -5.5 }, { s: 0.06, av: 9.5, ar: -12.5 }, { s: 0.42, av: 7.5, ar: -8 },
   { s: 0.72, av: 10.5, ar: -9.5 }, { s: 0.95, av: 8, ar: -9 }, { s: 1.1, av: 3.5, ar: -5 },
 ];
 
@@ -142,8 +144,10 @@ function tete(pose: Pose, centre: Point, haut: Point, r: number) {
     const chevelure = `M${pt(gauche)}A${f(R)} ${f(R)} 0 1 1 ${pt(droite)}`
       + `Q${pt(en(0.62, 0.42))} ${pt(en(0.12, 0.2))}Q${pt(en(-0.3, 0.18))} ${pt(en(-0.62, 0.02))}`
       + `Q${pt(en(-0.86, -0.1))} ${pt(gauche)}Z`;
-    return { arriere: [], cheveux: [chevelure], yeux: [cercle(en(-0.36, -0.14), 1.3), cercle(en(0.36, -0.14), 1.3)],
-      etendue: [] as Cercle[] };
+    const attache = en(-.82, .42);
+    const bout = { x: attache.x - .55 * r, y: Math.min(attache.y + 1.65 * r, SOL_Y - .2 * r) };
+    return { arriere: [capsule(attache, .36 * r, bout, .2 * r)], cheveux: [chevelure], yeux: [cercle(en(-0.36, -0.14), 1.3), cercle(en(0.36, -0.14), 1.3)],
+      etendue: [{ c: attache, r: .36 * r }, { c: bout, r: .2 * r }] as Cercle[] };
   }
   const nuque = surCrane(-150), front = surCrane(60);
   const chevelure = `M${pt(nuque)}A${f(R)} ${f(R)} 0 1 1 ${pt(front)}`
@@ -151,7 +155,7 @@ function tete(pose: Pose, centre: Point, haut: Point, r: number) {
     + `Q${pt(en(-0.32, -0.42))} ${pt(nuque)}Z`;
   // Queue de cheval : attachée en haut de l'arrière du crâne, elle tombe vers le sol.
   const attache = en(-0.82, 0.42);
-  const bout = plus(plus(attache, fois(avant, -0.45 * r)), { x: 0, y: 1.05 * r });
+  const bout = plus(plus(attache, fois(avant, -0.8 * r)), { x: 0, y: 1.65 * r });
   // Couchée, la queue de cheval repose sur le sol au lieu de le traverser.
   bout.y = Math.min(bout.y, SOL_Y - .2 * r);
   return {
@@ -186,7 +190,7 @@ export function dessinerFigurine(pose: Pose): DessinFigurine {
   };
   const cercleNote = (c: Point, r: number) => { cercles.push({ c, r }); return cercle(c, r); };
 
-  const jambe = (gauche: boolean): string[] => {
+  const jambe = (gauche: boolean, loin: boolean): FormeFigurine[] => {
     const hanche = gauche ? p.hancheGauche : p.hancheDroite;
     const genou = gauche ? p.genouGauche : p.genouDroit;
     const cheville = gauche ? p.chevilleGauche : p.chevilleDroite;
@@ -195,10 +199,13 @@ export function dessinerFigurine(pose: Pose): DessinFigurine {
     // De face, le pied se voit en raccourci ; de profil, le talon dépasse un peu derrière la cheville.
     const talon = profil ? moins(cheville, fois(pied, 0.22)) : cheville;
     const pointe = profil ? orteils : plus(cheville, fois(pied, 0.45));
+    cercles.push({ c: hanche, r: profil ? RAYONS.hancheProfil : RAYONS.hancheFace },
+      { c: genou, r: RAYONS.genou }, { c: cheville, r: RAYONS.cheville });
     return [
-      capsuleNotee(hanche, profil ? RAYONS.hancheProfil : RAYONS.hancheFace, genou, RAYONS.genou),
-      capsuleNotee(genou, RAYONS.genou, cheville, RAYONS.cheville),
-      capsuleNotee(talon, RAYONS.talon, pointe, RAYONS.orteils),
+      { d: capsuleNotee(hanche, profil ? RAYONS.hancheProfil : RAYONS.hancheFace, genou, RAYONS.genou),
+        teinte: loin ? 'leggingLoin' : 'legging' },
+      { d: capsuleNotee(genou, RAYONS.genou, cheville, RAYONS.cheville), teinte: loin ? 'leggingLoin' : 'legging' },
+      { d: capsuleNotee(talon, RAYONS.talon, pointe, RAYONS.orteils), teinte: loin ? 'semelle' : 'chaussure' },
     ];
   };
   const bras = (gauche: boolean) => {
@@ -212,30 +219,33 @@ export function dessinerFigurine(pose: Pose): DessinFigurine {
     const n = { x: -u.y, y: u.x };
     const bas = unitaire(moins(p.bassin, p.epaules));
     const elevation = profil ? 0 : (1 - (u.x * bas.x + u.y * bas.y)) / 2;
-    const racine = plus(plus(epaule, fois(unitaire(moins(p.epaules, epaule)), (profil ? 2 : 7) * (1 - elevation * elevation))),
+    // Bras baissés : garder le deltoïde visible à l'extérieur du vêtement.
+    // Bras levés : rentrer progressivement la racine pour dégager le cou.
+    const retrait = profil ? 2 : pose.faceSol ? 3 : 7 - 4 * (1 - elevation) ** 4;
+    const racine = plus(plus(epaule, fois(unitaire(moins(p.epaules, epaule)), retrait * (1 - elevation * elevation))),
       fois(u, -6 * elevation * elevation));
-    const a = plus(racine, fois(n, RAYONS.epaule));
-    const b = moins(racine, fois(n, RAYONS.epaule));
-    const c = plus(coude, fois(n, RAYONS.coude));
-    const d = moins(coude, fois(n, RAYONS.coude));
-    cercles.push({ c: racine, r: RAYONS.epaule }, { c: coude, r: RAYONS.coude });
-    const deltoide = `M${pt(a)}C${pt(plus(a, fois(u, 9)))} ${pt(moins(c, fois(u, 10)))} ${pt(c)}`
+    cercles.push({ c: racine, r: RAYONS.epaule }, { c: coude, r: RAYONS.coude },
+      { c: main, r: RAYONS.main });
+    const a = plus(racine, fois(n, RAYONS.epaule)), b = moins(racine, fois(n, RAYONS.epaule));
+    const c = plus(coude, fois(n, RAYONS.coude)), d = moins(coude, fois(n, RAYONS.coude));
+    const hautBras = `M${pt(a)}C${pt(plus(a, fois(u, 9)))} ${pt(moins(c, fois(u, 10)))} ${pt(c)}`
       + `A${RAYONS.coude} ${RAYONS.coude} 0 0 0 ${pt(d)}`
-      + `C${pt(moins(d, fois(u, 10)))} ${pt(plus(b, fois(u, 9)))} ${pt(b)}Z`;
-    // De face, liseré du haut du bras, de mi-bras au coude seulement : lisible devant le buste, sans cerner l'épaule.
-    const t0 = 0.45;
-    const distal = couper(a, plus(a, fois(u, 9)), moins(c, fois(u, 10)), c, t0, 1);
-    const retour = couper(d, moins(d, fois(u, 10)), plus(b, fois(u, 9)), b, 0, 1 - t0);
-    const lisere = `M${pt(distal[0])}C${pt(distal[1])} ${pt(distal[2])} ${pt(c)}`
+      + `C${pt(moins(d, fois(u, 10)))} ${pt(plus(b, fois(u, 9)))} ${pt(b)}`
+      + `Q${pt(moins(racine, fois(u, RAYONS.epaule * .5)))} ${pt(a)}Z`;
+    // La racine passe derrière le buste : aucune coupe droite sur la brassière.
+    // Le reste du bras garde le dessin précédent, notamment au coude.
+    const distal = couper(a, plus(a, fois(u, 9)), moins(c, fois(u, 10)), c, .45, 1);
+    const retour = couper(d, moins(d, fois(u, 10)), plus(b, fois(u, 9)), b, 0, .55);
+    const devant = `M${pt(distal[0])}C${pt(distal[1])} ${pt(distal[2])} ${pt(c)}`
       + `A${RAYONS.coude} ${RAYONS.coude} 0 0 0 ${pt(d)}`
       + `C${pt(retour[1])} ${pt(retour[2])} ${pt(retour[3])}Z`;
+    const avantBras = capsuleNotee(coude, RAYONS.coude, main, RAYONS.poignet);
+    const mainDessinee = cercleNote(main, RAYONS.main);
     return {
-      separation: [...(profil ? [] : [lisere]), capsule(coude, RAYONS.coude, main, RAYONS.poignet), cercle(main, RAYONS.main)],
-      membre: [
-        deltoide,
-        capsuleNotee(coude, RAYONS.coude, main, RAYONS.poignet),
-        cercleNote(main, RAYONS.main),
-      ],
+      hautBras,
+      separation: profil || pose.faceSol ? [] : [devant, avantBras, mainDessinee],
+      membre: [devant, avantBras, mainDessinee],
+      arriere: [avantBras, mainDessinee],
     };
   };
 
@@ -247,14 +257,17 @@ export function dessinerFigurine(pose: Pose): DessinFigurine {
   const visage = tete(pose, p.tete, haut, r);
   cercles.push(...visage.etendue);
   // De face, les deux bras sont au premier plan, devant le tronc ; de profil, le bras gauche passe derrière.
-  const devant = profil ? [bras(false)] : [bras(true), bras(false)];
+  const tousLesBras = [bras(true), bras(false)];
+  const devant = profil ? [tousLesBras[1]] : tousLesBras;
   const formes: FormeFigurine[] = [
-    ...(pose.faceSol ? jambe(false).map(d => ({ d, teinte: loin })) : []),
-    ...jambe(true).map(d => ({ d, teinte: loin })),
-    ...(profil ? bras(true).membre.map(d => ({ d, teinte: loin })) : []),
+    ...(pose.faceSol ? jambe(false, true) : []),
+    ...jambe(true, profil),
+    ...tousLesBras.map((b, i) => ({ d: b.hautBras, teinte: profil && i === 0 ? loin : 'proche' as const, partie: 'bras' as const })),
+    ...(profil ? tousLesBras[0].arriere.map(d => ({ d, teinte: loin })) : []),
     { d: capsuleNotee(p.epaules, RAYONS.cou, plus(p.tete, fois(haut, -r * 0.6)), RAYONS.cou), teinte: 'proche' },
-    { d: contourLisse(contour), teinte: 'proche' },
-    ...(pose.faceSol ? [] : jambe(false).map(d => ({ d, teinte: 'proche' as const }))),
+    { d: contourLisse(contour), teinte: 'proche', partie: 'buste' },
+    ...habillerTronc(pose, p.bassin, p.epaules, contourLisse(contour)),
+    ...(pose.faceSol ? [] : jambe(false, false)),
     ...visage.arriere.map(d => ({ d, teinte: 'cheveux' as const })),
     { d: cercleNote(p.tete, r), teinte: 'proche' },
     ...visage.cheveux.map(d => ({ d, teinte: 'cheveux' as const })),
@@ -264,6 +277,7 @@ export function dessinerFigurine(pose: Pose): DessinFigurine {
       ...membre.map(d => ({ d, teinte: 'proche' as const })),
     ]),
   ];
+
   if (profil) {
     // Le nez indique de quel côté regarde la figurine.
     const avant = { x: -haut.y, y: haut.x };

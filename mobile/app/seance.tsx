@@ -9,7 +9,7 @@ import { varianteSansMeuble } from '../src/circuits/circuits';
 import { construireSeanceCircuit } from '../src/circuits/construire';
 import { materielDe } from '../src/circuits/materiel';
 import { genererSeance } from '../src/generateur/generer';
-import { Figurine } from '../src/illustrations/Figurine';
+import { IllustrationExercice } from '../src/illustrations/Illustration';
 import type { Bloc, Seance } from '../src/generateur/types';
 import { ajouterEntree, creerIdentifiant, mettreAJourEntree } from '../src/journal/journal';
 import { ecrireDerniersExercices } from '../src/preferences/preferences';
@@ -218,7 +218,7 @@ function LecteurSeance({ seance }: { seance: Seance }) {
             {/* Hors du flux : la figurine remplit la zone mesurée sans l'empêcher de rétrécir quand le texte
                 s'allonge (titre sur deux lignes, « Repos · À suivre », « Dernier tour »). */}
             <View style={[StyleSheet.absoluteFill, styles.figurine]}>
-              <Figurine
+              <IllustrationExercice
                 exerciceId={bloc.exercice.id}
                 cote={bloc.cote}
                 libelle={bloc.exercice.nom}

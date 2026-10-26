@@ -18,6 +18,11 @@ export const COULEURS = {
   texteDiscret: '#CBD5E0',
   // Illustrations (figurine, décor) : jamais pour du texte.
   cheveux: '#9A3412',
+  peau: '#EDB18A',
+  peauOmbre: '#CC8E69',
+  leggingOmbre: '#293C53',
+  baskets: '#FFFFFF',
+  semelle: '#D7E0E8',
   mur: '#CBD5E1',
   areteMur: '#94A3B8',
 } as const;

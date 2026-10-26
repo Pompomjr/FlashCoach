@@ -119,3 +119,11 @@ Limite à connaître : des images fixes ne s'animent pas comme la figurine actue
 | 74 | Y-T au sol | `tirage-yt` | Masse | 1 | face | sol | oui | À plat ventre, tu décolles les bras en Y, puis en T, en serrant les omoplates. |
 | 75 | Bird-dog | `bird-dog` | Masse, Étirements | 1 | profil | sol | oui | À quatre pattes, tu tends le bras et la jambe opposés, dos plat, puis tu changes. |
 | 76 | Pont fessier sur une jambe | `pont-une-jambe` | Masse | 2 | profil | sol | non | Sur le dos, une jambe tendue en l’air, tu montes le bassin avec l’autre et tu serres. |
+
+
+## État au 2026-10-23
+
+Mattia a validé la galerie, puis demandé des articulations plus douces, particulièrement pour la pompe archer. Habillage intégré au rendu commun des 76 exercices ; raccords des épaules corrigés, coudes et genoux du rendu précédent conservés. Squelette, poses, rythme et gestion de la réduction des animations conservés. Validation : 656 tests illustrations et 1416 tests au total, types et lint verts. Aperçus dans `.superpowers/galerie-habillage.html` et `.superpowers/pompe-archer-lisse.gif`.
+
+
+Prototype humain demandé le 2026-10-23 après une nouvelle référence OpenArt : essai animé **sur les jumping jacks uniquement**, en code vectoriel, dans `.superpowers/figurine-humaine.html` (aperçu `.superpowers/figurine-humaine.gif`, 60 images, cycle 1,4 s). Mains avec doigts, silhouette anatomique, épaules et buste en un seul contour, ombres et baskets détaillées. **À faire valider par Mattia avant de décliner ce nouveau style sur les autres exercices.** Le prototype reste séparé du rendu partagé de l’app.

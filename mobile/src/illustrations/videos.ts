@@ -4,6 +4,7 @@
 // Un exercice absent de cette table garde sa figurine dessinée.
 const VIDEOS: Record<string, number> = {
   'jumping-jacks': require('../../assets/exercices/jumping-jacks.mp4'),
+  'squat-lent': require('../../assets/exercices/squat-lent.mp4'),
 };
 
 export function videoPour(exerciceId: string): number | undefined {

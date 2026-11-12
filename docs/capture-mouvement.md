@@ -63,4 +63,6 @@ Essayée avec Mattia le 2026-11-12 : au lieu de se filmer, on part d'une **image
 4. Mise au format avec `ffmpeg` : garder **une répétition qui boucle** (comparer les images pour trouver la fin qui rejoint le début), 720 × 720, sans son, fond éclairci vers `#EDF2F7`, viser moins de 500 Ko. Le pilote fait 1,7 s et 102 Ko.
 5. Brancher comme au § 5.
 
+Les **prompts des 75 autres exercices** sont prêts dans `docs/prompts-videos.md` (un par exercice, à coller dans un nouveau chat Claude). L'illimité de l'essai Higgsfield ne marche **que depuis le chat Claude**, pas depuis Claude Code : Mattia génère dans le chat, puis envoie le fichier (ou le lien) dans Claude Code en disant de quel exercice il s'agit. Une vidéo tournée vers la gauche ou sur fond plus sombre se rattrape au montage (miroir, fond éclairci), comme `squat-lent`.
+
 À savoir : la formule Higgsfield donne des crédits (un clip de 4 s ≈ 6 crédits), séparés du solde de l'API ; les mains peuvent frôler le haut du cadre quand les bras montent ; un geste faux ou un personnage qui change = on jette le clip, on ne le garde jamais « à peu près ».

@@ -52,3 +52,15 @@ Tout passe par `expo-video`, qui fonctionne dans **Expo Go** : rien ne change da
 2. Les exercices debout faciles à capter (squats, fentes, jumping jacks, montées de genoux…).
 3. Les exercices au sol, plus délicats.
 4. 76 vidéos × ~400 Ko ≈ 30 Mo : acceptable dans l'app ; au-delà, on pourra les télécharger à la demande.
+
+## 7. Voie rapide : vidéo générée par IA (Higgsfield)
+
+Essayée avec Mattia le 2026-11-12 : au lieu de se filmer, on part d'une **image du coach** et un modèle vidéo joue l'exercice. **Pilote validé : `jumping-jacks`** (Kling 3.0 standard, image vers vidéo, 4 s, 1:1, sans son, 6 crédits).
+
+1. Image de départ : le coach A (sportive de face, brassière orange, legging bleu-gris, fond gris-bleu clair), déjà importée dans le compte Higgsfield. Pour un exercice de profil, il faut une image de profil du même personnage.
+2. Consigne (en anglais) : même femme que l'image, caméra fixe, fond uni, le geste décrit pas à pas, **retour exact à la position de départ**, corps entier dans le cadre, pas de zoom, pas de texte.
+3. Chiffrer avant de lancer (`get_cost`), puis faire valider le clip par Mattia : geste juste, même personnage, rien de coupé.
+4. Mise au format avec `ffmpeg` : garder **une répétition qui boucle** (comparer les images pour trouver la fin qui rejoint le début), 720 × 720, sans son, fond éclairci vers `#EDF2F7`, viser moins de 500 Ko. Le pilote fait 1,7 s et 102 Ko.
+5. Brancher comme au § 5.
+
+À savoir : la formule Higgsfield donne des crédits (un clip de 4 s ≈ 6 crédits), séparés du solde de l'API ; les mains peuvent frôler le haut du cadre quand les bras montent ; un geste faux ou un personnage qui change = on jette le clip, on ne le garde jamais « à peu près ».

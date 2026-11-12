@@ -3,10 +3,30 @@
 Rédigés le 2026-11-12 pour Mattia. Un prompt par exercice, à coller **dans un nouveau chat Claude** (pas dans Claude Code : l'illimité de l'essai n'y marche pas). `jumping-jacks` est déjà fait, et `squat-lent` aussi (son prompt reste ici pour le refaire au besoin).
 
 - Images du coach dans le compte Higgsfield : face `1ebb951a-1069-4473-b564-eb0f8e23ee23`, profil `1f3f545d-2aab-4b13-b6c9-0c2fca6ed6db`.
-- Exercices qui ne partent pas debout : le prompt demande d'abord une image de la position de départ, puis la vidéo.
+- 14 positions au sol sont déjà générées (liste ci-dessous) : leurs exercices partent directement de l'image.
+- Autres exercices qui ne partent pas debout (chaise, mur, table…) : le prompt demande d'abord une image de la position de départ, puis la vidéo.
 - Même image en première et dernière image : la vidéo boucle. Si le résultat est figé, relancer sans la dernière image.
 - Exercice d'un seul côté : côté droit seulement, l'app montre l'autre en miroir.
 - Ensuite : coller le lien de la vidéo dans Claude Code, qui la met au format et la branche (`docs/capture-mouvement.md`, § 7).
+
+## Images de départ déjà dans le compte Higgsfield
+
+| Position | Identifiant de l'image | Exercices |
+|---|---|---|
+| planche haute (mains) | `01d11df7-eb7d-4c67-a4ee-10579415cb05` | grimpeur, pompe-tempo, planche-epaules, pompe-spiderman, pompe-classique |
+| planche sur les avant-bras | `23b9aba4-978a-411f-b735-1d56876d7d2d` | planche, gainage-commando |
+| à quatre pattes | `40561dce-ddee-45d0-ba65-a2bbcdee8b47` | chat-vache, bird-dog |
+| V inversé | `a6837665-0879-4075-9887-f0162cdcbbcb` | pike-pushup, pompe-hindoue |
+| sur le dos, genoux pliés | `fc17d0aa-e86a-4c5e-8ba4-dcfa4c680204` | pont-fessier |
+| à plat ventre, bras devant | `4c8b2abf-0c1f-4a1b-844f-dc038c5ab953` | superman, superman-tirage |
+| pompe sur les genoux | `54ead757-6437-45de-8fa8-2f816722d633` | pompe-genoux |
+| sur le dos, jambes tendues | `1150865c-afcf-4598-b9be-474ee5919e6a` | releves-jambes |
+| crunch vélo | `7c266cf8-df30-4565-b538-00fee2b0b0a9` | crunch-velo |
+| la banane | `cb173fae-036a-4f7f-97c9-68a38bf3f466` | hollow-hold |
+| pont sur une jambe | `05fbf6ae-b555-436a-9b98-f7edfb2f7361` | pont-une-jambe |
+| planche sur le côté (de face) | `a8c5fb9a-64f2-47ec-b7e0-a290489d09c0` | planche-laterale |
+| planche mains larges | `656989d9-d839-4c4d-b7f2-198202328a0c` | pompe-large |
+| planche mains en losange | `239d8bcb-4573-4b77-bd68-10ca598b1872` | pompe-diamant |
 
 ## 1. Rotation des épaules — `rotation-epaules` (profil, 4 s)
 
@@ -75,18 +95,18 @@ Réponds seulement avec le lien de la vidéo. (Flash Coach : fentes-arriere)
 
 ```text
 Avec Higgsfield, uniquement avec mes générations illimitées de l'essai gratuit, jamais mes crédits : si l'illimité est refusé, arrête-toi et dis-le-moi. Ne crée pas de projet.
-1. Génère une image GPT Image 2.6, format 1:1, avec l'image Higgsfield 1f3f545d-2aab-4b13-b6c9-0c2fca6ed6db en référence. Prompt : « Same woman as the reference image: same face, auburn hair in a high ponytail, orange sports bra, slate-blue leggings, off-white sneakers. Photorealistic studio photo, plain light grey-blue seamless background, soft even lighting, soft shadow on the floor, whole body in frame with margin all around. Strict side view, camera at 90 degrees to her body. On all fours on a thin grey exercise mat, head toward the right of the frame, hands under her shoulders, knees under her hips, back flat. No text, no logo. »
-2. Puis génère une vidéo Seedance 2.5 : 5 s, format 1:1, 720p, sans son, avec l'image de l'étape 1 en première ET dernière image. Si ce réglage n'est pas couvert par l'illimité, prends le plus proche qui l'est et dis-le-moi. Prompt : « Same woman and same pose as in the image. She slowly rounds her back up toward the ceiling like a cat, chin to chest, then slowly arches her back down, lifting her head and tailbone, and returns to a flat back. Static locked-off camera, same plain light grey-blue studio background, soft even lighting. Controlled, realistic body mechanics, same face and outfit, whole body always in frame. She ends exactly in the starting pose. No camera movement, no zoom, no text, no logo. »
-Réponds seulement avec le lien de l'image et le lien de la vidéo. (Flash Coach : chat-vache)
+Génère une vidéo Seedance 2.5 : 5 s, format 1:1, 720p, sans son, avec l'image Higgsfield 40561dce-ddee-45d0-ba65-a2bbcdee8b47 en première ET dernière image. Si ce réglage n'est pas couvert par l'illimité, prends le plus proche qui l'est et dis-le-moi.
+Prompt : « Same woman and same pose as in the image. She slowly rounds her back up toward the ceiling like a cat, chin to chest, then slowly arches her back down, lifting her head and tailbone, and returns to a flat back. Static locked-off camera, same plain light grey-blue studio background, soft even lighting. Controlled, realistic body mechanics, same face and outfit, whole body always in frame. She ends exactly in the starting pose. No camera movement, no zoom, no text, no logo. »
+Réponds seulement avec le lien de la vidéo. (Flash Coach : chat-vache)
 ```
 
 ## 10. Planche — `planche` (profil, 4 s)
 
 ```text
 Avec Higgsfield, uniquement avec mes générations illimitées de l'essai gratuit, jamais mes crédits : si l'illimité est refusé, arrête-toi et dis-le-moi. Ne crée pas de projet.
-1. Génère une image GPT Image 2.6, format 1:1, avec l'image Higgsfield 1f3f545d-2aab-4b13-b6c9-0c2fca6ed6db en référence. Prompt : « Same woman as the reference image: same face, auburn hair in a high ponytail, orange sports bra, slate-blue leggings, off-white sneakers. Photorealistic studio photo, plain light grey-blue seamless background, soft even lighting, soft shadow on the floor, whole body in frame with margin all around. Strict side view, camera at 90 degrees to her body. Forearm plank on a thin grey exercise mat, head toward the right of the frame, elbows under her shoulders, body in one straight line from head to heels. No text, no logo. »
-2. Puis génère une vidéo Seedance 2.5 : 4 s, format 1:1, 720p, sans son, avec l'image de l'étape 1 en première ET dernière image. Si ce réglage n'est pas couvert par l'illimité, prends le plus proche qui l'est et dis-le-moi. Prompt : « Same woman and same pose as in the image. She holds the forearm plank perfectly still, only breathing calmly. Hips do not sag or rise. Static locked-off camera, same plain light grey-blue studio background, soft even lighting. Controlled, realistic body mechanics, same face and outfit, whole body always in frame. She ends exactly in the starting pose. No camera movement, no zoom, no text, no logo. »
-Réponds seulement avec le lien de l'image et le lien de la vidéo. (Flash Coach : planche)
+Génère une vidéo Seedance 2.5 : 4 s, format 1:1, 720p, sans son, avec l'image Higgsfield 23b9aba4-978a-411f-b735-1d56876d7d2d en première ET dernière image. Si ce réglage n'est pas couvert par l'illimité, prends le plus proche qui l'est et dis-le-moi.
+Prompt : « Same woman and same pose as in the image. She holds the forearm plank perfectly still, only breathing calmly. Hips do not sag or rise. Static locked-off camera, same plain light grey-blue studio background, soft even lighting. Controlled, realistic body mechanics, same face and outfit, whole body always in frame. She ends exactly in the starting pose. No camera movement, no zoom, no text, no logo. »
+Réponds seulement avec le lien de la vidéo. (Flash Coach : planche)
 ```
 
 ## 11. Demi-cercles du cou — `rotation-cou` (face, 5 s)
@@ -408,72 +428,72 @@ Réponds seulement avec le lien de la vidéo. (Flash Coach : burpee-sans-saut)
 
 ```text
 Avec Higgsfield, uniquement avec mes générations illimitées de l'essai gratuit, jamais mes crédits : si l'illimité est refusé, arrête-toi et dis-le-moi. Ne crée pas de projet.
-1. Génère une image GPT Image 2.6, format 1:1, avec l'image Higgsfield 1f3f545d-2aab-4b13-b6c9-0c2fca6ed6db en référence. Prompt : « Same woman as the reference image: same face, auburn hair in a high ponytail, orange sports bra, slate-blue leggings, off-white sneakers. Photorealistic studio photo, plain light grey-blue seamless background, soft even lighting, soft shadow on the floor, whole body in frame with margin all around. Strict side view, camera at 90 degrees to her body. High plank on a thin grey exercise mat, head toward the right of the frame, hands under her shoulders, arms straight, body in one straight line from head to heels. No text, no logo. »
-2. Puis génère une vidéo Seedance 2.5 : 4 s, format 1:1, 720p, sans son, avec l'image de l'étape 1 en première ET dernière image. Si ce réglage n'est pas couvert par l'illimité, prends le plus proche qui l'est et dis-le-moi. Prompt : « Same woman and same pose as in the image. She drives her right knee toward her chest and back, then her left knee and back, four times in total, at a steady pace. Back flat, hips level. Static locked-off camera, same plain light grey-blue studio background, soft even lighting. Controlled, realistic body mechanics, same face and outfit, whole body always in frame. She ends exactly in the starting pose. No camera movement, no zoom, no text, no logo. »
-Réponds seulement avec le lien de l'image et le lien de la vidéo. (Flash Coach : grimpeur)
+Génère une vidéo Seedance 2.5 : 4 s, format 1:1, 720p, sans son, avec l'image Higgsfield 01d11df7-eb7d-4c67-a4ee-10579415cb05 en première ET dernière image. Si ce réglage n'est pas couvert par l'illimité, prends le plus proche qui l'est et dis-le-moi.
+Prompt : « Same woman and same pose as in the image. She drives her right knee toward her chest and back, then her left knee and back, four times in total, at a steady pace. Back flat, hips level. Static locked-off camera, same plain light grey-blue studio background, soft even lighting. Controlled, realistic body mechanics, same face and outfit, whole body always in frame. She ends exactly in the starting pose. No camera movement, no zoom, no text, no logo. »
+Réponds seulement avec le lien de la vidéo. (Flash Coach : grimpeur)
 ```
 
 ## 47. Pont fessier — `pont-fessier` (profil, 4 s)
 
 ```text
 Avec Higgsfield, uniquement avec mes générations illimitées de l'essai gratuit, jamais mes crédits : si l'illimité est refusé, arrête-toi et dis-le-moi. Ne crée pas de projet.
-1. Génère une image GPT Image 2.6, format 1:1, avec l'image Higgsfield 1f3f545d-2aab-4b13-b6c9-0c2fca6ed6db en référence. Prompt : « Same woman as the reference image: same face, auburn hair in a high ponytail, orange sports bra, slate-blue leggings, off-white sneakers. Photorealistic studio photo, plain light grey-blue seamless background, soft even lighting, soft shadow on the floor, whole body in frame with margin all around. Strict side view, camera at 90 degrees to her body. Lying on her back on a thin grey exercise mat, head on the left of the frame, feet on the right, knees bent, feet flat on the floor, arms along her body. No text, no logo. »
-2. Puis génère une vidéo Seedance 2.5 : 4 s, format 1:1, 720p, sans son, avec l'image de l'étape 1 en première ET dernière image. Si ce réglage n'est pas couvert par l'illimité, prends le plus proche qui l'est et dis-le-moi. Prompt : « Same woman and same pose as in the image. She lifts her hips until her body forms a straight line from shoulders to knees, squeezes at the top for a second, then lowers her hips back to the mat. Static locked-off camera, same plain light grey-blue studio background, soft even lighting. Controlled, realistic body mechanics, same face and outfit, whole body always in frame. She ends exactly in the starting pose. No camera movement, no zoom, no text, no logo. »
-Réponds seulement avec le lien de l'image et le lien de la vidéo. (Flash Coach : pont-fessier)
+Génère une vidéo Seedance 2.5 : 4 s, format 1:1, 720p, sans son, avec l'image Higgsfield fc17d0aa-e86a-4c5e-8ba4-dcfa4c680204 en première ET dernière image. Si ce réglage n'est pas couvert par l'illimité, prends le plus proche qui l'est et dis-le-moi.
+Prompt : « Same woman and same pose as in the image. She lifts her hips until her body forms a straight line from shoulders to knees, squeezes at the top for a second, then lowers her hips back to the mat. Static locked-off camera, same plain light grey-blue studio background, soft even lighting. Controlled, realistic body mechanics, same face and outfit, whole body always in frame. She ends exactly in the starting pose. No camera movement, no zoom, no text, no logo. »
+Réponds seulement avec le lien de la vidéo. (Flash Coach : pont-fessier)
 ```
 
 ## 48. Superman — `superman` (profil, 4 s)
 
 ```text
 Avec Higgsfield, uniquement avec mes générations illimitées de l'essai gratuit, jamais mes crédits : si l'illimité est refusé, arrête-toi et dis-le-moi. Ne crée pas de projet.
-1. Génère une image GPT Image 2.6, format 1:1, avec l'image Higgsfield 1f3f545d-2aab-4b13-b6c9-0c2fca6ed6db en référence. Prompt : « Same woman as the reference image: same face, auburn hair in a high ponytail, orange sports bra, slate-blue leggings, off-white sneakers. Photorealistic studio photo, plain light grey-blue seamless background, soft even lighting, soft shadow on the floor, whole body in frame with margin all around. Strict side view, camera at 90 degrees to her body. Lying face down on a thin grey exercise mat, head toward the right of the frame, arms stretched forward, legs straight. No text, no logo. »
-2. Puis génère une vidéo Seedance 2.5 : 4 s, format 1:1, 720p, sans son, avec l'image de l'étape 1 en première ET dernière image. Si ce réglage n'est pas couvert par l'illimité, prends le plus proche qui l'est et dis-le-moi. Prompt : « Same woman and same pose as in the image. She lifts her arms, chest and legs off the mat at the same time, holds one second, then lowers them. Static locked-off camera, same plain light grey-blue studio background, soft even lighting. Controlled, realistic body mechanics, same face and outfit, whole body always in frame. She ends exactly in the starting pose. No camera movement, no zoom, no text, no logo. »
-Réponds seulement avec le lien de l'image et le lien de la vidéo. (Flash Coach : superman)
+Génère une vidéo Seedance 2.5 : 4 s, format 1:1, 720p, sans son, avec l'image Higgsfield 4c8b2abf-0c1f-4a1b-844f-dc038c5ab953 en première ET dernière image. Si ce réglage n'est pas couvert par l'illimité, prends le plus proche qui l'est et dis-le-moi.
+Prompt : « Same woman and same pose as in the image. She lifts her arms, chest and legs off the mat at the same time, holds one second, then lowers them. Static locked-off camera, same plain light grey-blue studio background, soft even lighting. Controlled, realistic body mechanics, same face and outfit, whole body always in frame. She ends exactly in the starting pose. No camera movement, no zoom, no text, no logo. »
+Réponds seulement avec le lien de la vidéo. (Flash Coach : superman)
 ```
 
 ## 49. Planche sur le côté — `planche-laterale` (face, 4 s)
 
 ```text
 Avec Higgsfield, uniquement avec mes générations illimitées de l'essai gratuit, jamais mes crédits : si l'illimité est refusé, arrête-toi et dis-le-moi. Ne crée pas de projet.
-1. Génère une image GPT Image 2.6, format 1:1, avec l'image Higgsfield 1ebb951a-1069-4473-b564-eb0f8e23ee23 en référence. Prompt : « Same woman as the reference image: same face, auburn hair in a high ponytail, orange sports bra, slate-blue leggings, off-white sneakers. Photorealistic studio photo, plain light grey-blue seamless background, soft even lighting, soft shadow on the floor, whole body in frame with margin all around. Front view. Side plank seen from the front, her chest facing the camera: lying on her right side on a thin grey exercise mat, propped on her right forearm, elbow under her shoulder, hips resting on the mat, legs stacked, left hand on her hip. No text, no logo. »
-2. Puis génère une vidéo Seedance 2.5 : 4 s, format 1:1, 720p, sans son, avec l'image de l'étape 1 en première ET dernière image. Si ce réglage n'est pas couvert par l'illimité, prends le plus proche qui l'est et dis-le-moi. Prompt : « Same woman and same pose as in the image. She lifts her hips until her body is one straight line, holds, then lowers her hips back to the mat. Static locked-off camera, same plain light grey-blue studio background, soft even lighting. Controlled, realistic body mechanics, same face and outfit, whole body always in frame. She ends exactly in the starting pose. No camera movement, no zoom, no text, no logo. »
-Réponds seulement avec le lien de l'image et le lien de la vidéo. (Flash Coach : planche-laterale)
+Génère une vidéo Seedance 2.5 : 4 s, format 1:1, 720p, sans son, avec l'image Higgsfield a8c5fb9a-64f2-47ec-b7e0-a290489d09c0 en première ET dernière image. Si ce réglage n'est pas couvert par l'illimité, prends le plus proche qui l'est et dis-le-moi.
+Prompt : « Same woman and same pose as in the image. She lifts her hips until her body is one straight line, holds, then lowers her hips back to the mat. Static locked-off camera, same plain light grey-blue studio background, soft even lighting. Controlled, realistic body mechanics, same face and outfit, whole body always in frame. She ends exactly in the starting pose. No camera movement, no zoom, no text, no logo. »
+Réponds seulement avec le lien de la vidéo. (Flash Coach : planche-laterale)
 ```
 
 ## 50. Crunch vélo — `crunch-velo` (profil, 4 s)
 
 ```text
 Avec Higgsfield, uniquement avec mes générations illimitées de l'essai gratuit, jamais mes crédits : si l'illimité est refusé, arrête-toi et dis-le-moi. Ne crée pas de projet.
-1. Génère une image GPT Image 2.6, format 1:1, avec l'image Higgsfield 1f3f545d-2aab-4b13-b6c9-0c2fca6ed6db en référence. Prompt : « Same woman as the reference image: same face, auburn hair in a high ponytail, orange sports bra, slate-blue leggings, off-white sneakers. Photorealistic studio photo, plain light grey-blue seamless background, soft even lighting, soft shadow on the floor, whole body in frame with margin all around. Strict side view, camera at 90 degrees to her body. Lying on her back on a thin grey exercise mat, head on the left of the frame, feet on the right, hands behind her head, shoulders slightly lifted, both knees bent above her hips. No text, no logo. »
-2. Puis génère une vidéo Seedance 2.5 : 4 s, format 1:1, 720p, sans son, avec l'image de l'étape 1 en première ET dernière image. Si ce réglage n'est pas couvert par l'illimité, prends le plus proche qui l'est et dis-le-moi. Prompt : « Same woman and same pose as in the image. Slowly, her right elbow goes toward her left knee while her right leg extends, then her left elbow toward her right knee while her left leg extends, then back to the start. Static locked-off camera, same plain light grey-blue studio background, soft even lighting. Controlled, realistic body mechanics, same face and outfit, whole body always in frame. She ends exactly in the starting pose. No camera movement, no zoom, no text, no logo. »
-Réponds seulement avec le lien de l'image et le lien de la vidéo. (Flash Coach : crunch-velo)
+Génère une vidéo Seedance 2.5 : 4 s, format 1:1, 720p, sans son, avec l'image Higgsfield 7c266cf8-df30-4565-b538-00fee2b0b0a9 en première ET dernière image. Si ce réglage n'est pas couvert par l'illimité, prends le plus proche qui l'est et dis-le-moi.
+Prompt : « Same woman and same pose as in the image. Slowly, her right elbow goes toward her left knee while her right leg extends, then her left elbow toward her right knee while her left leg extends, then back to the start. Static locked-off camera, same plain light grey-blue studio background, soft even lighting. Controlled, realistic body mechanics, same face and outfit, whole body always in frame. She ends exactly in the starting pose. No camera movement, no zoom, no text, no logo. »
+Réponds seulement avec le lien de la vidéo. (Flash Coach : crunch-velo)
 ```
 
 ## 51. Pompes mains larges — `pompe-large` (profil, 4 s)
 
 ```text
 Avec Higgsfield, uniquement avec mes générations illimitées de l'essai gratuit, jamais mes crédits : si l'illimité est refusé, arrête-toi et dis-le-moi. Ne crée pas de projet.
-1. Génère une image GPT Image 2.6, format 1:1, avec l'image Higgsfield 1f3f545d-2aab-4b13-b6c9-0c2fca6ed6db en référence. Prompt : « Same woman as the reference image: same face, auburn hair in a high ponytail, orange sports bra, slate-blue leggings, off-white sneakers. Photorealistic studio photo, plain light grey-blue seamless background, soft even lighting, soft shadow on the floor, whole body in frame with margin all around. Strict side view, camera at 90 degrees to her body. High plank on a thin grey exercise mat, head toward the right of the frame, hands placed wider than her shoulders, arms straight, body in one straight line from head to heels. No text, no logo. »
-2. Puis génère une vidéo Seedance 2.5 : 4 s, format 1:1, 720p, sans son, avec l'image de l'étape 1 en première ET dernière image. Si ce réglage n'est pas couvert par l'illimité, prends le plus proche qui l'est et dis-le-moi. Prompt : « Same woman and same pose as in the image. She lowers her chest between her hands until it almost touches the mat, elbows going out, then pushes back up. Body stays straight. Static locked-off camera, same plain light grey-blue studio background, soft even lighting. Controlled, realistic body mechanics, same face and outfit, whole body always in frame. She ends exactly in the starting pose. No camera movement, no zoom, no text, no logo. »
-Réponds seulement avec le lien de l'image et le lien de la vidéo. (Flash Coach : pompe-large)
+Génère une vidéo Seedance 2.5 : 4 s, format 1:1, 720p, sans son, avec l'image Higgsfield 656989d9-d839-4c4d-b7f2-198202328a0c en première ET dernière image. Si ce réglage n'est pas couvert par l'illimité, prends le plus proche qui l'est et dis-le-moi.
+Prompt : « Same woman and same pose as in the image. She lowers her chest between her hands until it almost touches the mat, elbows going out, then pushes back up. Body stays straight. Static locked-off camera, same plain light grey-blue studio background, soft even lighting. Controlled, realistic body mechanics, same face and outfit, whole body always in frame. She ends exactly in the starting pose. No camera movement, no zoom, no text, no logo. »
+Réponds seulement avec le lien de la vidéo. (Flash Coach : pompe-large)
 ```
 
 ## 52. Pompes au ralenti — `pompe-tempo` (profil, 8 s)
 
 ```text
 Avec Higgsfield, uniquement avec mes générations illimitées de l'essai gratuit, jamais mes crédits : si l'illimité est refusé, arrête-toi et dis-le-moi. Ne crée pas de projet.
-1. Génère une image GPT Image 2.6, format 1:1, avec l'image Higgsfield 1f3f545d-2aab-4b13-b6c9-0c2fca6ed6db en référence. Prompt : « Same woman as the reference image: same face, auburn hair in a high ponytail, orange sports bra, slate-blue leggings, off-white sneakers. Photorealistic studio photo, plain light grey-blue seamless background, soft even lighting, soft shadow on the floor, whole body in frame with margin all around. Strict side view, camera at 90 degrees to her body. High plank on a thin grey exercise mat, head toward the right of the frame, hands under her shoulders, arms straight, body in one straight line from head to heels. No text, no logo. »
-2. Puis génère une vidéo Seedance 2.5 : 8 s, format 1:1, 720p, sans son, avec l'image de l'étape 1 en première ET dernière image. Si ce réglage n'est pas couvert par l'illimité, prends le plus proche qui l'est et dis-le-moi. Prompt : « Same woman and same pose as in the image. Very slow push-up: four seconds to lower her chest to just above the mat, four seconds to push back up. Body stays rigid. Static locked-off camera, same plain light grey-blue studio background, soft even lighting. Controlled, realistic body mechanics, same face and outfit, whole body always in frame. She ends exactly in the starting pose. No camera movement, no zoom, no text, no logo. »
-Réponds seulement avec le lien de l'image et le lien de la vidéo. (Flash Coach : pompe-tempo)
+Génère une vidéo Seedance 2.5 : 8 s, format 1:1, 720p, sans son, avec l'image Higgsfield 01d11df7-eb7d-4c67-a4ee-10579415cb05 en première ET dernière image. Si ce réglage n'est pas couvert par l'illimité, prends le plus proche qui l'est et dis-le-moi.
+Prompt : « Same woman and same pose as in the image. Very slow push-up: four seconds to lower her chest to just above the mat, four seconds to push back up. Body stays rigid. Static locked-off camera, same plain light grey-blue studio background, soft even lighting. Controlled, realistic body mechanics, same face and outfit, whole body always in frame. She ends exactly in the starting pose. No camera movement, no zoom, no text, no logo. »
+Réponds seulement avec le lien de la vidéo. (Flash Coach : pompe-tempo)
 ```
 
 ## 53. Pompes en V — `pike-pushup` (profil, 4 s)
 
 ```text
 Avec Higgsfield, uniquement avec mes générations illimitées de l'essai gratuit, jamais mes crédits : si l'illimité est refusé, arrête-toi et dis-le-moi. Ne crée pas de projet.
-1. Génère une image GPT Image 2.6, format 1:1, avec l'image Higgsfield 1f3f545d-2aab-4b13-b6c9-0c2fca6ed6db en référence. Prompt : « Same woman as the reference image: same face, auburn hair in a high ponytail, orange sports bra, slate-blue leggings, off-white sneakers. Photorealistic studio photo, plain light grey-blue seamless background, soft even lighting, soft shadow on the floor, whole body in frame with margin all around. Strict side view, camera at 90 degrees to her body. Pike position on a thin grey exercise mat, head toward the right of the frame: hands and feet on the floor, hips high in the air in an inverted V, arms and legs straight. No text, no logo. »
-2. Puis génère une vidéo Seedance 2.5 : 4 s, format 1:1, 720p, sans son, avec l'image de l'étape 1 en première ET dernière image. Si ce réglage n'est pas couvert par l'illimité, prends le plus proche qui l'est et dis-le-moi. Prompt : « Same woman and same pose as in the image. She bends her elbows to bring the top of her head toward the floor between her hands, then pushes back up to the inverted V. Hips stay high. Static locked-off camera, same plain light grey-blue studio background, soft even lighting. Controlled, realistic body mechanics, same face and outfit, whole body always in frame. She ends exactly in the starting pose. No camera movement, no zoom, no text, no logo. »
-Réponds seulement avec le lien de l'image et le lien de la vidéo. (Flash Coach : pike-pushup)
+Génère une vidéo Seedance 2.5 : 4 s, format 1:1, 720p, sans son, avec l'image Higgsfield a6837665-0879-4075-9887-f0162cdcbbcb en première ET dernière image. Si ce réglage n'est pas couvert par l'illimité, prends le plus proche qui l'est et dis-le-moi.
+Prompt : « Same woman and same pose as in the image. She bends her elbows to bring the top of her head toward the floor between her hands, then pushes back up to the inverted V. Hips stay high. Static locked-off camera, same plain light grey-blue studio background, soft even lighting. Controlled, realistic body mechanics, same face and outfit, whole body always in frame. She ends exactly in the starting pose. No camera movement, no zoom, no text, no logo. »
+Réponds seulement avec le lien de la vidéo. (Flash Coach : pike-pushup)
 ```
 
 ## 54. Dips sur une chaise — `dips-chaise` (profil, 4 s)
@@ -498,9 +518,9 @@ Réponds seulement avec le lien de l'image et le lien de la vidéo. (Flash Coach
 
 ```text
 Avec Higgsfield, uniquement avec mes générations illimitées de l'essai gratuit, jamais mes crédits : si l'illimité est refusé, arrête-toi et dis-le-moi. Ne crée pas de projet.
-1. Génère une image GPT Image 2.6, format 1:1, avec l'image Higgsfield 1f3f545d-2aab-4b13-b6c9-0c2fca6ed6db en référence. Prompt : « Same woman as the reference image: same face, auburn hair in a high ponytail, orange sports bra, slate-blue leggings, off-white sneakers. Photorealistic studio photo, plain light grey-blue seamless background, soft even lighting, soft shadow on the floor, whole body in frame with margin all around. Strict side view, camera at 90 degrees to her body. Lying face down on a thin grey exercise mat, head toward the right of the frame, chest slightly lifted, arms stretched forward just above the floor. No text, no logo. »
-2. Puis génère une vidéo Seedance 2.5 : 4 s, format 1:1, 720p, sans son, avec l'image de l'étape 1 en première ET dernière image. Si ce réglage n'est pas couvert par l'illimité, prends le plus proche qui l'est et dis-le-moi. Prompt : « Same woman and same pose as in the image. She pulls her elbows back toward her ribs, squeezing her shoulder blades, then stretches her arms forward again. Chest stays lifted. Static locked-off camera, same plain light grey-blue studio background, soft even lighting. Controlled, realistic body mechanics, same face and outfit, whole body always in frame. She ends exactly in the starting pose. No camera movement, no zoom, no text, no logo. »
-Réponds seulement avec le lien de l'image et le lien de la vidéo. (Flash Coach : superman-tirage)
+Génère une vidéo Seedance 2.5 : 4 s, format 1:1, 720p, sans son, avec l'image Higgsfield 4c8b2abf-0c1f-4a1b-844f-dc038c5ab953 en première ET dernière image. Si ce réglage n'est pas couvert par l'illimité, prends le plus proche qui l'est et dis-le-moi.
+Prompt : « Same woman and same pose as in the image. She lifts her chest and arms slightly off the mat, pulls her elbows back toward her ribs, squeezing her shoulder blades, stretches her arms forward again, then lowers them. Static locked-off camera, same plain light grey-blue studio background, soft even lighting. Controlled, realistic body mechanics, same face and outfit, whole body always in frame. She ends exactly in the starting pose. No camera movement, no zoom, no text, no logo. »
+Réponds seulement avec le lien de la vidéo. (Flash Coach : superman-tirage)
 ```
 
 ## 57. Squat avec pause — `squat-pause` (profil, 6 s)
@@ -525,36 +545,36 @@ Réponds seulement avec le lien de l'image et le lien de la vidéo. (Flash Coach
 
 ```text
 Avec Higgsfield, uniquement avec mes générations illimitées de l'essai gratuit, jamais mes crédits : si l'illimité est refusé, arrête-toi et dis-le-moi. Ne crée pas de projet.
-1. Génère une image GPT Image 2.6, format 1:1, avec l'image Higgsfield 1f3f545d-2aab-4b13-b6c9-0c2fca6ed6db en référence. Prompt : « Same woman as the reference image: same face, auburn hair in a high ponytail, orange sports bra, slate-blue leggings, off-white sneakers. Photorealistic studio photo, plain light grey-blue seamless background, soft even lighting, soft shadow on the floor, whole body in frame with margin all around. Strict side view, camera at 90 degrees to her body. High plank on a thin grey exercise mat, head toward the right of the frame, hands under her shoulders, arms straight, body in one straight line from head to heels. No text, no logo. »
-2. Puis génère une vidéo Seedance 2.5 : 4 s, format 1:1, 720p, sans son, avec l'image de l'étape 1 en première ET dernière image. Si ce réglage n'est pas couvert par l'illimité, prends le plus proche qui l'est et dis-le-moi. Prompt : « Same woman and same pose as in the image. She lifts her right hand to tap her left shoulder and puts it down, then her left hand taps her right shoulder and goes down. Hips stay perfectly still. Static locked-off camera, same plain light grey-blue studio background, soft even lighting. Controlled, realistic body mechanics, same face and outfit, whole body always in frame. She ends exactly in the starting pose. No camera movement, no zoom, no text, no logo. »
-Réponds seulement avec le lien de l'image et le lien de la vidéo. (Flash Coach : planche-epaules)
+Génère une vidéo Seedance 2.5 : 4 s, format 1:1, 720p, sans son, avec l'image Higgsfield 01d11df7-eb7d-4c67-a4ee-10579415cb05 en première ET dernière image. Si ce réglage n'est pas couvert par l'illimité, prends le plus proche qui l'est et dis-le-moi.
+Prompt : « Same woman and same pose as in the image. She lifts her right hand to tap her left shoulder and puts it down, then her left hand taps her right shoulder and goes down. Hips stay perfectly still. Static locked-off camera, same plain light grey-blue studio background, soft even lighting. Controlled, realistic body mechanics, same face and outfit, whole body always in frame. She ends exactly in the starting pose. No camera movement, no zoom, no text, no logo. »
+Réponds seulement avec le lien de la vidéo. (Flash Coach : planche-epaules)
 ```
 
 ## 60. La banane — `hollow-hold` (profil, 4 s)
 
 ```text
 Avec Higgsfield, uniquement avec mes générations illimitées de l'essai gratuit, jamais mes crédits : si l'illimité est refusé, arrête-toi et dis-le-moi. Ne crée pas de projet.
-1. Génère une image GPT Image 2.6, format 1:1, avec l'image Higgsfield 1f3f545d-2aab-4b13-b6c9-0c2fca6ed6db en référence. Prompt : « Same woman as the reference image: same face, auburn hair in a high ponytail, orange sports bra, slate-blue leggings, off-white sneakers. Photorealistic studio photo, plain light grey-blue seamless background, soft even lighting, soft shadow on the floor, whole body in frame with margin all around. Strict side view, camera at 90 degrees to her body. Hollow body hold on a thin grey exercise mat, head on the left of the frame: lying on her back, lower back pressed to the mat, shoulders and straight legs lifted off the floor, arms stretched overhead off the floor, body shaped like a banana. No text, no logo. »
-2. Puis génère une vidéo Seedance 2.5 : 4 s, format 1:1, 720p, sans son, avec l'image de l'étape 1 en première ET dernière image. Si ce réglage n'est pas couvert par l'illimité, prends le plus proche qui l'est et dis-le-moi. Prompt : « Same woman and same pose as in the image. She holds the hollow position, still, breathing calmly. Static locked-off camera, same plain light grey-blue studio background, soft even lighting. Controlled, realistic body mechanics, same face and outfit, whole body always in frame. She ends exactly in the starting pose. No camera movement, no zoom, no text, no logo. »
-Réponds seulement avec le lien de l'image et le lien de la vidéo. (Flash Coach : hollow-hold)
+Génère une vidéo Seedance 2.5 : 4 s, format 1:1, 720p, sans son, avec l'image Higgsfield cb173fae-036a-4f7f-97c9-68a38bf3f466 en première ET dernière image. Si ce réglage n'est pas couvert par l'illimité, prends le plus proche qui l'est et dis-le-moi.
+Prompt : « Same woman and same pose as in the image. She holds the hollow position, still, breathing calmly. Static locked-off camera, same plain light grey-blue studio background, soft even lighting. Controlled, realistic body mechanics, same face and outfit, whole body always in frame. She ends exactly in the starting pose. No camera movement, no zoom, no text, no logo. »
+Réponds seulement avec le lien de la vidéo. (Flash Coach : hollow-hold)
 ```
 
 ## 61. Relevés de jambes — `releves-jambes` (profil, 4 s)
 
 ```text
 Avec Higgsfield, uniquement avec mes générations illimitées de l'essai gratuit, jamais mes crédits : si l'illimité est refusé, arrête-toi et dis-le-moi. Ne crée pas de projet.
-1. Génère une image GPT Image 2.6, format 1:1, avec l'image Higgsfield 1f3f545d-2aab-4b13-b6c9-0c2fca6ed6db en référence. Prompt : « Same woman as the reference image: same face, auburn hair in a high ponytail, orange sports bra, slate-blue leggings, off-white sneakers. Photorealistic studio photo, plain light grey-blue seamless background, soft even lighting, soft shadow on the floor, whole body in frame with margin all around. Strict side view, camera at 90 degrees to her body. Lying on her back on a thin grey exercise mat, head on the left of the frame, feet on the right, arms along her body, legs straight and together, heels hovering just above the floor. No text, no logo. »
-2. Puis génère une vidéo Seedance 2.5 : 4 s, format 1:1, 720p, sans son, avec l'image de l'étape 1 en première ET dernière image. Si ce réglage n'est pas couvert par l'illimité, prends le plus proche qui l'est et dis-le-moi. Prompt : « Same woman and same pose as in the image. She raises her straight legs to vertical, then lowers them slowly, stopping just above the floor without touching it. Static locked-off camera, same plain light grey-blue studio background, soft even lighting. Controlled, realistic body mechanics, same face and outfit, whole body always in frame. She ends exactly in the starting pose. No camera movement, no zoom, no text, no logo. »
-Réponds seulement avec le lien de l'image et le lien de la vidéo. (Flash Coach : releves-jambes)
+Génère une vidéo Seedance 2.5 : 4 s, format 1:1, 720p, sans son, avec l'image Higgsfield 1150865c-afcf-4598-b9be-474ee5919e6a en première ET dernière image. Si ce réglage n'est pas couvert par l'illimité, prends le plus proche qui l'est et dis-le-moi.
+Prompt : « Same woman and same pose as in the image. She raises her straight legs to vertical, then lowers them slowly, stopping just above the floor without touching it. Static locked-off camera, same plain light grey-blue studio background, soft even lighting. Controlled, realistic body mechanics, same face and outfit, whole body always in frame. She ends exactly in the starting pose. No camera movement, no zoom, no text, no logo. »
+Réponds seulement avec le lien de la vidéo. (Flash Coach : releves-jambes)
 ```
 
 ## 62. Pompes diamant — `pompe-diamant` (profil, 4 s)
 
 ```text
 Avec Higgsfield, uniquement avec mes générations illimitées de l'essai gratuit, jamais mes crédits : si l'illimité est refusé, arrête-toi et dis-le-moi. Ne crée pas de projet.
-1. Génère une image GPT Image 2.6, format 1:1, avec l'image Higgsfield 1f3f545d-2aab-4b13-b6c9-0c2fca6ed6db en référence. Prompt : « Same woman as the reference image: same face, auburn hair in a high ponytail, orange sports bra, slate-blue leggings, off-white sneakers. Photorealistic studio photo, plain light grey-blue seamless background, soft even lighting, soft shadow on the floor, whole body in frame with margin all around. Strict side view, camera at 90 degrees to her body. High plank on a thin grey exercise mat, head toward the right of the frame, hands close together under her chest, thumbs and index fingers forming a diamond, arms straight, body in one straight line from head to heels. No text, no logo. »
-2. Puis génère une vidéo Seedance 2.5 : 4 s, format 1:1, 720p, sans son, avec l'image de l'étape 1 en première ET dernière image. Si ce réglage n'est pas couvert par l'illimité, prends le plus proche qui l'est et dis-le-moi. Prompt : « Same woman and same pose as in the image. She lowers her chest to her hands, elbows staying close to her body, then pushes back up. Static locked-off camera, same plain light grey-blue studio background, soft even lighting. Controlled, realistic body mechanics, same face and outfit, whole body always in frame. She ends exactly in the starting pose. No camera movement, no zoom, no text, no logo. »
-Réponds seulement avec le lien de l'image et le lien de la vidéo. (Flash Coach : pompe-diamant)
+Génère une vidéo Seedance 2.5 : 4 s, format 1:1, 720p, sans son, avec l'image Higgsfield 239d8bcb-4573-4b77-bd68-10ca598b1872 en première ET dernière image. Si ce réglage n'est pas couvert par l'illimité, prends le plus proche qui l'est et dis-le-moi.
+Prompt : « Same woman and same pose as in the image. She lowers her chest to her hands, elbows staying close to her body, then pushes back up. Static locked-off camera, same plain light grey-blue studio background, soft even lighting. Controlled, realistic body mechanics, same face and outfit, whole body always in frame. She ends exactly in the starting pose. No camera movement, no zoom, no text, no logo. »
+Réponds seulement avec le lien de la vidéo. (Flash Coach : pompe-diamant)
 ```
 
 ## 63. Pompes archer — `pompe-archer` (face, 4 s)
@@ -579,18 +599,18 @@ Réponds seulement avec le lien de l'image et le lien de la vidéo. (Flash Coach
 
 ```text
 Avec Higgsfield, uniquement avec mes générations illimitées de l'essai gratuit, jamais mes crédits : si l'illimité est refusé, arrête-toi et dis-le-moi. Ne crée pas de projet.
-1. Génère une image GPT Image 2.6, format 1:1, avec l'image Higgsfield 1f3f545d-2aab-4b13-b6c9-0c2fca6ed6db en référence. Prompt : « Same woman as the reference image: same face, auburn hair in a high ponytail, orange sports bra, slate-blue leggings, off-white sneakers. Photorealistic studio photo, plain light grey-blue seamless background, soft even lighting, soft shadow on the floor, whole body in frame with margin all around. Strict side view, camera at 90 degrees to her body. Pike position on a thin grey exercise mat, head toward the right of the frame: hands and feet on the floor, hips high in the air in an inverted V, arms and legs straight. No text, no logo. »
-2. Puis génère une vidéo Seedance 2.5 : 5 s, format 1:1, 720p, sans son, avec l'image de l'étape 1 en première ET dernière image. Si ce réglage n'est pas couvert par l'illimité, prends le plus proche qui l'est et dis-le-moi. Prompt : « Same woman and same pose as in the image. Hindu push-up: from the inverted V she dives forward, chest skimming just above the floor, rises into a cobra with arms straight and chest up, then pushes her hips back up to the inverted V. Static locked-off camera, same plain light grey-blue studio background, soft even lighting. Controlled, realistic body mechanics, same face and outfit, whole body always in frame. She ends exactly in the starting pose. No camera movement, no zoom, no text, no logo. »
-Réponds seulement avec le lien de l'image et le lien de la vidéo. (Flash Coach : pompe-hindoue)
+Génère une vidéo Seedance 2.5 : 5 s, format 1:1, 720p, sans son, avec l'image Higgsfield a6837665-0879-4075-9887-f0162cdcbbcb en première ET dernière image. Si ce réglage n'est pas couvert par l'illimité, prends le plus proche qui l'est et dis-le-moi.
+Prompt : « Same woman and same pose as in the image. Hindu push-up: from the inverted V she dives forward, chest skimming just above the floor, rises into a cobra with arms straight and chest up, then pushes her hips back up to the inverted V. Static locked-off camera, same plain light grey-blue studio background, soft even lighting. Controlled, realistic body mechanics, same face and outfit, whole body always in frame. She ends exactly in the starting pose. No camera movement, no zoom, no text, no logo. »
+Réponds seulement avec le lien de la vidéo. (Flash Coach : pompe-hindoue)
 ```
 
 ## 66. Pompe spider-man — `pompe-spiderman` (profil, 4 s)
 
 ```text
 Avec Higgsfield, uniquement avec mes générations illimitées de l'essai gratuit, jamais mes crédits : si l'illimité est refusé, arrête-toi et dis-le-moi. Ne crée pas de projet.
-1. Génère une image GPT Image 2.6, format 1:1, avec l'image Higgsfield 1f3f545d-2aab-4b13-b6c9-0c2fca6ed6db en référence. Prompt : « Same woman as the reference image: same face, auburn hair in a high ponytail, orange sports bra, slate-blue leggings, off-white sneakers. Photorealistic studio photo, plain light grey-blue seamless background, soft even lighting, soft shadow on the floor, whole body in frame with margin all around. Strict side view, camera at 90 degrees to her body. High plank on a thin grey exercise mat, head toward the right of the frame, hands under her shoulders, arms straight, body in one straight line from head to heels. No text, no logo. »
-2. Puis génère une vidéo Seedance 2.5 : 4 s, format 1:1, 720p, sans son, avec l'image de l'étape 1 en première ET dernière image. Si ce réglage n'est pas couvert par l'illimité, prends le plus proche qui l'est et dis-le-moi. Prompt : « Same woman and same pose as in the image. As she lowers into a push-up, her right knee (nearest the camera) comes out toward her right elbow; she pushes back up and the foot returns to the start. Static locked-off camera, same plain light grey-blue studio background, soft even lighting. Controlled, realistic body mechanics, same face and outfit, whole body always in frame. She ends exactly in the starting pose. No camera movement, no zoom, no text, no logo. »
-Réponds seulement avec le lien de l'image et le lien de la vidéo. (Flash Coach : pompe-spiderman)
+Génère une vidéo Seedance 2.5 : 4 s, format 1:1, 720p, sans son, avec l'image Higgsfield 01d11df7-eb7d-4c67-a4ee-10579415cb05 en première ET dernière image. Si ce réglage n'est pas couvert par l'illimité, prends le plus proche qui l'est et dis-le-moi.
+Prompt : « Same woman and same pose as in the image. As she lowers into a push-up, her right knee (nearest the camera) comes out toward her right elbow; she pushes back up and the foot returns to the start. Static locked-off camera, same plain light grey-blue studio background, soft even lighting. Controlled, realistic body mechanics, same face and outfit, whole body always in frame. She ends exactly in the starting pose. No camera movement, no zoom, no text, no logo. »
+Réponds seulement avec le lien de la vidéo. (Flash Coach : pompe-spiderman)
 ```
 
 ## 67. Planche penchée — `planche-penchee` (profil, 4 s)
@@ -606,9 +626,9 @@ Réponds seulement avec le lien de l'image et le lien de la vidéo. (Flash Coach
 
 ```text
 Avec Higgsfield, uniquement avec mes générations illimitées de l'essai gratuit, jamais mes crédits : si l'illimité est refusé, arrête-toi et dis-le-moi. Ne crée pas de projet.
-1. Génère une image GPT Image 2.6, format 1:1, avec l'image Higgsfield 1f3f545d-2aab-4b13-b6c9-0c2fca6ed6db en référence. Prompt : « Same woman as the reference image: same face, auburn hair in a high ponytail, orange sports bra, slate-blue leggings, off-white sneakers. Photorealistic studio photo, plain light grey-blue seamless background, soft even lighting, soft shadow on the floor, whole body in frame with margin all around. Strict side view, camera at 90 degrees to her body. Forearm plank on a thin grey exercise mat, head toward the right of the frame, elbows under her shoulders, body in one straight line from head to heels. No text, no logo. »
-2. Puis génère une vidéo Seedance 2.5 : 5 s, format 1:1, 720p, sans son, avec l'image de l'étape 1 en première ET dernière image. Si ce réglage n'est pas couvert par l'illimité, prends le plus proche qui l'est et dis-le-moi. Prompt : « Same woman and same pose as in the image. She places one hand then the other on the mat and pushes up to a high plank, then lowers one forearm then the other back down to the forearm plank. Hips stay level. Static locked-off camera, same plain light grey-blue studio background, soft even lighting. Controlled, realistic body mechanics, same face and outfit, whole body always in frame. She ends exactly in the starting pose. No camera movement, no zoom, no text, no logo. »
-Réponds seulement avec le lien de l'image et le lien de la vidéo. (Flash Coach : gainage-commando)
+Génère une vidéo Seedance 2.5 : 5 s, format 1:1, 720p, sans son, avec l'image Higgsfield 23b9aba4-978a-411f-b735-1d56876d7d2d en première ET dernière image. Si ce réglage n'est pas couvert par l'illimité, prends le plus proche qui l'est et dis-le-moi.
+Prompt : « Same woman and same pose as in the image. She places one hand then the other on the mat and pushes up to a high plank, then lowers one forearm then the other back down to the forearm plank. Hips stay level. Static locked-off camera, same plain light grey-blue studio background, soft even lighting. Controlled, realistic body mechanics, same face and outfit, whole body always in frame. She ends exactly in the starting pose. No camera movement, no zoom, no text, no logo. »
+Réponds seulement avec le lien de la vidéo. (Flash Coach : gainage-commando)
 ```
 
 ## 69. Fentes sautées — `fentes-sautees` (profil, 4 s)
@@ -642,18 +662,18 @@ Réponds seulement avec le lien de l'image et le lien de la vidéo. (Flash Coach
 
 ```text
 Avec Higgsfield, uniquement avec mes générations illimitées de l'essai gratuit, jamais mes crédits : si l'illimité est refusé, arrête-toi et dis-le-moi. Ne crée pas de projet.
-1. Génère une image GPT Image 2.6, format 1:1, avec l'image Higgsfield 1f3f545d-2aab-4b13-b6c9-0c2fca6ed6db en référence. Prompt : « Same woman as the reference image: same face, auburn hair in a high ponytail, orange sports bra, slate-blue leggings, off-white sneakers. Photorealistic studio photo, plain light grey-blue seamless background, soft even lighting, soft shadow on the floor, whole body in frame with margin all around. Strict side view, camera at 90 degrees to her body. Knee push-up position on a thin grey exercise mat, head toward the right of the frame: hands under her shoulders, arms straight, knees on the mat, feet lifted, body in one straight line from knees to head. No text, no logo. »
-2. Puis génère une vidéo Seedance 2.5 : 4 s, format 1:1, 720p, sans son, avec l'image de l'étape 1 en première ET dernière image. Si ce réglage n'est pas couvert par l'illimité, prends le plus proche qui l'est et dis-le-moi. Prompt : « Same woman and same pose as in the image. She lowers her chest between her hands until it almost touches the mat, then pushes back up. Body straight from knees to head. Static locked-off camera, same plain light grey-blue studio background, soft even lighting. Controlled, realistic body mechanics, same face and outfit, whole body always in frame. She ends exactly in the starting pose. No camera movement, no zoom, no text, no logo. »
-Réponds seulement avec le lien de l'image et le lien de la vidéo. (Flash Coach : pompe-genoux)
+Génère une vidéo Seedance 2.5 : 4 s, format 1:1, 720p, sans son, avec l'image Higgsfield 54ead757-6437-45de-8fa8-2f816722d633 en première ET dernière image. Si ce réglage n'est pas couvert par l'illimité, prends le plus proche qui l'est et dis-le-moi.
+Prompt : « Same woman and same pose as in the image. She lowers her chest between her hands until it almost touches the mat, then pushes back up. Body straight from knees to head. Static locked-off camera, same plain light grey-blue studio background, soft even lighting. Controlled, realistic body mechanics, same face and outfit, whole body always in frame. She ends exactly in the starting pose. No camera movement, no zoom, no text, no logo. »
+Réponds seulement avec le lien de la vidéo. (Flash Coach : pompe-genoux)
 ```
 
 ## 73. Pompes — `pompe-classique` (profil, 4 s)
 
 ```text
 Avec Higgsfield, uniquement avec mes générations illimitées de l'essai gratuit, jamais mes crédits : si l'illimité est refusé, arrête-toi et dis-le-moi. Ne crée pas de projet.
-1. Génère une image GPT Image 2.6, format 1:1, avec l'image Higgsfield 1f3f545d-2aab-4b13-b6c9-0c2fca6ed6db en référence. Prompt : « Same woman as the reference image: same face, auburn hair in a high ponytail, orange sports bra, slate-blue leggings, off-white sneakers. Photorealistic studio photo, plain light grey-blue seamless background, soft even lighting, soft shadow on the floor, whole body in frame with margin all around. Strict side view, camera at 90 degrees to her body. High plank on a thin grey exercise mat, head toward the right of the frame, hands under her shoulders, arms straight, body in one straight line from head to heels. No text, no logo. »
-2. Puis génère une vidéo Seedance 2.5 : 4 s, format 1:1, 720p, sans son, avec l'image de l'étape 1 en première ET dernière image. Si ce réglage n'est pas couvert par l'illimité, prends le plus proche qui l'est et dis-le-moi. Prompt : « Same woman and same pose as in the image. She lowers her whole body as one until her chest skims the mat, elbows at about 45 degrees, then pushes back up. Static locked-off camera, same plain light grey-blue studio background, soft even lighting. Controlled, realistic body mechanics, same face and outfit, whole body always in frame. She ends exactly in the starting pose. No camera movement, no zoom, no text, no logo. »
-Réponds seulement avec le lien de l'image et le lien de la vidéo. (Flash Coach : pompe-classique)
+Génère une vidéo Seedance 2.5 : 4 s, format 1:1, 720p, sans son, avec l'image Higgsfield 01d11df7-eb7d-4c67-a4ee-10579415cb05 en première ET dernière image. Si ce réglage n'est pas couvert par l'illimité, prends le plus proche qui l'est et dis-le-moi.
+Prompt : « Same woman and same pose as in the image. She lowers her whole body as one until her chest skims the mat, elbows at about 45 degrees, then pushes back up. Static locked-off camera, same plain light grey-blue studio background, soft even lighting. Controlled, realistic body mechanics, same face and outfit, whole body always in frame. She ends exactly in the starting pose. No camera movement, no zoom, no text, no logo. »
+Réponds seulement avec le lien de la vidéo. (Flash Coach : pompe-classique)
 ```
 
 ## 74. Y-T au sol — `tirage-yt` (face, 5 s)
@@ -669,16 +689,16 @@ Réponds seulement avec le lien de l'image et le lien de la vidéo. (Flash Coach
 
 ```text
 Avec Higgsfield, uniquement avec mes générations illimitées de l'essai gratuit, jamais mes crédits : si l'illimité est refusé, arrête-toi et dis-le-moi. Ne crée pas de projet.
-1. Génère une image GPT Image 2.6, format 1:1, avec l'image Higgsfield 1f3f545d-2aab-4b13-b6c9-0c2fca6ed6db en référence. Prompt : « Same woman as the reference image: same face, auburn hair in a high ponytail, orange sports bra, slate-blue leggings, off-white sneakers. Photorealistic studio photo, plain light grey-blue seamless background, soft even lighting, soft shadow on the floor, whole body in frame with margin all around. Strict side view, camera at 90 degrees to her body. On all fours on a thin grey exercise mat, head toward the right of the frame, hands under her shoulders, knees under her hips, back flat. No text, no logo. »
-2. Puis génère une vidéo Seedance 2.5 : 5 s, format 1:1, 720p, sans son, avec l'image de l'étape 1 en première ET dernière image. Si ce réglage n'est pas couvert par l'illimité, prends le plus proche qui l'est et dis-le-moi. Prompt : « Same woman and same pose as in the image. She extends her right arm forward and her left leg back until both are level with her flat back, holds one second, returns to all fours, then extends her left arm and right leg, holds, and returns. Static locked-off camera, same plain light grey-blue studio background, soft even lighting. Controlled, realistic body mechanics, same face and outfit, whole body always in frame. She ends exactly in the starting pose. No camera movement, no zoom, no text, no logo. »
-Réponds seulement avec le lien de l'image et le lien de la vidéo. (Flash Coach : bird-dog)
+Génère une vidéo Seedance 2.5 : 5 s, format 1:1, 720p, sans son, avec l'image Higgsfield 40561dce-ddee-45d0-ba65-a2bbcdee8b47 en première ET dernière image. Si ce réglage n'est pas couvert par l'illimité, prends le plus proche qui l'est et dis-le-moi.
+Prompt : « Same woman and same pose as in the image. She extends her right arm forward and her left leg back until both are level with her flat back, holds one second, returns to all fours, then extends her left arm and right leg, holds, and returns. Static locked-off camera, same plain light grey-blue studio background, soft even lighting. Controlled, realistic body mechanics, same face and outfit, whole body always in frame. She ends exactly in the starting pose. No camera movement, no zoom, no text, no logo. »
+Réponds seulement avec le lien de la vidéo. (Flash Coach : bird-dog)
 ```
 
 ## 76. Pont fessier sur une jambe — `pont-une-jambe` (profil, 4 s)
 
 ```text
 Avec Higgsfield, uniquement avec mes générations illimitées de l'essai gratuit, jamais mes crédits : si l'illimité est refusé, arrête-toi et dis-le-moi. Ne crée pas de projet.
-1. Génère une image GPT Image 2.6, format 1:1, avec l'image Higgsfield 1f3f545d-2aab-4b13-b6c9-0c2fca6ed6db en référence. Prompt : « Same woman as the reference image: same face, auburn hair in a high ponytail, orange sports bra, slate-blue leggings, off-white sneakers. Photorealistic studio photo, plain light grey-blue seamless background, soft even lighting, soft shadow on the floor, whole body in frame with margin all around. Strict side view, camera at 90 degrees to her body. Lying on her back on a thin grey exercise mat, head on the left of the frame, feet on the right, left knee bent with the foot flat on the floor, right leg (nearest the camera) stretched straight up in the air, arms along her body. No text, no logo. »
-2. Puis génère une vidéo Seedance 2.5 : 4 s, format 1:1, 720p, sans son, avec l'image de l'étape 1 en première ET dernière image. Si ce réglage n'est pas couvert par l'illimité, prends le plus proche qui l'est et dis-le-moi. Prompt : « Same woman and same pose as in the image. She lifts her hips by pushing through her left foot until shoulders, hips and knee are in line, right leg staying up, squeezes, then lowers her hips. Static locked-off camera, same plain light grey-blue studio background, soft even lighting. Controlled, realistic body mechanics, same face and outfit, whole body always in frame. She ends exactly in the starting pose. No camera movement, no zoom, no text, no logo. »
-Réponds seulement avec le lien de l'image et le lien de la vidéo. (Flash Coach : pont-une-jambe)
+Génère une vidéo Seedance 2.5 : 4 s, format 1:1, 720p, sans son, avec l'image Higgsfield 05fbf6ae-b555-436a-9b98-f7edfb2f7361 en première ET dernière image. Si ce réglage n'est pas couvert par l'illimité, prends le plus proche qui l'est et dis-le-moi.
+Prompt : « Same woman and same pose as in the image. She lifts her hips by pushing through her left foot until shoulders, hips and knee are in line, right leg staying up, squeezes, then lowers her hips. Static locked-off camera, same plain light grey-blue studio background, soft even lighting. Controlled, realistic body mechanics, same face and outfit, whole body always in frame. She ends exactly in the starting pose. No camera movement, no zoom, no text, no logo. »
+Réponds seulement avec le lien de la vidéo. (Flash Coach : pont-une-jambe)
 ```
